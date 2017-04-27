@@ -54,6 +54,6 @@ SOS子模块主要有：**SOS去中心化的配置管理模块**、**SOS掩码�
 
 ## 获取更多信息 ##
 
-**SOS(Smart OS)视频系统**介绍: http://blog.csdn.net/zhangrui_fslib_org/article/details/50535266
-QQ交流群：[463690330](https://jq.qq.com/?_wv=1027&k=47x6kh7 "sos分布式视频系统开发") 
+> **SOS(Smart OS)视频系统**介绍: http://blog.csdn.net/zhangrui_fslib_org/article/details/50535266
+> QQ交流群：[463690330](https://jq.qq.com/?_wv=1027&k=47x6kh7 "sos分布式视频系统开发") 
 
