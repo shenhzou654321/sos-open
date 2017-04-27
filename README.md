@@ -32,19 +32,19 @@ SOS子模块主要有：**SOS去中心化的配置管理模块**、**SOS掩码�
 **SOS-open**是**SOS(Smart OS)视频系统**的开源版本,继承**fslib框架**、**SOS去中心化的配置管理模块**、**SOS掩码通信模块**的所有功能及特性；
 
 1. **SOS-open 编译**
->-下载源码解压到Centos7下 如/opt/SOS-open,执行以下命令编译
->-cd /opt/SOS-open
->-make
->-编译结果在/opt/dist/linux下,文件名为sos
+>- 下载源码解压到Centos7下 如/opt/SOS-open,执行以下命令编译
+>- cd /opt/SOS-open
+>- make
+>- 编译结果在/opt/dist/linux下,文件名为sos
 
 1. **SOS-open 运行**
->-教程使用**SOS(Smart OS)视频系统**的环境运行,参考http://blog.csdn.net/zhangrui_fslib_org/article/details/54091949搭建好**SOS(Smart OS)视频系统**的环境运行,然后按如下操作进行;
->-停止服务器: systemctl stop sos ;
->-用u盘或ftp把编译的后的文件"sos"拷贝到测试机上替换" /fs/bin/sos " ;
->-用u盘或ftp把**fslib框架**的文件"libfslib.so"拷贝到测试机上替换" /usr/lib64/libfslib.so " ;
->-启动服务器: systemctl start sos ;
->-运行 debug 输入sos前的的序号,查看sos的实时信息;
->-如出现死机,在源码" Main/vsys/vsys.c "中查找代码" *(long*)childRun=0xFF; "删除,并观察出错信息与源码的关系;
+>- 教程使用**SOS(Smart OS)视频系统**的环境运行,参考http://blog.csdn.net/zhangrui_fslib_org/article/details/54091949搭建好**SOS(Smart OS)视频系统**的环境运行,然后按如下操作进行;
+>- 停止服务器: systemctl stop sos ;
+>- 用u盘或ftp把编译的后的文件"sos"拷贝到测试机上替换" /fs/bin/sos " ;
+>- 用u盘或ftp把**fslib框架**的文件"libfslib.so"拷贝到测试机上替换" /usr/lib64/libfslib.so " ;
+>- 启动服务器: systemctl start sos ;
+>- 运行 debug 输入sos前的的序号,查看sos的实时信息;
+>- 如出现死机,在源码" Main/vsys/vsys.c "中查找代码" *(long*)childRun=0xFF; "删除,并观察出错信息与源码的关系;
 
 
 ## 获取更多信息 ##
