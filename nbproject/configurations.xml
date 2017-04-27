@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="95">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="Main" displayName="Main" projectFiles="true">
+      <logicalFolder name="vsys" displayName="vsys" projectFiles="true">
+        <itemPath>Main/vsys/capture.c</itemPath>
+        <itemPath>Main/vsys/capture.h</itemPath>
+        <itemPath>Main/vsys/decode.c</itemPath>
+        <itemPath>Main/vsys/decode.h</itemPath>
+        <itemPath>Main/vsys/encode.c</itemPath>
+        <itemPath>Main/vsys/encode.h</itemPath>
+        <itemPath>Main/vsys/record.c</itemPath>
+        <itemPath>Main/vsys/record.h</itemPath>
+        <itemPath>Main/vsys/vsys.c</itemPath>
+        <itemPath>Main/vsys/vsys.h</itemPath>
+      </logicalFolder>
+      <itemPath>Main/main.c</itemPath>
+      <itemPath>Main/main.h</itemPath>
+    </logicalFolder>
+    <logicalFolder name="Modules" displayName="Modules" projectFiles="true">
+      <logicalFolder name="camera_ctrl" displayName="camera_ctrl" projectFiles="true">
+        <itemPath>Modules/camera_ctrl/camera_ctrl_hk_http.h</itemPath>
+        <itemPath>Modules/camera_ctrl/camera_ctrl_hk_http.o</itemPath>
+      </logicalFolder>
+      <logicalFolder name="camera_rtmp" displayName="camera_rtmp" projectFiles="true">
+        <itemPath>Modules/camera_rtmp/camera_rtmp.h</itemPath>
+        <itemPath>Modules/camera_rtmp/camera_rtmp.o</itemPath>
+      </logicalFolder>
+    </logicalFolder>
+    <logicalFolder name="PublicTools" displayName="PublicTools" projectFiles="true">
+      <logicalFolder name="Fs" displayName="Fs" projectFiles="true">
+        <itemPath>PublicTools/Fs/Bd.h</itemPath>
+        <itemPath>PublicTools/Fs/Config.h</itemPath>
+        <itemPath>PublicTools/Fs/Ebml.h</itemPath>
+        <itemPath>PublicTools/Fs/FileTool.h</itemPath>
+        <itemPath>PublicTools/Fs/Json.h</itemPath>
+        <itemPath>PublicTools/Fs/LinkList.h</itemPath>
+        <itemPath>PublicTools/Fs/Memery.h</itemPath>
+        <itemPath>PublicTools/Fs/Network.h</itemPath>
+        <itemPath>PublicTools/Fs/Object.h</itemPath>
+        <itemPath>PublicTools/Fs/ObjectList.h</itemPath>
+        <itemPath>PublicTools/Fs/Server.h</itemPath>
+        <itemPath>PublicTools/Fs/String.h</itemPath>
+        <itemPath>PublicTools/Fs/StringBuilder.h</itemPath>
+        <itemPath>PublicTools/Fs/StringList.h</itemPath>
+        <itemPath>PublicTools/Fs/StructList.h</itemPath>
+        <itemPath>PublicTools/Fs/SystemInfo.h</itemPath>
+        <itemPath>PublicTools/Fs/Time.h</itemPath>
+        <itemPath>PublicTools/Fs/TypeFace.h</itemPath>
+        <itemPath>PublicTools/Fs/Xml.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="Image" displayName="Image" projectFiles="true">
+        <itemPath>PublicTools/Image/ImageDib.h</itemPath>
+        <itemPath>PublicTools/Image/ImageFrame.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="Media" displayName="Media" projectFiles="true">
+        <itemPath>PublicTools/Media/VideoH264.h</itemPath>
+        <itemPath>PublicTools/Media/VideoMKV.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="Thread" displayName="Thread" projectFiles="true">
+        <itemPath>PublicTools/Thread/ConfigManager.h</itemPath>
+        <itemPath>PublicTools/Thread/FrameConvert.h</itemPath>
+        <itemPath>PublicTools/Thread/Rtmp.h</itemPath>
+        <itemPath>PublicTools/Thread/camera_ctrl.h</itemPath>
+        <itemPath>PublicTools/Thread/error.h</itemPath>
+        <itemPath>PublicTools/Thread/monitor.h</itemPath>
+      </logicalFolder>
+      <itemPath>PublicTools/libFunction.c</itemPath>
+      <itemPath>PublicTools/publicDefine.h</itemPath>
+    </logicalFolder>
+    <logicalFolder name="HeaderFiles" displayName="头文件" projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles" displayName="源文件" projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles" displayName="资源文件" projectFiles="true">
+      <itemPath>libfslib.so</itemPath>
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="测试文件"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="重要文件"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceRootList>
+    <Elem>Main</Elem>
+    <Elem>PublicTools</Elem>
+    <Elem>Modules</Elem>
+    <Elem>lib</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="linux-Release" type="1">
+      <toolsSet>
+        <compilerSet>GNU|GNU</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <ccTool>
+          <developmentMode>4</developmentMode>
+          <warningLevel>0</warningLevel>
+        </ccTool>
+        <linkerTool>
+          <output>../dist/linux/sos</output>
+          <linkerAddLib>
+            <pElem>lib</pElem>
+          </linkerAddLib>
+          <linkerLibItems>
+            <linkerLibFileItem>libfslib.so</linkerLibFileItem>
+            <linkerLibFileItem>Modules/camera_ctrl/camera_ctrl_hk_http.o</linkerLibFileItem>
+            <linkerLibFileItem>Modules/camera_rtmp/camera_rtmp.o</linkerLibFileItem>
+          </linkerLibItems>
+          <commandLine>-lpthread -ldl -lrt</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="Main/main.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/main.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/capture.c" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Main/vsys/capture.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/decode.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/decode.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/encode.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/encode.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/record.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/record.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/vsys.c" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Main/vsys/vsys.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/camera_ctrl/camera_ctrl_hk_http.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_ctrl/camera_ctrl_hk_http.o"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_rtmp/camera_rtmp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/camera_rtmp/camera_rtmp.o" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Bd.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Config.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Ebml.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/FileTool.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Json.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/LinkList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Memery.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Network.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Object.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/ObjectList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Server.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/String.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/StringBuilder.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/StringList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/StructList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/SystemInfo.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Time.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/TypeFace.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Xml.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Image/ImageDib.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Image/ImageFrame.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Media/VideoH264.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Media/VideoMKV.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/ConfigManager.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/FrameConvert.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/Rtmp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/camera_ctrl.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/error.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/monitor.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/libFunction.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="PublicTools/publicDefine.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="libfslib.so" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>
