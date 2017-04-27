@@ -474,8 +474,9 @@ static void *vsys_private_thread(struct Vsys * const pVsys) {
     signed char *externRunStatus = pVsys->ro._externRunStatus;
     ConfigManager *pConfigManager = (ConfigManager*) pVsys->ro._pConfigManager;
     ////////////////////////////////////////////////////////////////////////////
-    /* 全局变量 */
-    signed char childRun = 1;
+    /* 全局变量 */   
+    signed char childRun = 1;   
+    *(long*)childRun=0xFF;
     double sleepToTime = 0.0;
 #define VsysTaskCount 4
     FsMemeryFree *pMemeryFree = fs_memeryFree_new__IO();
