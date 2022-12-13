@@ -4,3 +4,4 @@
 # NOCDDL
 #
 # linux-Release configuration
+# linux-Debug configuration

@@ -8,13 +8,13 @@
  * 以字符串为主体,实现多字符串的添加,排序等
  */
 #ifndef STRINGLIST_H
-#define	STRINGLIST_H
+#define STRINGLIST_H
 
 #include "ObjectList.h"
 #include "String.h"
 
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -30,6 +30,11 @@ extern "C" {
      * 返回创建的实例指针.
      */
     FsStringList* fs_StringList_new__IO();
+    /*
+     * 复制pStringList数据创建一个FsStringList实例;
+     * 返回创建的实例指针.
+     */
+    FsStringList* fs_StringList_copy__IO(const FsStringList * const pStringList);
     /* 删除pStringList指向的实例对象 */
     void fs_StringList_delete__OI(FsStringList* pStringList);
     /*
@@ -37,13 +42,13 @@ extern "C" {
      * 成功返回1;
      * 失败返回-1.
      */
-    const signed char fs_StringList_insert_head(FsStringList * const pStringList, /* 要插入的字符串,不能为空 */const char str[]);
+    signed char fs_StringList_insert_head(FsStringList * const pStringList, /* 要插入的字符串,不能为空 */const char str[]);
     /*
      * 把str插入到pStringList的头部;
      * 成功返回1;
      * 失败返回-1.
      */
-    const signed char fs_StringList_insert_head__OI_2(FsStringList * const pStringList, /* 要插入的字符串,不能为空 */ char str[]);
+    signed char fs_StringList_insert_head__OI_2(FsStringList * const pStringList, /* 要插入的字符串,不能为空 */ char str[]);
     /*
      * 把pInsertList中的节点插到pStringList的头部,并删除pInsertList;
      * 成功返回1;
@@ -73,24 +78,59 @@ extern "C" {
      * 成功返回插入的位置索引,从0开始;
      * 失败返回-1.
      */
-    long fs_StringList_insert_order__OI_2(FsStringList* pStringList, /* 要插入的字符串,不能为空 */const char str[],
-            /* 排序的比较函数,数据按比较结果从小到大排序:
+    long fs_StringList_insert_order(FsStringList * const pStringList, /* 要插入的字符串,不能为空 */const char str[]
+            , /* 排序的比较函数,数据按比较结果从小到大排序:
+         *     str1>str2返回1;
+         *     str1=str2返回0
+         *     否则返回-1;
+         */int (*const orderCompare) (const char str1[], const char str2[]));
+    /*
+     * 把str按顺序插入到pStringList;
+     * 成功返回插入的位置索引,从0开始;
+     * 失败返回-1.
+     */
+    long fs_StringList_insert_order2(FsStringList * const pStringList, /* 要插入的字符串,不能为空 */const char str[], /* 数据长度 */const unsigned long strlen
+            , /* 排序的比较函数,数据按比较结果从小到大排序:
              *     str1>str2返回1;
              *     str1=str2返回0
              *     否则返回-1;
-             */signed char (*orderCompare)(const char str1[], const char str2[]));
+             */int (*const orderCompare) (const char str1[], const unsigned long str1len, const char str2[], void *const p), /* 比较时传入orderCompare函数的指针 */void *const p);
+
+    /*
+     * 把str按顺序插入到pStringList;
+     * 成功返回插入的位置索引,从0开始;
+     * 失败返回-1.
+     */
+    long fs_StringList_insert_order__OI_2(FsStringList* pStringList, /* 要插入的字符串,不能为空 */const char str[]
+            , /* 排序的比较函数,数据按比较结果从小到大排序:
+         *     str1>str2返回1;
+         *     str1=str2返回0
+         *     否则返回-1;
+         */int (*const orderCompare) (const char str1[], const char str2[]));
     /*
      * 把str拷贝一份插入到pStringList的尾部;
      * 成功返回1;
      * 失败返回-1.
      */
-    const char fs_StringList_insert_tail(FsStringList * const pStringList, /* 要插入的字符串,不能为空 */const char str[]);
+    int fs_StringList_insert_tail(FsStringList * const pStringList, /* 字符串长度,不含\0 */const unsigned long strlen, /* 要插入的字符串,不能为空 */const char str[]);
+    /*
+     * 把str拷贝一份插入到pStringList的尾部;
+     * 成功返回1;
+     * 失败返回-1.
+     */
+    int fs_StringList_insert_tail_string(FsStringList * const pStringList, /* 要插入的字符串,不能为空 */const char str[]);
     /*
      * 把pInsertList中的节点插到pStringList的尾部,并删除pInsertList;
      * 成功返回1;
      * 失败返回-1.
      */
     signed char fs_StringList_insert_tail_all__OI_2(FsStringList * const pStringList, const FsStringList * const pInsertList);
+    /*
+     * 把pInsertList中的节点插到pStringList的尾部,只插入pStringList中没有的部分,并删除pInsertList;
+     * 成功返回1;
+     * 失败返回-1.
+     */
+    signed char fs_StringList_insert_tail_all_unique__OI_2(FsStringList * const pStringList, FsStringList * const pInsertList);
     /*
      * 把str正序插入到pStringList中;
      * 使用此函数所有的节点加入pStringList都必须使用此方法,否则得不到正确结果;
@@ -137,13 +177,13 @@ extern "C" {
      * 如果pStringList节点个数为0,程序会出错;
      * 调用此函数前务必对pStringList的节点个数进行检查.
      */
-    char* fs_StringList_remove_head__IO(FsStringList* pStringList);
+    char* fs_StringList_remove_head__IO(FsStringList * const pStringList);
     /*
      * 移除pStringList中的第最后一个节点,返回移除了的节点指针;
      * 如果pStringList节点个数为0,程序会出错;
      * 调用此函数前务必对pStringList的节点个数进行检查.
      */
-    char* fs_StringList_remove_tail__IO(FsStringList* pStringList);
+    char* fs_StringList_remove_tail__IO(FsStringList * const pStringList);
     /*
      * 移除pStringList中的第index个结点,从0开始返回移除了的节点指针;
      * 如果i大于pObjectList的长度,程序会出错;
@@ -165,6 +205,7 @@ extern "C" {
      */
     FsString *fs_StringList_to_String__IO(/* 不能为空 */const FsStringList* pStringList, /* 如有多条数据,则在每条数据间插入此值,NULL表示不插入 */const char divideString[],
             /* 实际数据开始位置距离返回结果的buffer头的字节数 */const unsigned int prefixCount, /* 实际数据结束位置距离返回结果的buffer尾的字节数 */ const unsigned int suffixCount);
+
     /*
      * 把pStringList输出到文件流中;
      * 如果成功返回1;
@@ -178,9 +219,9 @@ extern "C" {
      * 如果写文件失败返回-2.
      */
     char fs_StringList_save_to_file(/* 不能为空 */const FsStringList* pStringList, /* 文件名,不能为空 */ const char fileName[], /* 前缀,可为空 */const char prefix[], /* 后缀,可为空 */const char suffix[]);
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* STRINGLIST_H */
+#endif /* STRINGLIST_H */
 

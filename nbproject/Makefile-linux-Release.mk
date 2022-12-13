@@ -21,7 +21,7 @@ FC=gfortran
 AS=as
 
 # Macros
-CND_PLATFORM=GNU-Linux-x86
+CND_PLATFORM=GNU-Linux
 CND_DLIB_EXT=so
 CND_CONF=linux-Release
 CND_DISTDIR=dist
@@ -39,17 +39,26 @@ OBJECTFILES= \
 	${OBJECTDIR}/Main/vsys/capture.o \
 	${OBJECTDIR}/Main/vsys/decode.o \
 	${OBJECTDIR}/Main/vsys/encode.o \
+	${OBJECTDIR}/Main/vsys/inflrayObject.o \
+	${OBJECTDIR}/Main/vsys/output-ebml.o \
+	${OBJECTDIR}/Main/vsys/output-xml-comment.o \
+	${OBJECTDIR}/Main/vsys/recognition.o \
 	${OBJECTDIR}/Main/vsys/record.o \
+	${OBJECTDIR}/Main/vsys/targetCheck.o \
+	${OBJECTDIR}/Main/vsys/vdomelinkage.o \
+	${OBJECTDIR}/Main/vsys/vehicleDetect.o \
+	${OBJECTDIR}/Main/vsys/vgunlinkage.o \
 	${OBJECTDIR}/Main/vsys/vsys.o \
-	${OBJECTDIR}/PublicTools/libFunction.o
+	${OBJECTDIR}/Main/vsys/vtrack.o \
+	${OBJECTDIR}/PublicTools/Fs/CycleList.o
 
 
 # C Compiler Flags
-CFLAGS=
+CFLAGS=-D_GNU_SOURCE -ffunction-sections
 
 # CC Compiler Flags
-CCFLAGS=
-CXXFLAGS=
+CCFLAGS=-ffunction-sections
+CXXFLAGS=-ffunction-sections
 
 # Fortran Compiler Flags
 FFLAGS=
@@ -58,56 +67,97 @@ FFLAGS=
 ASFLAGS=
 
 # Link Libraries and Options
-LDLIBSOPTIONS=-Llib libfslib.so Modules/camera_ctrl/camera_ctrl_hk_http.o Modules/camera_rtmp/camera_rtmp.o
+LDLIBSOPTIONS=-Llib -lHCAlarm -lHCCore -lHCCoreDevCfg -lHCDisplay -lHCGeneralCfgMgr -lHCIndustry -lHCPlayBack -lHCPreview -lHCVoiceTalk -lStreamTransClient -lSystemTransform -lanalyzedata -lhcnetsdk -lhpr libzos.a
 
 # Build Targets
 .build-conf: ${BUILD_SUBPROJECTS}
-	"${MAKE}"  -f nbproject/Makefile-${CND_CONF}.mk ../dist/linux/sos
+	"${MAKE}"  -f nbproject/Makefile-${CND_CONF}.mk ../dist/linux/zos
 
-../dist/linux/sos: libfslib.so
+../dist/linux/zos: libzos.a
 
-../dist/linux/sos: Modules/camera_ctrl/camera_ctrl_hk_http.o
-
-../dist/linux/sos: Modules/camera_rtmp/camera_rtmp.o
-
-../dist/linux/sos: ${OBJECTFILES}
+../dist/linux/zos: ${OBJECTFILES}
 	${MKDIR} -p ../dist/linux
-	${LINK.cc} -o ../dist/linux/sos ${OBJECTFILES} ${LDLIBSOPTIONS} -lpthread -ldl -lrt
+	${LINK.cc} -o ../dist/linux/zos ${OBJECTFILES} ${LDLIBSOPTIONS} -Wl,--gc-sections,-rpath,./:/usr/local/lib:/usr/local/cuda/lib64:/usr/local/cuda/libnsight:/usr/local/cuda/libnvvp -lpthread -ldl -lrt
 
-${OBJECTDIR}/Main/main.o: Main/main.c 
+${OBJECTDIR}/Main/main.o: Main/main.c
 	${MKDIR} -p ${OBJECTDIR}/Main
 	${RM} "$@.d"
-	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/main.o Main/main.c
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/main.o Main/main.c
 
-${OBJECTDIR}/Main/vsys/capture.o: Main/vsys/capture.c 
+${OBJECTDIR}/Main/vsys/capture.o: Main/vsys/capture.c
 	${MKDIR} -p ${OBJECTDIR}/Main/vsys
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -O2 -w -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/capture.o Main/vsys/capture.c
+	$(COMPILE.cc) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/capture.o Main/vsys/capture.c
 
-${OBJECTDIR}/Main/vsys/decode.o: Main/vsys/decode.c 
+${OBJECTDIR}/Main/vsys/decode.o: Main/vsys/decode.c
 	${MKDIR} -p ${OBJECTDIR}/Main/vsys
 	${RM} "$@.d"
-	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/decode.o Main/vsys/decode.c
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/decode.o Main/vsys/decode.c
 
-${OBJECTDIR}/Main/vsys/encode.o: Main/vsys/encode.c 
+${OBJECTDIR}/Main/vsys/encode.o: Main/vsys/encode.c
 	${MKDIR} -p ${OBJECTDIR}/Main/vsys
 	${RM} "$@.d"
-	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/encode.o Main/vsys/encode.c
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/encode.o Main/vsys/encode.c
 
-${OBJECTDIR}/Main/vsys/record.o: Main/vsys/record.c 
+${OBJECTDIR}/Main/vsys/inflrayObject.o: Main/vsys/inflrayObject.c
 	${MKDIR} -p ${OBJECTDIR}/Main/vsys
 	${RM} "$@.d"
-	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/record.o Main/vsys/record.c
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/inflrayObject.o Main/vsys/inflrayObject.c
 
-${OBJECTDIR}/Main/vsys/vsys.o: Main/vsys/vsys.c 
+${OBJECTDIR}/Main/vsys/output-ebml.o: Main/vsys/output-ebml.c
 	${MKDIR} -p ${OBJECTDIR}/Main/vsys
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -O2 -w -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/vsys.o Main/vsys/vsys.c
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/output-ebml.o Main/vsys/output-ebml.c
 
-${OBJECTDIR}/PublicTools/libFunction.o: PublicTools/libFunction.c 
-	${MKDIR} -p ${OBJECTDIR}/PublicTools
+${OBJECTDIR}/Main/vsys/output-xml-comment.o: Main/vsys/output-xml-comment.c
+	${MKDIR} -p ${OBJECTDIR}/Main/vsys
 	${RM} "$@.d"
-	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/PublicTools/libFunction.o PublicTools/libFunction.c
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/output-xml-comment.o Main/vsys/output-xml-comment.c
+
+${OBJECTDIR}/Main/vsys/recognition.o: Main/vsys/recognition.c
+	${MKDIR} -p ${OBJECTDIR}/Main/vsys
+	${RM} "$@.d"
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/recognition.o Main/vsys/recognition.c
+
+${OBJECTDIR}/Main/vsys/record.o: Main/vsys/record.c
+	${MKDIR} -p ${OBJECTDIR}/Main/vsys
+	${RM} "$@.d"
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/record.o Main/vsys/record.c
+
+${OBJECTDIR}/Main/vsys/targetCheck.o: Main/vsys/targetCheck.c
+	${MKDIR} -p ${OBJECTDIR}/Main/vsys
+	${RM} "$@.d"
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/targetCheck.o Main/vsys/targetCheck.c
+
+${OBJECTDIR}/Main/vsys/vdomelinkage.o: Main/vsys/vdomelinkage.c
+	${MKDIR} -p ${OBJECTDIR}/Main/vsys
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/vdomelinkage.o Main/vsys/vdomelinkage.c
+
+${OBJECTDIR}/Main/vsys/vehicleDetect.o: Main/vsys/vehicleDetect.c
+	${MKDIR} -p ${OBJECTDIR}/Main/vsys
+	${RM} "$@.d"
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/vehicleDetect.o Main/vsys/vehicleDetect.c
+
+${OBJECTDIR}/Main/vsys/vgunlinkage.o: Main/vsys/vgunlinkage.c
+	${MKDIR} -p ${OBJECTDIR}/Main/vsys
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/vgunlinkage.o Main/vsys/vgunlinkage.c
+
+${OBJECTDIR}/Main/vsys/vsys.o: Main/vsys/vsys.c
+	${MKDIR} -p ${OBJECTDIR}/Main/vsys
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/vsys.o Main/vsys/vsys.c
+
+${OBJECTDIR}/Main/vsys/vtrack.o: Main/vsys/vtrack.c
+	${MKDIR} -p ${OBJECTDIR}/Main/vsys
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/vtrack.o Main/vsys/vtrack.c
+
+${OBJECTDIR}/PublicTools/Fs/CycleList.o: PublicTools/Fs/CycleList.c
+	${MKDIR} -p ${OBJECTDIR}/PublicTools/Fs
+	${RM} "$@.d"
+	$(COMPILE.c) -g -Wall -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux -I/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/PublicTools/Fs/CycleList.o PublicTools/Fs/CycleList.c
 
 # Subprojects
 .build-subprojects:
@@ -115,7 +165,6 @@ ${OBJECTDIR}/PublicTools/libFunction.o: PublicTools/libFunction.c
 # Clean Targets
 .clean-conf: ${CLEAN_SUBPROJECTS}
 	${RM} -r ${CND_BUILDDIR}/${CND_CONF}
-	${RM} ../dist/linux/sos
 
 # Subprojects
 .clean-subprojects:

@@ -6,15 +6,26 @@
  */
 
 #ifndef STRING_H
-#define	STRING_H
-#include "../publicDefine.h"
+#define STRING_H
+#include "../../PublicTools/publicDefine.h"
 #include <stdio.h>
-#include "ObjectList.h"
-#include "Object.h"
-#ifdef	__cplusplus
+#include "../../PublicTools/Fs/Memery.h"
+#include "../../PublicTools/Fs/Object.h"
+#include "../../PublicTools/Fs/ObjectList.h"
+#ifdef __cplusplus
 extern "C" {
 #endif
 #define FsMd5CheckSumEqual(checkSum1,checkSum2) ((checkSum1)[0] == (checkSum2)[0] &&(checkSum1)[1] == (checkSum2)[1] &&(checkSum1)[2] == (checkSum2)[2] &&(checkSum1)[3] == (checkSum2)[3])
+    /* 判断str字符串的长度,为空返回0 */
+#define FsStrlen(str) ((str)?strlen(str):0)
+    /* 获取str的打印信息,为空返回defaultStr */
+#define FsStrprint(str,defaultStr) ((str)?(str):(defaultStr))
+    /* 获取str的打印信息,conditionStr,trueStr,falseStr都是base的成员 */
+#define FsStrprintBase(base,conditionStr,trueStr,falseStr) ((base)->conditionStr?(base)->trueStr:(base)->falseStr)
+    /* 获取str的打印信息,conditionStr,trueStr都是base的成员 */
+#define FsStrprintBaseTrue(base,conditionStr,trueStr,falseStr) ((base)->conditionStr?(base)->trueStr:(falseStr))
+    /* 获取数字n(不大于4^32)按10进制打印的长度 */
+#define FsNumToStringlen(n) ((n)<10?1:((n)<100?2:((n)<1000?3:((n)<10000?4:((n)<100000?5:(n)<1000000?6:((n)<10000000?7:((n)<100000000?8:((n)<1000000000?9:10))))))))
 
     /* 字符串编码类型 */
     typedef enum {
@@ -42,6 +53,46 @@ extern "C" {
         /* 数据区,内存大小不可直接修改,必须用函数操作 */
         char* buffer;
     } FsObjectString;
+#define FsStringDataLen(str) str,sizeof(str)-1
+#define FsStringDataLen0(str) str,sizeof(str)
+#define FsStringLenData(str) sizeof(str)-1,str
+#define FsStringLen0Data(str) sizeof(str),str
+
+    /* 用于快速匹配给定的字符串是哪种预定义值 */
+    typedef struct {
+        /* 预定义字符串 */
+        const char *data;
+        /* 字符串长度 */
+        unsigned short dataLen;
+        /* 匹配此字符串时的预定义值 */
+        signed short value;
+    } FsStringMatch;
+    //
+    //    /* 可自定义删除方式的字符串结构 */
+    //    typedef struct {
+    //        /* 数据区,建议使用8字节对齐,内存大小不可直接修改,必须用函数操作 */
+    //        char* buffer;
+    //        /* 数据长度 */
+    //        unsigned long lenth;
+    //        /* 对象删除的方法 */
+    //        void (*_delete)(void*);
+    //    } FsStringObject;
+    //
+    //    typedef struct {
+    //        FsStringObject stringObject;
+    //        /* 引用计数 */
+    //        unsigned int referCount;
+    //    } FsStringObject_refer;
+    //
+    //    typedef struct {
+    //        FsStringObject stringObject;
+    //        /* 互斥锁 */
+    //        pthread_mutex_t mutex;
+    //        /* 引用计数 */
+    //        unsigned int referCount;
+    //    } FsStringObject_referPthreadSafety;
+
+
     /*
      * 创建一个FsString实例;
      * bufferLenth:创建时分配的空间大小;
@@ -119,7 +170,16 @@ extern "C" {
      * 如果打开文件失败返回-1;
      * 如果写文件失败返回-2.
      */
-    signed char fs_String_buffer_save_to_file(/* 要保存的数据长度,必须大于0 */const unsigned long bufferLenth, /* 要保存的数据开始地址 */const char buffer[], /* 文件名 */const char filename[]);
+    int fs_String_buffer_save_to_file(/* 要保存的数据长度,必须大于0 */const unsigned long bufferLenth, /* 要保存的数据开始地址 */const char buffer[], /* 文件名 */const char filename[]);
+    /*
+     * 把buffer保存在目录中;
+     * 如果成功返回1;
+     * 如果打开文件失败返回-1;
+     * 如果写文件失败返回-2;
+     * 目录已满返回-3.
+     */
+    signed char fs_String_buffer_save_to_dir4(/* 要保存的数据长度,必须大于0 */const unsigned long bufferLenth, /* 要保存的数据开始地址 */const char buffer[], /* 目录名 */ char dirName[]);
+
     /*
      * 把pString保存在文件中;
      * 如果成功返回1;
@@ -154,6 +214,7 @@ extern "C" {
      * dstCode:只支持FsStringCode_UTF8和FsStringCode_GBK.
      */
     FsString* fs_String_code__IO(const FsString* pString, FsStringCode srcCode, const FsStringCode dstCode);
+
     /* 获取字符串中的字符个数 */
     unsigned long fs_String_buffer_get_chars(/* buffer长度,为0返回0 */unsigned long bufferLen, /* 字符串开始位置 */const unsigned char buffer[], /* 为FsStringCode_Unkown表示自动检测 */FsStringCode srcCode);
     /* 获取字符串占的字符宽度,汉字占两个字符位,英文占一个字符位 */
@@ -176,6 +237,12 @@ extern "C" {
      */
     unsigned long fs_String_buffer_encode_by_base64_custom_from_string(/* 编码结果储存的空间,必须足够大 */unsigned char rstBuffer[],
             /* 数据长度,必须大于0 */const unsigned long bufferLen, /* 数据开始指针位置 */const char buffer[], /* base64的编码码表,不能为空 */const unsigned char base64[]);
+    /*
+     * 把buffer用特定的Base64表进行编码,编码过程倒序执行;
+     * 函数不会失败,返回编码后的长度.
+     */
+    unsigned long fs_String_buffer_encode_by_base64_custom_from_string_reverse(/* 编码结果储存的空间,必须足够大 */unsigned char rstBuffer[],
+            /* 数据开始指针位置 */const char buffer[], /* 数据长度,必须大于0 */register const unsigned long bufferLen, /* base64的编码码表,不能为空 */register const unsigned char base64[]);
     /*
      * 把buffer用预定义的Base64表进行编码;
      * 函数不会失败,返回编码后的长度.
@@ -203,6 +270,13 @@ extern "C" {
      * 失败返回-1;
      */
     long fs_String_buffer_decode_from_base64(/* 储存解码结果的指针,大小 */char rst_buffer[], /* 解码的数据长度,必须大于0 */unsigned long bufferLen, /* 解码的buffer */const char buffer[]);
+    /*
+     * 用自定义的Base64表解码Base64编码的buffer;
+     * 成功返回解码后的长度;
+     * 失败返回-1;
+     */
+    long fs_String_buffer_decode_from_base64_custom(/* 储存解码结果的指针,大小必须足够大 */char rst_buffer[], /* 解码的buffer */const char buffer[], /* 解码的数据长度,必须大于0 */unsigned long bufferLen,
+            /* base64的解码表,不能为空 */const unsigned char base64[]);
     /*
      * 用预定义的Base64表解码Base64编码的buffer;
      * 成功返回解码后的FsString指针;
@@ -244,6 +318,14 @@ extern "C" {
      * 失败返回-1.
      */
     long fs_String_buffer_indexOf_stringBuffer(unsigned long srcBufferLenth, const char srcBuffer[], const unsigned long findBufferLenth, const char findBuffer[]);
+
+    /*
+     * 查找findBuffer在srcBuffer中出现的第一个位置;
+     * srcBufferLenth与findBufferLenth不能同时为0;
+     * 成功返回第一个findBuffer在srcBuffer中的指针;
+     * 失败返回-1.
+     */
+    char* fs_String_buffer_strstr_stringBuffer(unsigned long srcBufferLenth, const char srcBuffer[], const unsigned long findBufferLenth, const char findBuffer[]);
     /*
      * 查找findString在srcBuffer中出现的第一个位置;
      * 成功返回findBuffer的索引;
@@ -267,7 +349,7 @@ extern "C" {
      * 成功返回指针;
      * 失败返回NULL.
      */
-    char* fs_String_buffer_posOf_buffer(unsigned long srcBufferLenth, char srcBuffer[], /* 要查找的字符串长度 */const unsigned long findBufferLenth, /* 不能为空 */const char findBuffer[]);
+    char* fs_String_buffer_posOf_buffer(unsigned long srcBufferLenth, const char srcBuffer[], /* 要查找的字符串长度 */const unsigned long findBufferLenth, /* 不能为空 */const char findBuffer[]);
     /*
      * 查找findString在srcBuffer中出现的第一个位置;
      * 成功返回指针;
@@ -339,27 +421,44 @@ extern "C" {
      */
     FsString *fs_String_cat__IO(const char str1[], const char str2[]);
     /* 获取buffer的校验值,用INT表示 */
-    unsigned int fs_String_buffer_intSum(/* 要校验的buffer的长度,可为0 */const unsigned long bufferLenth, /* 要校验的buffer,可为空 */char buffer[]);
+    unsigned int fs_String_buffer_intSum(/* 要校验的buffer的长度,可为0 */unsigned long bufferLenth, /* 要校验的buffer,可为空 */ const char buffer[]);
+    /* 获取buffer的校验值,用INT表示,只占3字节 */
+    unsigned int fs_String_buffer_24bitSum(/* 要校验的buffer的长度,可为0 */ unsigned long bufferLenth, /* 要校验的buffer,可为空 */const char buffer[]);
+
     /* 获取buffer的md5校验值,结果为二进制数据 */
     void fs_String_buffer_md5sum(/* 接收结果的缓存空间,大小为16字节 */ unsigned int rst_4[], /* 要校验的buffer的长度,可为0 */ const unsigned long bufferLenth, /* 要校验的buffer,必须为4字节对齐,可为空 */ const char buffer[]);
     /* 获取buffer的md5校验值,结果为二进制数据,长度为16字节 */
     char *fs_String_buffer_md5sum__IO(/* 要校验的buffer的长度,可为0 */const unsigned long bufferLenth, /* 要校验的buffer,必须为4字节对齐,可为空 */const char buffer[]);
     /* 获取buffer的md5校验值,结果为字符串 */
-    void fs_String_buffer_md5sum_string(/* 结果储存的buffer,如果rst_32[0]为1结果用大写字母表示,否则用小写字母 */char rst_32[],
-            /* 要校验的buffer的长度,可为0 */const unsigned long bufferLenth, /* 要校验的buffer,必须为4字节对齐,可为空 */ const char buffer[]);
+    void fs_String_buffer_md5sum_string(/* 结果储存的buffer,如果rst_32[0]为1结果用大写字母表示,否则用小写字母 */char rst_32[]
+            , /* 要校验的buffer的长度,可为0 */const unsigned long bufferLenth, /* 要校验的buffer,必须为4字节对齐,可为空 */ const char buffer[]);
     /* 获取buffer的md5校验值,结果为字符串 */
-    char *fs_String_buffer_md5sum_string__IO(/* 要校验的buffer的长度,可为0 */const unsigned long bufferLenth,
-            /* 要校验的buffer,必须为4字节对齐,可为空 */ const char buffer[],
-            /* 为1表示结果中的字母用大写字母表示,其它表示用小写字母表示 */const char upper);
+    char *fs_String_buffer_md5sum_string__IO(/* 要校验的buffer的长度,可为0 */const unsigned long bufferLenth
+            , /* 要校验的buffer,必须为4字节对齐,可为空 */ const char buffer[], /* 为1表示结果中的字母用大写字母表示,其它表示用小写字母表示 */const char upper);
     /* 获取buffer的md5校验值,结果为二进制数据 */
     void fs_String_md5sum(/* 接收结果的缓存空间,大小为16字节 */ unsigned int rst_4[], /* buffer必须为4字节对齐 */const FsString *pString);
     /* 获取pString的md5校验值,结果为字符串 */
     char* fs_String_md5sum_string__IO(/* buffer必须为4字节对齐 */const FsString *pString, /* 为1表示结果中的字母用大写字母表示,其它表示用小写字母表示 */const char upper);
+    /* 计算3段数据的md5值md5sum(v1_cin:v2_cin:v3_cin),返回偏移量 */
+    unsigned int fs_String_buffer_md5sum3(/* v1 */const char v1_cin[], /* v1长度 */const unsigned int v1Len, /* v2 */const char v2_cin[], /* v2长度 */const unsigned int v2Len, /* v3 */const char v3_cin[], /* v3长度 */const unsigned int v3Len
+            , /* 共享buffer,不为空 */ FsShareBuffer * const pShareBuffer);
+    /* 计算4段数据的md5值md5sum(v1_cin:v2_cin:v3_cin:v4_cin),返回偏移量 */
+    unsigned int fs_String_buffer_md5sum4(/* v1 */const char v1_cin[], /* v1长度 */const unsigned int v1Len, /* v2 */const char v2_cin[], /* v2长度 */const unsigned int v2Len
+            , /* v3 */const char v3_cin[], /* v3长度 */const unsigned int v3Len, /* v4 */const char v4_cin[], /* v4长度 */const unsigned int v4Len
+            , /* 共享buffer,不为空 */ FsShareBuffer * const pShareBuffer);
+    /* 获取buffer的sha1校验值,结果为二进制数据 */
+    void fs_String_buffer_sha1(/* 接收结果的缓存空间,大小为20字节 */unsigned int rst_5[], /* 要校验的buffer的长度,不可为0 */ const unsigned long bufferLenth, /* 要校验的buffer,必须为4字节对齐,不可为空 */ const unsigned char buffer[]);
     /* 获取buffer的sha256校验值,结果为二进制数据 */
     void fs_String_buffer_sha256(/* 接收结果的缓存空间,大小为32字节 */unsigned int rst_8[], /* 要校验的buffer的长度,不可为0 */ const unsigned long bufferLenth, /* 要校验的buffer,必须为4字节对齐,不可为空 */ const unsigned char buffer[]);
     /* 获取buffer的hmacsha256校验值,结果为二进制数据 */
     void fs_String_buffer_hmacsha256(/* 接收结果的缓存空间,大小为32字节 */unsigned int rst_8[], /* 加密key,必须为4字节对齐 */const unsigned char key[], /* 加密key的长度,不可为0 */const unsigned int keylen,
             /* 要校验的buffer的长度,不可为0 */ const unsigned long bufferLenth, /* 要校验的buffer,必须为4字节对齐,不可为空 */ const unsigned char buffer[]);
+
+    /* 读取键值数据的值,成功返回读到的关键字数量,失败返回-1 */
+    int fs_String_buffer_key_read(/* 指向储存结果的指针数组,数组的每个元素应初始化为NULL,内部查找时只把找到的第一个值赋值 */char * * const rstValue
+            , /* 指向储存结果长度的指针数组 */unsigned int * const rstValueLen, /* 结果数组的纬度 */ int rstCount
+            , /* 数据长度 */unsigned int dataLen, /* 数据 如 realm="Login to CL0081PAZ00024",qop="auth",nonce="806656111",opaque="ecd96bfa32ed521cda6e9a8ed1701e6b3ef687d0" */const char data[]
+            , /* 关键字,纬度与rst相同,按升序排序 */const char *const *const key);
     /* 
      * 比较buf1与buf2的大小;
      * 完全相等返回0;
@@ -392,11 +491,13 @@ extern "C" {
     //     */
     //    C5aiiString *c5aii_String_encode_from_rsa__IO(const C5aiiString *pString, /* 加密版本0-255 */unsigned char editon);
     /* 把buffer用Base64编码后输出到fd中 */
-    void fs_String_buffer_out(const unsigned long bufferLenth, const char buffer[], FILE *fd);
+    void fs_String_buffer_out(const unsigned long bufferLenth, const char buffer[], FILE * const fd);
     /* 把pString用Base64编码后输出到fd中 */
-    void fs_String_out(const FsString *pString, FILE *fd);
+    void fs_String_out(const FsString * const pString, FILE * const fd);
     /* 把buffer用16进制输出到fd中 */
-    void fs_String_buffer_out_hex(unsigned long bufferLenth, unsigned char buffer[], FILE *fd);
+    void fs_String_buffer_out_hex(unsigned long bufferLenth, const unsigned char buffer[], FILE * const fd);
+    /* 大小写不敏感的strstr函数,在__haystack中查找__needle字符串,成功返回__haystack中第一个__needle的指针失败返回NULL */
+    const char *fs_String_buffer_str_insensitive(const char *__haystack, const char *const __needle);
 #ifdef FsDebug
     /* 
      * 把多种数据按__format格式合并成一个buffer,要求最后一个参数必须为（~((int)0)）,只用于检查,不会输出到最终结果中;
@@ -474,25 +575,53 @@ extern "C" {
      */
     void fs_String_buffer_printf_hex(/* 数据长度 */unsigned long lenth, /* 数据的开始指针 */const unsigned char buffer[], /* 文件句柄 */FILE *fd);
     /* 
+     * 获取INI中特定节点的值(此函数会修改data的内容,返回值指向的内存为data所申请的内存,不能删除data对象);
+     * 成功返回第一个键名对应的值;
+     * 失败返回NULL.
+     */
+    char* fs_String_buffer_ini_get(/* 数据长度 */unsigned long dataLen, /* 数据 */char *data, /* 节点名 */const char nodeName[], /* 键名 */const char keyName[]);
+    /* 
      * 获取INI中特定节点的值(此函数会修改pString的内容,返回值指向的内存为pString所申请的内存,不能删除pString对象);
      * 成功返回第一个键名对应的值;
      * 失败返回NULL.
      */
-    char* fs_String_ini_get(FsString *pString, /* 节点名 */const char nodeName[], /* 键名 */const char keyName[]);
+    char* fs_String_ini_get(FsString * const pString, /* 节点名 */const char nodeName[], /* 键名 */const char keyName[]);
     /* 获取buffer的crc校验值 */
-    unsigned int fs_String_buffer_crc(/* 数据的开始指针 */unsigned char buffer[], /* 数据长度 */unsigned long lenth);
+    unsigned int fs_String_buffer_crc(/* 数据的开始指针 */const unsigned char buffer[], /* 数据长度 */unsigned long lenth);
+
     /* 获取buffer的crc32/mpeg校验值 */
     unsigned int fs_String_buffer_crc32_mpeg(/* 数据的开始指针 */unsigned char buffer[], /* 数据长度 */unsigned long lenth);
     /* 用数据创建一个FsObjectString对象 */
     FsObjectString *fs_String_object_new__IO(/* 数据区(即buffer)的长度,指定的大小不能动态改变 */const unsigned int datalenth);
     /* 用数据创建一个FsObjectString对象 */
+    FsObjectString *fs_String_object_new_with_data__IO(/* 数据区(即buffer)的长度,指定的大小不能动态改变 */const unsigned int datalenth, /* 数据,不能为空 */const char buffer[]);
+    /* 用数据创建一个FsObjectString对象 */
     FsObjectString *fs_String_object_new__IO__OI_2(/* 数据区(即buffer)的长度,不能为0 */const unsigned int datalenth, /* 数据,不能为空 */char buffer[]);
-#ifdef FsDebug
+    //    /* 创建一个FsStringObject的对象 */
+    //    FsStringObject *fs_StringObject_new(/* 数据长度 */const unsigned long bufferLenth);
+    //    /* 创建一个可引用计数的对象 */
+    //    FsStringObject_refer *fs_StringObject_refer_new(/* 数据长度 */const unsigned long bufferLenth);
+    //    /* 创建一个线程安全的可引用计数的对象 */
+    //    FsStringObject_referPthreadSafety *fs_StringObject_referPthreadSafety_new(/* 数据长度 */const unsigned long bufferLenth);
+    //    /* 增加引用计数 */
+    //    void fs_StringObject_referPthreadSafety_addRefer(FsStringObject_referPthreadSafety * const pStringObject);
+    //    /* 增加引用计数 */
+    //    void fs_StringObject_referPthreadSafety_addRefer_n(FsStringObject_referPthreadSafety * const pStringObject, /* 增加的引用次数 */ const unsigned int addRefer);
+    /* 使用预定义数据匹配数据,成功返回匹配数据的预定义值,失败返回匹配失败的返回值 */
+    signed short fs_String_match(/* 预定义数据的指针数组,数据按字节排布,从前向后各字节位连续相同的数据必须放在一起,如有数据 abc,bcd,acb,adf,必须把abc,acb,adf连续放置 */
+            FsStringMatch stringMatch[], /* 预定义字符串的数量 */unsigned int count, /* 匹配失败的返回值 */const signed short falseValue,
+            /* 匹配数据的长度 */ const unsigned short bufferLen, /* 匹配数据的地址 */ const char buffer[]);
+    /* 按最长数据匹配法使用预定义数据匹配数据,成功返回匹配数据的预定义值,失败返回匹配失败的返回值 */
+    signed short fs_String_matchMax(/* 预定义数据的指针数组,数据按字节排布,从前向后各字节位连续相同的数据必须放在一起,如有数据 abc,bcd,acb,adf,必须把abc,acb,adf连续放置 */
+            FsStringMatch stringMatch[], /* 预定义字符串的数量 */unsigned int count, /* 匹配失败的返回值 */ signed short falseValue,
+            /* 匹配数据的长度 */ const unsigned short bufferLen, /* 匹配数据的地址 */ const char buffer[]);
+    /* 拷贝数据,检查其中的小写字母,转为大写字母 */
+    void fs_String_copy_l2u(/* 目的地址,空间不能小于len */char * __restrict dst, /* 原始数据 */const char* __restrict src, /* 数据长度 */unsigned int len);
     void fs_String_test();
-#endif
-#ifdef	__cplusplus
+
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* STRING_H */
+#endif /* STRING_H */
 
