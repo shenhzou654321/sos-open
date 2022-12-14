@@ -1,3 +1,8 @@
+#### 项目地址
+官网     http://www.feitianzhi.com/  
+github  https://github.com/feitianzhi/zos-open    
+gitee   https://gitee.com/feitianzhi/zos-open    
+QQ交流群：[869598376](https://jq.qq.com/?_wv=1027&k=47x6kh7 "zos分布式视频系统开发")
 # fslib框架 #
 
 - **fslib框架**是一套可运行于生产环境的支持c/c++线程死锁,线程cpu资源统计,死机时自动记录死机所对应的源码位置的调试框架,部分功能支持php语言；
@@ -69,8 +74,8 @@ ZOS子模块主要有：**ZOS去中心化的配置管理模块**、**ZOS掩码�
 >- rtmp转发地址为: rtmp://192.168.1.254/zos/ch1 ;
 >- hls转发地址为: rtsp://192.168.1.254:16880/ch1 ;
 
-## 获取更多信息 ##
+# 获取更多信息 #
 
 >- **ZOS视频系统**介绍: http://www.feitianzhi.com/boke/    
->- QQ交流群：[463690330](https://jq.qq.com/?_wv=1027&k=47x6kh7 "sos分布式视频系统开发") 
+>- QQ交流群：[463690330](https://jq.qq.com/?_wv=1027&k=47x6kh7 "zos分布式视频系统开发") 
 
