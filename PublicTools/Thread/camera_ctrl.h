@@ -73,29 +73,23 @@ extern "C" {
     };
 #define Camera_ctrl_imageInfo_copy(___dst,___src,/* 哪些参数是有效的,按位摆布,如controlMode为0 */ ___setMask) do{\
     if ((___setMask) & Camera_ctrl_imageInfo_mask_autoFocus) (___dst).autoFocus = (___src).autoFocus;\
-    if ((___setMask) & Camera_ctrl_imageInfo_mask_controlMode) {\
-        (___dst).controlMode = (___src).controlMode;\
-        if ((___src).controlMode>0) {\
-            if ((___setMask) & Camera_ctrl_imageInfo_mask_shutter) (___dst).shutter = (___src).shutter;\
-            if ((___setMask) & Camera_ctrl_imageInfo_mask_gain) (___dst).gain = (___src).gain;\
-            if ((___setMask) & Camera_ctrl_imageInfo_mask_iris) (___dst).iris = (___src).iris;\
-        }\
+    if ((___setMask) & Camera_ctrl_imageInfo_mask_controlMode)(___dst).controlMode = (___src).controlMode;\
+    if ((___dst).controlMode>0) {\
+        if ((___setMask) & Camera_ctrl_imageInfo_mask_shutter) (___dst).shutter = (___src).shutter;\
+        if ((___setMask) & Camera_ctrl_imageInfo_mask_gain) (___dst).gain = (___src).gain;\
+        if ((___setMask) & Camera_ctrl_imageInfo_mask_iris) (___dst).iris = (___src).iris;\
     }\
-    if ((___setMask) & Camera_ctrl_imageInfo_mask_whiteBalanceMode) {\
-        (___dst).whiteBalanceMode = (___src).whiteBalanceMode;\
-        if ((___src).whiteBalanceMode>0) {\
-            if ((___setMask) & Camera_ctrl_imageInfo_mask_whiteBalance_B) (___dst).whiteBalance_B = (___src).whiteBalance_B;\
-            if ((___setMask) & Camera_ctrl_imageInfo_mask_whiteBalance_R) (___dst).whiteBalance_R = (___src).whiteBalance_R;\
-        }\
+    if ((___setMask) & Camera_ctrl_imageInfo_mask_whiteBalanceMode) (___dst).whiteBalanceMode = (___src).whiteBalanceMode;\
+    if ((___dst).whiteBalanceMode>0) {\
+        if ((___setMask) & Camera_ctrl_imageInfo_mask_whiteBalance_B) (___dst).whiteBalance_B = (___src).whiteBalance_B;\
+        if ((___setMask) & Camera_ctrl_imageInfo_mask_whiteBalance_R) (___dst).whiteBalance_R = (___src).whiteBalance_R;\
     }\
-    if ((___setMask) & Camera_ctrl_imageInfo_mask_imageMode) {\
-        (___dst).imageMode = (___src).imageMode;\
-        if ((___src).imageMode>0) {\
-            if ((___setMask) & Camera_ctrl_imageInfo_mask_brightness) (___dst).brightness = (___src).brightness;\
-            if ((___setMask) & Camera_ctrl_imageInfo_mask_colorSaturation) (___dst).colorSaturation = (___src).colorSaturation;\
-            if ((___setMask) & Camera_ctrl_imageInfo_mask_contrast) (___dst).contrast = (___src).contrast;\
-            if ((___setMask) & Camera_ctrl_imageInfo_mask_sharpness) (___dst).sharpness = (___src).sharpness;\
-        }\
+    if ((___setMask) & Camera_ctrl_imageInfo_mask_imageMode) (___dst).imageMode = (___src).imageMode;\
+    if ((___dst).imageMode>0) {\
+        if ((___setMask) & Camera_ctrl_imageInfo_mask_brightness) (___dst).brightness = (___src).brightness;\
+        if ((___setMask) & Camera_ctrl_imageInfo_mask_colorSaturation) (___dst).colorSaturation = (___src).colorSaturation;\
+        if ((___setMask) & Camera_ctrl_imageInfo_mask_contrast) (___dst).contrast = (___src).contrast;\
+        if ((___setMask) & Camera_ctrl_imageInfo_mask_sharpness) (___dst).sharpness = (___src).sharpness;\
     }\
     if ((___setMask) & Camera_ctrl_imageInfo_mask_intensityAdjust) (___dst).intensityAdjust = (___src).intensityAdjust;\
     if ((___setMask) & Camera_ctrl_imageInfo_mask_bw) (___dst).bwValid = (___src).bwValid,(___dst).bw = (___src).bw;\
@@ -105,35 +99,35 @@ extern "C" {
     /* 图像设置信息根据掩码填充,指示___dst中哪些是有效的,无效部分使用___src中的值进行填充 */
 #define Camera_ctrl_imageInfo_copy_fill(___dst,___src,/* 哪些参数是有效的,按位排布,如controlMode为0 */ ___setMask) do{\
     if (0==((___setMask) & Camera_ctrl_imageInfo_mask_autoFocus)) (___dst).autoFocus = (___src).autoFocus;\
-    if (0==((___setMask) & Camera_ctrl_imageInfo_mask_controlMode)){\
-        (___dst).controlMode = (___src).controlMode;\
-        (___dst).shutter = (___src).shutter;\
-        (___dst).gain = (___src).gain;\
-        (___dst).iris = (___src).iris;\
-    }else{\
+    if (0==((___setMask) & Camera_ctrl_imageInfo_mask_controlMode)) (___dst).controlMode = (___src).controlMode;\
+    if ((___dst).controlMode>0) {\
         if (0==((___setMask) &Camera_ctrl_imageInfo_mask_shutter)) (___dst).shutter = (___src).shutter;\
         if (0==((___setMask) &Camera_ctrl_imageInfo_mask_gain)) (___dst).gain = (___src).gain;\
         if (0==((___setMask) &Camera_ctrl_imageInfo_mask_iris)) (___dst).iris = (___src).iris;\
+    } else {\
+        (___dst).shutter = (___src).shutter;\
+        (___dst).gain = (___src).gain;\
+        (___dst).iris = (___src).iris;\
     }\
-    if (0==((___setMask) & Camera_ctrl_imageInfo_mask_whiteBalanceMode)){\
-        (___dst).whiteBalanceMode = (___src).whiteBalanceMode;\
-        (___dst).whiteBalance_B = (___src).whiteBalance_B;\
-        (___dst).whiteBalance_R = (___src).whiteBalance_R;\
-    }else{\
+    if (0==((___setMask) & Camera_ctrl_imageInfo_mask_whiteBalanceMode)) (___dst).whiteBalanceMode = (___src).whiteBalanceMode;\
+    if ((___dst).whiteBalanceMode>0) {\
         if (0==((___setMask) & Camera_ctrl_imageInfo_mask_whiteBalance_B)) (___dst).whiteBalance_B = (___src).whiteBalance_B;\
         if (0==((___setMask) & Camera_ctrl_imageInfo_mask_whiteBalance_R)) (___dst).whiteBalance_R = (___src).whiteBalance_R;\
+    } else {\
+        (___dst).whiteBalance_B = (___src).whiteBalance_B;\
+        (___dst).whiteBalance_R = (___src).whiteBalance_R;\
     }\
-    if (0==((___setMask) & Camera_ctrl_imageInfo_mask_imageMode)){\
-        (___dst).imageMode = (___src).imageMode;\
-        (___dst).brightness = (___src).brightness;\
-        (___dst).colorSaturation = (___src).colorSaturation;\
-        (___dst).contrast = (___src).contrast;\
-        (___dst).sharpness = (___src).sharpness;\
-    }else{\
+    if (0==((___setMask) & Camera_ctrl_imageInfo_mask_imageMode))  (___dst).imageMode = (___src).imageMode;\
+    if ((___dst).imageMode>0) {\
         if (0==((___setMask) & Camera_ctrl_imageInfo_mask_brightness)) (___dst).brightness = (___src).brightness;\
         if (0==((___setMask) & Camera_ctrl_imageInfo_mask_colorSaturation)) (___dst).colorSaturation = (___src).colorSaturation;\
         if (0==((___setMask) & Camera_ctrl_imageInfo_mask_contrast)) (___dst).contrast = (___src).contrast;\
         if (0==((___setMask) & Camera_ctrl_imageInfo_mask_sharpness)) (___dst).sharpness = (___src).sharpness;\
+    } else {\
+        (___dst).brightness = (___src).brightness;\
+        (___dst).colorSaturation = (___src).colorSaturation;\
+        (___dst).contrast = (___src).contrast;\
+        (___dst).sharpness = (___src).sharpness;\
     }\
     if (0==((___setMask) & Camera_ctrl_imageInfo_mask_intensityAdjust)) (___dst).intensityAdjust = (___src).intensityAdjust;\
     if (0==((___setMask) & Camera_ctrl_imageInfo_mask_bw)) (___dst).bwValid = (___src).bwValid,(___dst).bw = (___src).bw;\

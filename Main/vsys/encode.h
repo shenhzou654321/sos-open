@@ -105,18 +105,8 @@ extern "C" {
             unsigned int _videoCodingFormatFirst;
             /* 期望的编码方式,&(0x1<<0)-大图H264,&(0x1<<1)-大图H265,&(0x1<<10<<0)-中图H264,&(0x1<<10<<1)-中图H265,&(0x1<<20<<0)-小图H264,&(0x1<<20<<1)-小图H265 */
             unsigned int _videoCodingFormat;
-            /* 水印开始位置的X坐标 */
-            unsigned short _watermarking_startX;
-            /* 水印开始位置的Y坐标 */
-            unsigned short _watermarking_startY;
-            /* 水印颜色,RGB */
-            unsigned int _watermarking_color;
-            /* 水印字符 */
-            char *_watermarkingData;
             /* 直正的解码对象 */
             struct FrameConvert_item *__pFrameConvert_item;
-            /* 文字叠加 */
-            FsTypeFace *__pTypeFace;
         } ro;
 
         struct {
@@ -125,16 +115,30 @@ extern "C" {
         } rw;
 
         struct {
+            /* 水印叠加的任务数 */
+            unsigned int _watermarkingCount;
+
+            /* 文字叠加 */
+            struct {
+                /* 水印开始位置的X坐标 */
+                unsigned short _watermarking_startX;
+                /* 水印开始位置的Y坐标 */
+                unsigned short _watermarking_startY;
+                /* 水印颜色,ycbcr */
+                unsigned int _watermarking_color;
+                /* 水印字符 */
+                char *_watermarkingData;
+                /* 文字叠加 */
+                FsTypeFace *__pTypeFace;
+            } watermarking[0];
         } p;
     };
 
 #define __Encode_itemLog(___Log,___loglevel,___format, ...)\
     ___Log(___loglevel,1,___format",p=%p,sum=%llx,imageWidth=%u,imageHeight=%u,classIndex=%hu"\
-    "videoCodingFormatFirst=%hhx/%hhx,watermarking_startX=%hu,watermarking_startY=%hu,watermarking_color=%x,watermarkingData:\"%s\""\
-    "pFrameConvert_item=%p,pTypeFace=%p.\n",##__VA_ARGS__\
+    "videoCodingFormatFirst=%hhx/%hhx,pFrameConvert_item=%p,watermarkingCount=%u.\n",##__VA_ARGS__\
         ,pEncode_item,pEncode_item->ro._sum,pEncode_item->ro.imageWidth,pEncode_item->ro.imageHeight,pEncode_item->ro.classIndex\
-        ,pEncode_item->ro._videoCodingFormatFirst,pEncode_item->ro._videoCodingFormat,pEncode_item->ro._watermarking_startX,pEncode_item->ro._watermarking_startY\
-        ,pEncode_item->ro._watermarking_color,FsStrprint(pEncode_item->ro._watermarkingData,""),pEncode_item->ro.__pFrameConvert_item,pEncode_item->ro.__pTypeFace)
+        ,pEncode_item->ro._videoCodingFormatFirst,pEncode_item->ro._videoCodingFormat,pEncode_item->ro.__pFrameConvert_item,pEncode_item->p._watermarkingCount)
 #define Encode_itemLog(___loglevel,___format, ...) __Encode_itemLog(FsLog,___loglevel,___format,##__VA_ARGS__)
 #define Encode_itemLog2(___loglevel,___format, ...) __Encode_itemLog(FsLog2,___loglevel,___format,##__VA_ARGS__)
     /* 创建配置 */

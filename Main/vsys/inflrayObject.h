@@ -13,6 +13,7 @@
 #include "../../PublicTools/Fs/GroupSqrt.h"
 #include "../../PublicTools/Image/ImageFrame.h"  
 #include "../../Modules/detectAlgorithmLib/detectAlgorithmLib.h"
+#include "ptzObject.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -113,6 +114,10 @@ extern "C" {
             /* 整个通道依赖的所有数据的校验和 */
 #define  InflrayObject_item_ClusterLen  (FsPointer_to_long(&((struct InflrayObject_item*) 0)->ro._sum)+sizeof(((struct InflrayObject_item*) 0)->ro._sum))
             unsigned long long _sum;
+            /* 内部依赖时间控制项的校验和,"inflrayObjectConfig targetCheckErea" */
+            unsigned long long _timeControlSum;
+            /* 连接和调用外部命令所需要的同步锁 */
+            pthread_mutex_t __mutexCmdConnect;
             /* 图像宽度,0为无效值 */
             unsigned int imageWidth;
             /* 图像高度,0为无效值 */
@@ -139,7 +144,9 @@ extern "C" {
             FsObjectList *__objectList_;
             /* 区域线条链表(x1,y1)(x2,y2),每个数字占2字节 */
             FsStructList *__areaLineList_;
-             /* 水印文字链表,成员为struct FsTypeFaceText */
+            /* 屏蔽区域线条链表(x1,y1)(x2,y2),每个数字占2字节 */
+            FsStructList *__excludeAreaLineList_;
+            /* 水印文字链表,成员为struct FsTypeFaceText */
             FsObjectList *__textList_;
             /* 目标x方向扩展大小 */
             unsigned short target_x_extern;
@@ -149,6 +156,16 @@ extern "C" {
             unsigned int areaColor;
             /* 目标颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */
             unsigned int targetColor;
+            /* 屏蔽区域颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */
+            unsigned int excludeAreaColor;
+            /* 联动可见光通道标识 */
+            char *ptz_uuid;
+            /* 联动目标编号 */
+            unsigned long long objIndex;
+            /* 报警联动的指针 */
+            struct PtzObject_item *pPtzObject_item;
+            /* 报警联动的函数指针,不为空表示有效 */
+            Ptz_item_linkPtz_pthreadSafety ptz_item_linkPtz;
         } p;
     };
 

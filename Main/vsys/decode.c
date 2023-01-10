@@ -36,21 +36,215 @@ static void decode_P_cb_convert(struct Decode_item * const pDecode_item) {
 }
 
 /* 从配置获取通道数 */
-static unsigned int decode_private_get_channelCount(/* 可为空 */FsConfig * const pConfig, /* 本地ip地址 */const FsArray * const ipList) {
-    if (NULL == pConfig)return 0;
+static unsigned int decode_private_get_channelCount(/* 可为空 */FsConfig * const pConfig, /* 本地ip地址 */const FsArray * const ipList) {    
+#ifndef __get_channelCount_vsys_vsysChannel 
+    if (NULL == pConfig) {
+#ifdef __get_channelCount_vsys_vsysChannel_in_vsys
+        *rst_pVsysChannel0 = NULL;
+        return fs_ObjectList_new__IO(4);
+#else
+        return 0;
+#endif    
+    }
     /* 通道数 */
-    const void* parent0 = pConfig;
-    FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, ipList, 0, "vsys");
-    if (NULL == list)return 0;
-    const void *parent = list->pNode[list->startIndex];
-    fs_ObjectList_delete__OI(list);
-    list = fs_Config_node_template__IO(pConfig, &parent0, parent, NULL, 0, "vsysChannel");
-    unsigned int rst = 0;
-    if (list) {
-        rst = list->nodeCount;
+    const void *vsys0 = pConfig;
+    const void *vsys;
+    {
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0,ipList, 0, "vsys");
+        if (NULL == list) {
+#ifdef __get_channelCount_vsys_vsysChannel_in_vsys
+            *rst_pVsysChannel0 = NULL;
+            return fs_ObjectList_new__IO(4);
+#else
+            return 0;
+#endif   
+        }
+        vsys = list->pNode[list->startIndex];
         fs_ObjectList_delete__OI(list);
     }
-    return rst;
+    {
+#ifdef __get_channelCount_vsys_vsysChannel_in_vsys
+        *pCronfremethreshold = fs_Config_node_integer_get_first(pConfig, vsys0, vsys, "cronframethreshold", 1, NULL);
+        *pCannelstatuscheckmode = fs_Config_node_integer_get_first(pConfig, vsys0, vsys, "channelstatuscheckmode", 0, NULL);
+
+#endif
+#ifdef __get_channelCount_vsys_vsysChannel_in_record
+        if (pRecord->p.gbsdkConfig__videoInfoDataClientList) {
+#define __record_P_update_sdk_gb28181
+#ifndef __record_P_new_sdk_gb28181 
+            if (Vsys_sdkPlayBack_is_process()) {
+#ifdef __record_P_update_sdk_gb28181
+                FsEbml * const gbsdkConfig = pRecord->p.gbsdkConfig__videoInfoDataClientList;
+                struct FsEbml_node * const gb28181Config = fs_Ebml_node_get_first(gbsdkConfig, (struct FsEbml_node*) gbsdkConfig, "gb28181Config");
+#else
+                struct FsEbml_node * const gb28181Config = fs_Ebml_node_addChild(gbsdkConfig, (struct FsEbml_node*) gbsdkConfig, "gb28181Config", FsEbmlNodeType_Struct);
+#endif
+                {
+                    const FsString * const ipv4_streamPort_PlayBack = fs_Config_node_string_get_first_String(pConfig, vsys0, vsys, "gb28181Config ipv4_streamPort_PlayBack", NULL);
+#ifdef __record_P_update_sdk_gb28181
+                    struct FsEbml_node * const pEbml_node_ipv4_streamPort_PlayBack = fs_Ebml_node_get_first(gbsdkConfig, gb28181Config, "ipv4_streamPort_PlayBack");
+                    if (pEbml_node_ipv4_streamPort_PlayBack->data.lenth != ipv4_streamPort_PlayBack->lenth
+                            || memcmp(pEbml_node_ipv4_streamPort_PlayBack->data.buffer, ipv4_streamPort_PlayBack->buffer, ipv4_streamPort_PlayBack->lenth) != 0) {
+                        pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                        fs_Ebml_node_data_set(pEbml_node_ipv4_streamPort_PlayBack, ipv4_streamPort_PlayBack->lenth, ipv4_streamPort_PlayBack->buffer);
+                        pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                        Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                    }
+#else             
+                    fs_Ebml_node_data_set(
+#ifdef Record_sdkConfig_comment
+                            fs_Ebml_node_addChild_with_a_property
+#else
+                            fs_Ebml_node_addChild
+#endif
+                            (gbsdkConfig, gb28181Config, "ipv4_streamPort_PlayBack", FsEbmlNodeType_String
+#ifdef Record_sdkConfig_comment
+                            , "comment", "回放使用的端口号"
+#endif
+                            ), ipv4_streamPort_PlayBack->lenth, ipv4_streamPort_PlayBack->buffer);
+#endif
+                }
+                {
+                    FsObjectList * const addrmapList = fs_Config_node_string_get_list__IO(pConfig, vsys0, vsys, "addrmap", NULL);
+#ifdef __record_P_update_sdk_gb28181
+                    FsObjectList * const addrmapList1 = fs_Ebml_node_get__IO(gbsdkConfig, gb28181Config, "addrmap");
+                    if (addrmapList) {
+                        if (addrmapList1 != NULL) {
+                            const FsString **ppNode = (const FsString **) addrmapList->pNode + addrmapList->startIndex;
+                            struct FsEbml_node **ppNode1 = (struct FsEbml_node **) addrmapList1->pNode + addrmapList1->startIndex;
+                            unsigned int ui = addrmapList1->nodeCount;
+                            if (ui > (unsigned int) addrmapList->nodeCount) {
+                                pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                do {
+                                    fs_Ebml_node_delete(gbsdkConfig, ppNode1[--ui]);
+                                } while (ui > (unsigned int) addrmapList->nodeCount);
+                                pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                            }
+                            while (ui-- > 0) {
+                                const FsString * const addrmap = *ppNode++;
+                                struct FsEbml_node * const addrmap1 = *ppNode1++;
+                                if (addrmap1->data.lenth != addrmap->lenth || memcmp(addrmap1->data.buffer, addrmap->buffer, addrmap->lenth) != 0) {
+                                    pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                    fs_Ebml_node_data_set(addrmap1, addrmap->lenth, addrmap->buffer);
+                                    pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                    Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                                }
+                            }
+                            if (addrmapList->nodeCount > addrmapList1->nodeCount) {
+                                ui = addrmapList->nodeCount - addrmapList1->nodeCount;
+                                pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                do {
+                                    const FsString * const addrmap = *ppNode++;
+                                    fs_Ebml_node_data_set(
+#ifdef Record_sdkConfig_comment
+                                            fs_Ebml_node_addChild_with_a_property
+#else
+                                            fs_Ebml_node_addChild
+#endif
+                                            (gbsdkConfig, gb28181Config, "addrmap", FsEbmlNodeType_String
+#ifdef Record_sdkConfig_comment
+                                            , "comment", "本地IP映射,在一些应用场景中无法知道本机映射的ip时使用此数据作为映射,格式:'ip/掩码 映射地址 权重',映射地址可为域名,权重空时值为1"
+#endif
+                                            )
+                                            , addrmap->lenth, addrmap->buffer);
+                                } while (--ui > 0);
+                                pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                            }
+                            fs_ObjectList_delete__OI(addrmapList);
+                            fs_ObjectList_delete__OI(addrmapList1);
+                        } else {
+                            pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+#ifndef __record_P_new_sdk_gb28181_do_addrmapList 
+                            const FsString **ppNode = (const FsString **) addrmapList->pNode + addrmapList->startIndex;
+                            unsigned int ui = addrmapList->nodeCount;
+                            while (ui-- > 0) {
+                                const FsString * const addrmap = *ppNode++;
+                                fs_Ebml_node_data_set(
+#ifdef Record_sdkConfig_comment
+                                        fs_Ebml_node_addChild_with_a_property
+#else
+                                        fs_Ebml_node_addChild
+#endif
+                                        (gbsdkConfig, gb28181Config, "addrmap", FsEbmlNodeType_String
+#ifdef Record_sdkConfig_comment
+                                        , "comment", "本地IP映射,在一些应用场景中无法知道本机映射的ip时使用此数据作为映射,格式:'ip/掩码 映射地址 权重',映射地址可为域名,权重空时值为1"
+#endif
+                                        )
+                                        , addrmap->lenth, addrmap->buffer);
+                            }
+                            fs_ObjectList_delete__OI(addrmapList);
+#endif
+                            pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                            Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                        }
+                    } else if (addrmapList1) {
+                        fs_ObjectList_delete__OI(addrmapList1);
+                        pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                        fs_Ebml_node_delete_child_byString(gbsdkConfig, gb28181Config, "addrmap");
+                        pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                        Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                    }
+#else
+                    if (addrmapList) {
+#ifndef __record_P_new_sdk_gb28181_do_addrmapList
+                        const FsString **ppNode = (const FsString **) addrmapList->pNode + addrmapList->startIndex;
+                        unsigned int ui = addrmapList->nodeCount;
+                        while (ui-- > 0) {
+                            const FsString * const addrmap = *ppNode++;
+                            fs_Ebml_node_data_set(
+#ifdef Record_sdkConfig_comment
+                                    fs_Ebml_node_addChild_with_a_property
+#else
+                                    fs_Ebml_node_addChild
+#endif
+                                    (gbsdkConfig, gb28181Config, "addrmap", FsEbmlNodeType_String
+#ifdef Record_sdkConfig_comment
+                                    , "comment", "本地IP映射,在一些应用场景中无法知道本机映射的ip时使用此数据作为映射,格式:'ip/掩码 映射地址 权重',映射地址可为域名,权重空时值为1"
+#endif
+                                    )
+                                    , addrmap->lenth, addrmap->buffer);
+                        }
+                        fs_ObjectList_delete__OI(addrmapList);
+#endif
+                    }
+#endif
+                }
+            }
+#ifdef __record_P_update_sdk_gb28181
+#undef __record_P_update_sdk_gb28181
+#endif
+#endif
+        }
+        pRecord->rw._snapbuffertimeout = fs_Config_node_float_get_first(pConfig, vsys0, vsys, "snapbuffertimeout", 0.0, NULL);
+#endif
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0,NULL, 0, "vsysChannel");
+        if (NULL == list) {
+#ifdef __get_channelCount_vsys_vsysChannel_in_vsys
+            *rst_pVsysChannel0 = NULL;
+            return fs_ObjectList_new__IO(4);
+#else
+            return 0;
+#endif   
+        } else {
+#ifdef __get_channelCount_vsys_vsysChannel_in_vsys
+            *rst_pVsysChannel0 = vsys0;
+            return list;
+#else
+            const unsigned int rst = list->nodeCount;
+            fs_ObjectList_delete__OI(list);
+            return rst;
+#endif   
+        }
+    }
+#ifndef __get_channelCount_vsys_vsysChannel_in_vsys
+#undef __get_channelCount_vsys_vsysChannel_in_vsys
+#endif
+#ifdef __get_channelCount_vsys_vsysChannel_in_record
+#undef __get_channelCount_vsys_vsysChannel_in_record
+#endif
+#endif
 }
 
 /* 删除pDecode_item指向的实例对象 */
@@ -67,15 +261,15 @@ static void decode_private_item_new(struct Decode * const pDecode, /* 通道号 
     FsConfig * const pConfig = ((ConfigManager*) pDecode->ro._pConfigManager)->ro.__pConfig;
     if (NULL == pConfig)return;
     const void *vsys0 = pConfig;
-    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, ipList, 0 == channel, "vsys");
+    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, 0, ipList, 0 == channel, "vsys");
     if (clusterList) {
         void **ppNodeCluster = clusterList->pNode + clusterList->startIndex;
         unsigned int uj = clusterList->nodeCount;
         do {
             const void *vsysChannel0 = vsys0;
             const void* const vsys = *ppNodeCluster++;
-            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel")
-                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel", channel - 1);
+            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel")
+                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel", channel - 1);
             if (list) {
                 void ** ppNode;
                 unsigned int ui, ipv4;
@@ -309,7 +503,11 @@ int decode_check_channel_changed(struct Decode * const pDecode, /* 通道编号,
                     && (/* Recognition */FsMacrosValue2(__check_channel_changed_Server, _Mask) & fs_Config_node_integer_get_mask(pConfig, item0, item, "moduleMask", NULL)) == 0)return 0;
             return 1;
         }
-        if (sum == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum)return 0;
+        if (sum == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum
+#ifdef __check_channel_changed_checkTimeControl
+                && fs_Config_get_sum_timeControl(pConfig, item0, item, __check_channel_changed_checkTimeControl) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._timeControlSum
+#endif
+                ) return 0;
     } else {
         FsLog(FsLogType_error, FsPrintfIndex, "Invalid itemPath:\"%s\".\n", itemPath);
         fflush(stdout);
@@ -318,15 +516,18 @@ int decode_check_channel_changed(struct Decode * const pDecode, /* 通道编号,
         const void *parent;
         {
             parent0 = pConfig;
-            FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig
-                    , ((ConfigManager*) /* pRecognition */FsMacrosValue2(p, __check_channel_changed_Server)->ro._pConfigManager)->ro.__ipList_local, 0, "vsys");
+            FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, 0, ((ConfigManager*) /* pRecognition */FsMacrosValue2(p, __check_channel_changed_Server)->ro._pConfigManager)->ro.__ipList_local, 0, "vsys");
             parent = list->pNode[list->startIndex];
             fs_ObjectList_delete__OI(list);
-            list = fs_Config_node_template__IO(pConfig, &parent0, parent, NULL, 0, "vsysChannel");
+            list = fs_Config_node_template__IO(pConfig, &parent0, parent, 0, NULL, 0, "vsysChannel");
             parent = list->pNode[list->startIndex + index];
             fs_ObjectList_delete__OI(list);
         }
-        if (fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node *) parent) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum)return 0;
+        if (fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node *) parent) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum
+#ifdef __check_channel_changed_checkTimeControl
+                && fs_Config_get_sum_timeControl(pConfig, item0, item, __check_channel_changed_checkTimeControl) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._timeControlSum
+#endif
+                )return 0;
     }
 #ifdef FsDebug
     FsLog2(FsLogType_info, FsPrintfIndex, "Item(=%p) has changed,index=%u,itemPath:\"%s\"/%p,sum=%llx/%llx\n"
@@ -335,6 +536,9 @@ int decode_check_channel_changed(struct Decode * const pDecode, /* 通道编号,
     return 1;
 #ifdef __check_channel_changed_itemListLock
 #undef __check_channel_changed_itemListLock
+#endif
+#ifdef __check_channel_changed_checkTimeControl
+#undef __check_channel_changed_checkTimeControl
 #endif
 #undef __check_channel_changed_Server
 #endif
@@ -488,8 +692,8 @@ void decode_item_frame_in__OI_4(struct Decode * const pDecode, /* 获取的通�
     {
         const FsObjectStats * const pObjectStats = ppFrame[0]->stats;
         if (pObjectStats->decodeChanged && pObjectStats->decodeMask != pFrameConvert_item->ro._convertType) {
-//            FsPrintf(1, "decodeMask=%llx,convertType=%llx.\n\n\n", pObjectStats->decodeMask, pFrameConvert_item->ro._convertType);
-//            fflush(stdout);
+            //            FsPrintf(1, "decodeMask=%llx,convertType=%llx.\n\n\n", pObjectStats->decodeMask, pFrameConvert_item->ro._convertType);
+            //            fflush(stdout);
             struct FrameConvert_item * const pFrameConvert_item1 = frameConvert_item_new__IO(pObjectStats->decodeMask, 2, 0, 0, (void (* const) (void *))decode_P_cb_convert, pDecode_item);
 
             frameConvert_add_item__OI_2(pFrameConvert_item->p.pFrameConvert, pFrameConvert_item1);

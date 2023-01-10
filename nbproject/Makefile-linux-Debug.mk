@@ -42,6 +42,7 @@ OBJECTFILES= \
 	${OBJECTDIR}/Main/vsys/inflrayObject.o \
 	${OBJECTDIR}/Main/vsys/output-ebml.o \
 	${OBJECTDIR}/Main/vsys/output-xml-comment.o \
+	${OBJECTDIR}/Main/vsys/ptzObject.o \
 	${OBJECTDIR}/Main/vsys/recognition.o \
 	${OBJECTDIR}/Main/vsys/record.o \
 	${OBJECTDIR}/Main/vsys/targetCheck.o \
@@ -67,17 +68,17 @@ FFLAGS=
 ASFLAGS=
 
 # Link Libraries and Options
-LDLIBSOPTIONS=-lHCAlarm -lHCCore -lHCCoreDevCfg -lHCDisplay -lHCGeneralCfgMgr -lHCIndustry -lHCPlayBack -lHCPreview -lHCVoiceTalk -lStreamTransClient -lSystemTransform -lanalyzedata -lhcnetsdk -lhpr libzos.a
+LDLIBSOPTIONS=-Llib -lHCAlarm -lHCCore -lHCCoreDevCfg -lHCDisplay -lHCGeneralCfgMgr -lHCIndustry -lHCPlayBack -lHCPreview -lHCVoiceTalk -lStreamTransClient -lSystemTransform -lanalyzedata -lhcnetsdk -lhpr libzos.a
 
 # Build Targets
 .build-conf: ${BUILD_SUBPROJECTS}
-	"${MAKE}"  -f nbproject/Makefile-${CND_CONF}.mk ../dist/linux/zos
+	"${MAKE}"  -f nbproject/Makefile-${CND_CONF}.mk ./zos
 
-../dist/linux/zos: libzos.a
+./zos: libzos.a
 
-../dist/linux/zos: ${OBJECTFILES}
-	${MKDIR} -p ../dist/linux
-	${LINK.c} -o ../dist/linux/zos ${OBJECTFILES} ${LDLIBSOPTIONS} -lpthread -ldl -lrt
+./zos: ${OBJECTFILES}
+	${MKDIR} -p .
+	${LINK.c} -o ./zos ${OBJECTFILES} ${LDLIBSOPTIONS} -lpthread -ldl -lrt
 
 ${OBJECTDIR}/Main/main.o: Main/main.c
 	${MKDIR} -p ${OBJECTDIR}/Main
@@ -113,6 +114,11 @@ ${OBJECTDIR}/Main/vsys/output-xml-comment.o: Main/vsys/output-xml-comment.c
 	${MKDIR} -p ${OBJECTDIR}/Main/vsys
 	${RM} "$@.d"
 	$(COMPILE.c) -g -Wall -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/output-xml-comment.o Main/vsys/output-xml-comment.c
+
+${OBJECTDIR}/Main/vsys/ptzObject.o: Main/vsys/ptzObject.c
+	${MKDIR} -p ${OBJECTDIR}/Main/vsys
+	${RM} "$@.d"
+	$(COMPILE.c) -g -Wall -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/Main/vsys/ptzObject.o Main/vsys/ptzObject.c
 
 ${OBJECTDIR}/Main/vsys/recognition.o: Main/vsys/recognition.c
 	${MKDIR} -p ${OBJECTDIR}/Main/vsys

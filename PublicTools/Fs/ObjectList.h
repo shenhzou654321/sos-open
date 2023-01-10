@@ -237,7 +237,7 @@ extern "C" {
      * 如果列表不够长进行了空间扩展，返回2;
      * 如果失败返回-1.
      */
-    signed char fs_ObjectList_insert_tail(FsObjectList * const pObjectList, void* const node);
+    int fs_ObjectList_insert_tail(FsObjectList * const pObjectList, void* const node);
     /*
      * 把node线程安全地插到pObjectList的尾部;
      * 如果成功返回1;

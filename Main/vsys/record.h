@@ -253,22 +253,12 @@ extern "C" {
             void *_realMask;
             /* rtsp实时视频掩码 */
             unsigned int _maskIndex_rtsp;
-            /* rtmp实时视频掩码 */
-            unsigned int _maskIndex_rtmp;
-
             /* hls实时视频掩码 */
             unsigned int _maskIndex_hls;
             /* gb28181实时视频掩码 */
             unsigned int _maskIndex_gb28181;
             /* 录像的掩码 */
             unsigned int _maskIndex_record;
-            /* 注册推送实时视频掩码通信 */
-            unsigned int _maskIndex_localPush;
-            /* 内部数据推送,为空表示不推送 */
-            char *_localPush;
-            /* 发送流给本地拉流对象 */
-            void *_pLocalPull;
-
             /* 外部储存的节点(Record_item_is_remoteVideoStorage(recordVideoMode)为真时有效),为空表示不使用外部储存,比如_recordVideoMode为3时,此值指向pRecord->p.dhsdkConfig__videoInfoDataClientList中的节点,删除时需要同步删除 */
             struct FsEbml_node *__storageConfigNode;
             /* 视频记录模式,0-表示不记录,1-表示自动选择合适的码流来记录,2-在有直播请求时记录,3-大华sdk,4-GB28181,15-取流但不记录 */
@@ -348,21 +338,17 @@ extern "C" {
             unsigned int recordVideoFile_startTime;
             /* 两个录像信息文件的结束时间(Record_item_is_localVideoStorage(recordVideoMode)为真且videoInfoHasLoad为1时有效) */
             double videoTimeEnd[2];
-            /* 本地推送数据的对象 */
-            void *pLocalPushCamera;
-            /* 本地推送的函数指针,不为空表示有效 */
-            capture_loaclPush_frame_pthreadSafety localPushCameraFun;
         } p;
     };
-#define __Record_itemLog(___Log,___loglevel,___format, ...)\
+    #define __Record_itemLog(___Log,___loglevel,___format, ...)\
      ___Log(___loglevel,1,___format",p=%p/%p,storageConfigNode=%p,recordVideoMode=%hhu,recordType=%hhu\
 ,videoInfo_pos=%p,recordIndex=%hhu,videoInfo_file=%hhu,recordVideoFileInterval=%u\
-,videoInfoHasLoad=%hhu,recordVideoFile_startTime=%u,videoTimeEnd=%lf/%lf,pLocalPushCamera=%p,localPushCameraFun=%p.\n",##__VA_ARGS__\
+,videoInfoHasLoad=%hhu,recordVideoFile_startTime=%u,videoTimeEnd=%lf/%lf.\n",##__VA_ARGS__\
         ,pRecord_item,pRecord_item->ro._pRecord\
         ,pRecord_item->ro.__storageConfigNode,pRecord_item->ro._recordVideoMode,pRecord_item->ro._recordType\
         ,pRecord_item->ro._videoInfo_pos,pRecord_item->ro._recordVideoFileInterval\
         ,pRecord_item->p.recordIndex,pRecord_item->p._videoInfo_file,pRecord_item->p.videoInfoHasLoad\
-        ,pRecord_item->p.recordVideoFile_startTime,pRecord_item->p.videoTimeEnd[0],pRecord_item->p.videoTimeEnd[1],pRecord_item->p.pLocalPushCamera,pRecord_item->p.localPushCameraFun)
+        ,pRecord_item->p.recordVideoFile_startTime,pRecord_item->p.videoTimeEnd[0],pRecord_item->p.videoTimeEnd[1])
 #define Record_itemLog(___loglevel,___format, ...) __Record_itemLog(FsLog,___loglevel,___format,##__VA_ARGS__)
 #define Record_itemLog2(___loglevel,___format, ...) __Record_itemLog(FsLog2,___loglevel,___format,##__VA_ARGS__)
     /* 创建配置 */

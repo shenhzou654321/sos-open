@@ -15,11 +15,6 @@
 #include "../../PublicTools/Thread/monitor.h"
 #include "../../Modules/camera_gb28181/camera_gb28181.h"
 #include "../../Modules/camera_infIray/camera_inflray.h"
-#include "../../Modules/camera_pull/camera_pull.h"
-
-#include "../../Modules/camera_push/camera_push.h"
-#include "../../Modules/camera_rtmp/camera_rtmp.h"
-
 #include "../../Modules/camera_rtsp/camera_rtsp.h" 
 #include  "../../Modules/camera_ctrl/ZGXAPI.h"
 ////////////////////////////////////////////////////////////////////////////////
@@ -183,7 +178,6 @@ static void *camera_inflray_ctrl_function[] = {
     /* 控制,快门重置,成功返回1,失败返回-1,优先级不够返回-2 */
     (void*) camera_inflray_item_ctrl_shutterReset_pthreadSafety
 };
-
 
 static int ZGX_Connect(char* ip, unsigned int port, struct timeval* Timeout) {
     return fs_Socket_tcpIPv4_connect_byStringIP__IO(ip, port, 1, Timeout->tv_sec + Timeout->tv_usec / 1000000.0);
@@ -635,7 +629,7 @@ static unsigned int capture_P_get_channelCount(/* 可为空 */FsConfig * const p
     const void *vsys0 = pConfig;
     const void *vsys;
     {
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, ipList, 0, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0,ipList, 0, "vsys");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -673,7 +667,7 @@ static unsigned int capture_P_get_channelCount(/* 可为空 */FsConfig * const p
                         pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
                         fs_Ebml_node_data_set(pEbml_node_ipv4_streamPort_PlayBack, ipv4_streamPort_PlayBack->lenth, ipv4_streamPort_PlayBack->buffer);
                         pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
-                        Record_gb28181ConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                        Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
                     }
 #else             
                     fs_Ebml_node_data_set(
@@ -704,7 +698,7 @@ static unsigned int capture_P_get_channelCount(/* 可为空 */FsConfig * const p
                                     fs_Ebml_node_delete(gbsdkConfig, ppNode1[--ui]);
                                 } while (ui > (unsigned int) addrmapList->nodeCount);
                                 pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
-                                Record_gb28181ConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                                Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
                             }
                             while (ui-- > 0) {
                                 const FsString * const addrmap = *ppNode++;
@@ -713,7 +707,7 @@ static unsigned int capture_P_get_channelCount(/* 可为空 */FsConfig * const p
                                     pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
                                     fs_Ebml_node_data_set(addrmap1, addrmap->lenth, addrmap->buffer);
                                     pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
-                                    Record_gb28181ConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                                    Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
                                 }
                             }
                             if (addrmapList->nodeCount > addrmapList1->nodeCount) {
@@ -735,7 +729,7 @@ static unsigned int capture_P_get_channelCount(/* 可为空 */FsConfig * const p
                                             , addrmap->lenth, addrmap->buffer);
                                 } while (--ui > 0);
                                 pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
-                                Record_gb28181ConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                                Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
                             }
                             fs_ObjectList_delete__OI(addrmapList);
                             fs_ObjectList_delete__OI(addrmapList1);
@@ -762,14 +756,14 @@ static unsigned int capture_P_get_channelCount(/* 可为空 */FsConfig * const p
                             fs_ObjectList_delete__OI(addrmapList);
 #endif
                             pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
-                            Record_gb28181ConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                            Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
                         }
                     } else if (addrmapList1) {
                         fs_ObjectList_delete__OI(addrmapList1);
                         pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
                         fs_Ebml_node_delete_child_byString(gbsdkConfig, gb28181Config, "addrmap");
                         pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
-                        Record_gb28181ConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                        Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
                     }
 #else
                     if (addrmapList) {
@@ -804,7 +798,7 @@ static unsigned int capture_P_get_channelCount(/* 可为空 */FsConfig * const p
         }
         pRecord->rw._snapbuffertimeout = fs_Config_node_float_get_first(pConfig, vsys0, vsys, "snapbuffertimeout", 0.0, NULL);
 #endif
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, NULL, 0, "vsysChannel");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0,NULL, 0, "vsysChannel");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -4011,30 +4005,26 @@ static int capture_P_item_transfer_cb_error_distribution(struct Capture_item * c
     return 1;
 }
 
-
-
 static void capture_P_item_new(struct Capture * const pCapture, /* 通道号,从1开始,为0用于集群 */const unsigned int channel, /* 本地ip地址 */const FsArray * const ipList
         , /* 原来的采集项 */struct Capture_item * * const ppCapture_item, /* rtsp相机指针 */FsObjectList * const camera_rtsp_list_
-        , /* gb28181相机指针 */FsObjectList * const camera_gb28181_list_, /* 本地拉取相机 */struct Camera_push * * const ppCamera_push, /* 本地拉取相机 */struct Camera_pull * * const ppCamera_pull, /* inflray相机 */struct Camera_inflray * * const ppCamera_inflray
+        , /* gb28181相机指针 */FsObjectList * const camera_gb28181_list_
+        , /* inflray相机 */struct Camera_inflray * * const ppCamera_inflray
         , /* 相机控制 */ Camera_ctrl * * const ppCamera_ctrl, MonitorItem * const pMonitorItem
-        , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer)
-
-
-{
+        , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
 #undef FsFunctionName
 #define FsFunctionName capture_P_item_new
     FsConfig * const pConfig = ((ConfigManager*) pCapture->ro._pConfigManager)->ro.__pConfig;
     if (NULL == pConfig)return;
     const void *vsys0 = pConfig;
-    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, ipList, 0 == channel, "vsys");
+    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, 0, ipList, 0 == channel, "vsys");
     if (clusterList) {
         void **ppNodeCluster = clusterList->pNode + clusterList->startIndex;
         unsigned int uj = clusterList->nodeCount, index = 0;
         do {
             const void *vsysChannel0 = vsys0;
             const void* const vsys = *ppNodeCluster++;
-            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel")
-                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel", channel - 1);
+            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel")
+                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel", channel - 1);
             if (list) {
                 void ** ppNode;
                 unsigned int ui, ipv4;
@@ -4129,9 +4119,6 @@ static void capture_P_item_new(struct Capture * const pCapture, /* 通道号,从
                                 rst->ro.__pCamera_ctrl_item = pCamera_ctrl_item;
                             }
                             ////////////////////////////////////////////////////
-
-
-
 #define __capture_P_item_new_cameraType_error 0
 #define __capture_P_item_new_cameraType_gb28181 1
 #define __capture_P_item_new_cameraType_gb28181_lt 0
@@ -4161,9 +4148,6 @@ static void capture_P_item_new(struct Capture * const pCapture, /* 通道号,从
                             }
 #endif
                             goto FsMacrosFunctionTag(3);
-
-
-
                             for (;;) {
                                 ////////////////////////////////////////////////////
 #if FsMacrosFunction(cameraType_error) >= 0
@@ -4371,94 +4355,22 @@ static void capture_P_item_new(struct Capture * const pCapture, /* 通道号,从
                                 {
                                     int _rv = strcmp(cameraType, "localPull");
                                     if (0 == _rv) {
-                                        if (NULL == *ppCamera_pull) {
-                                            *ppCamera_pull = camera_pull_new__IO(pCapture->ro._pMonitor, pCapture->ro._externRunStatus, systemThreadTid, "Camera_pull", fs_system_cpu_thread_get(), pCapture->ro._pConfigManager);
-                                            camera_pull_startThread(*ppCamera_pull, -1);
-                                        }
-                                        struct Camera_pull_item *pCamera_pull_item;
-                                        {
-                                            pCamera_pull_item = camera_pull_item_new__IO(uuid->buffer, pConfig, cameraConfig0, cameraConfig, (int (*)(FsObjectImageFrame*, void*, MonitorItem*))capture_P_camera_pull_cb, rst, pShareBuffer);
-                                        }
-                                        /* 对应的相机的二级指针,为空表示是本地数据推送,老版本表示对应的相机对象链表 */
-                                        rst->ro._ppCamera = (void**) ppCamera_pull;
-                                        /* 相机项 */
-                                        rst->ro.__pCamera_item = pCamera_pull_item;
-                                        /* 从相机中删除相机项,在相机项全部被删除后把相机也删除,老版本表示从相机中删除相机项并删除相机链表中无相机的相机对象的函数指针,并把相机指针置0 */
-                                        rst->ro._camera_remove_and_delete_item_and_camera = (void (*)(void* * const, void*const, FsShareBuffer * const))camera_pull_delete_item_and_camera;
-                                        camera_pull_add_item__OI_2(*ppCamera_pull, pCamera_pull_item);
-                                        /* 控制相机流的函数指针 */
-                                        rst->ro._streamControl = (void (*)(void*, unsigned char)) camera_pull_item_streamControl_for_configManagerMask;
-                                        /* 连接实时视频掩码通信 */
-                                        configManager_mask_connect_pthreadSafety(pCapture->ro._pConfigManager, "realStream", uuid->buffer, rst
-                                                , (void (*)(const char*, const char*, unsigned char, unsigned char, void*)) capture_P_item_cb_streamControl, rst);
-                                        /* 控制 */
-                                        rst->ro._ctrl_function = NULL;
-                                        break;
+                                        goto FsMacrosFunctionTag(FsMacrosFunction(cameraType_error));
                                     } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(cameraType_localPull_lt));
                                     else goto FsMacrosFunctionTag(FsMacrosFunction(cameraType_localPull_gt));
                                 }
 #endif
-
                                 ////////////////////////////////////////////////////
 #if FsMacrosFunction(cameraType_localPush) > 0
                                 FsMacrosFunctionTag(FsMacrosFunction(cameraType_localPush)) :;
                                 {
                                     int _rv = strcmp(cameraType, "localPush");
                                     if (0 == _rv) {
-                                        if (NULL == *ppCamera_push) {
-                                            *ppCamera_push = camera_push_new__IO(pCapture->ro._pMonitor, pCapture->ro._externRunStatus, systemThreadTid, "Camera_push", (fs_system_cpu_thread_get() + 1) / 2, pCapture->ro._pConfigManager);
-                                            camera_push_startThread(*ppCamera_push, -1);
-                                        }
-                                        struct Camera_push_item *pCamera_push_item;
-                                        {
-                                            unsigned char stitch = fs_Config_node_integer_get_first(pConfig, cameraConfig0, cameraConfig, "stitch", 0, NULL);
-                                            unsigned char cutCount;
-                                            if (stitch >= 5 && stitch <= 6) {
-                                                cutCount = fs_Config_node_integer_get_first(pConfig, cameraConfig0, cameraConfig, "cutCount", 0, NULL);
-                                                if (0 == cutCount)stitch = 0;
-                                            } else cutCount = 0;
-
-                                            unsigned short width = 0, height = 0;
-                                            if (stitch) {
-                                                const char *const str = fs_Config_node_string_get_first(pConfig, cameraConfig0, cameraConfig, "resolution", NULL);
-                                                unsigned int i = 0;
-                                                for (; str[i] >= '0' && str[i] <= '9'; width = width * 10 + (str[i++] - '0'));
-                                                if (width != 0 && str[i++] != 0) {
-                                                    for (; str[i] >= '0' && str[i] <= '9'; height = height * 10 + (str[i++] - '0'));
-                                                    if (0 == height)width = 0;
-                                                } else width = 0;
-                                            }
-                                            const float stitch_fps = (stitch >= 1 && stitch <= 4) ? fs_Config_node_float_get_first(pConfig, cameraConfig0, cameraConfig, "pull_fps", 0.0, NULL) : 0.0;
-                                            const unsigned char stitch_symmetry = (stitch >= 1 && stitch <= 4) ? fs_Config_node_integer_get_first(pConfig, cameraConfig0, cameraConfig, "stitch_symmetry", 0, NULL) : 0;
-                                            const double stitch_direction = (stitch != 0 ? fs_Config_node_float_get_first(pConfig, cameraConfig0, cameraConfig, "stitch_direction", 0.0, NULL) : 0.0) / 180.0 * Fs_PI;
-                                            const unsigned short stitch_start0 = (stitch >= 1 && stitch <= 4) ? fs_Config_node_integer_get_first(pConfig, cameraConfig0, cameraConfig, "stitch_start0", -1, NULL) : -1;
-                                            const short stitch_cutLeft = (stitch >= 1 && stitch <= 4) ? fs_Config_node_integer_get_first(pConfig, cameraConfig0, cameraConfig, "stitch_cutLeft", -1, NULL) : -1;
-                                            const short stitch_cutRight = (stitch >= 1 && stitch <= 4) ? fs_Config_node_integer_get_first(pConfig, cameraConfig0, cameraConfig, "stitch_cutRight", -1, NULL) : -1;
-                                            const short stitch_cutTop = (stitch >= 1 && stitch <= 4) ? fs_Config_node_integer_get_first(pConfig, cameraConfig0, cameraConfig, "stitch_cutTop", -1, NULL) : -1;
-                                            const short stitch_cutBottom = (stitch >= 1 && stitch <= 4) ? fs_Config_node_integer_get_first(pConfig, cameraConfig0, cameraConfig, "stitch_cutBottom", -1, NULL) : -1;
-                                            pCamera_push_item = camera_push_item_new__IO(uuid->buffer, (streamMask & 0x4) ? 1 : 0, stitch, cutCount, stitch_direction, stitch_start0, width, height, stitch_fps, stitch_symmetry, stitch_cutLeft, stitch_cutRight, stitch_cutTop, stitch_cutBottom
-                                                    , (int (*)(FsObjectImageFrame*, void*, MonitorItem*))capture_P_camera_push_cb, rst);
-                                        }
-                                        /* 对应的相机的二级指针,为空表示是本地数据推送,老版本表示对应的相机对象链表 */
-                                        rst->ro._ppCamera = (void**) ppCamera_push;
-                                        /* 相机项 */
-                                        rst->ro.__pCamera_item = pCamera_push_item;
-                                        /* 从相机中删除相机项,在相机项全部被删除后把相机也删除,老版本表示从相机中删除相机项并删除相机链表中无相机的相机对象的函数指针,并把相机指针置0 */
-                                        rst->ro._camera_remove_and_delete_item_and_camera = (void (*)(void* * const, void*const, FsShareBuffer * const))camera_push_delete_item_and_camera;
-                                        camera_push_add_item__OI_2(*ppCamera_push, pCamera_push_item);
-                                        /* 控制相机流的函数指针 */
-                                        rst->ro._streamControl = (void (*)(void*, unsigned char)) camera_push_item_streamControl_for_configManagerMask;
-                                        /* 连接实时视频掩码通信 */
-                                        configManager_mask_connect_pthreadSafety(pCapture->ro._pConfigManager, "realStream", uuid->buffer, rst
-                                                , (void (*)(const char*, const char*, unsigned char, unsigned char, void*)) capture_P_item_cb_streamControl, rst);
-                                        /* 控制 */
-                                        rst->ro._ctrl_function = (struct Camera_ctrl_functionUser*) camera_ctrl_default_ctrl_function;
-                                        break;
+                                        goto FsMacrosFunctionTag(FsMacrosFunction(cameraType_error));
                                     } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(cameraType_localPush_lt));
                                     else goto FsMacrosFunctionTag(FsMacrosFunction(cameraType_localPush_gt));
                                 }
 #endif
-
                                 ////////////////////////////////////////////////////
 #if FsMacrosFunction(cameraType_rtmp) > 0
                                 FsMacrosFunctionTag(FsMacrosFunction(cameraType_rtmp)) :;
@@ -4623,12 +4535,7 @@ static void *capture_P_T(struct Capture * const pCapture) {
 #define __capture_P_T_clean1_5
     FsObjectList * const camera_gb28181_list_ = fs_ObjectList_new_unsafe__IO(2);
 #define __capture_P_T_clean1_6 {if(camera_rtsp_list_->nodeCount!=0){FsLog(FsLogType_fatal,FsPrintfIndex, "Error Camera_gb28181,count=%lu.\n", camera_gb28181_list_->nodeCount); fflush(stdout);FsLogExit();}fs_ObjectList_delete_unsafe__OI(camera_gb28181_list_);};
-    struct Camera_push * pCamera_push = NULL;
-
-    struct Camera_pull * pCamera_pull = NULL;
-
     struct Camera_inflray * pCamera_inflray = NULL;
-
     Camera_ctrl * pCamera_ctrl = NULL;
     struct pollfd __fds = {pCapture->ro.__pipe[0], POLLIN, 0};
     ////////////////////////////////////////////////////////////////////////////
@@ -4715,13 +4622,10 @@ static void *capture_P_T(struct Capture * const pCapture) {
                 /* 重置集群 */
                 pCapture->rw._resetChannel = -1;
 
-
-
                 capture_P_item_new(pCapture, 0, pConfigManager->ro.__ipList_local
                         , NULL, camera_rtsp_list_
-                        , camera_gb28181_list_, &pCamera_push, &pCamera_pull, &pCamera_inflray, &pCamera_ctrl, pMonitorItem, &baseBuffer, &shareBuffer);
-
-
+                        , camera_gb28181_list_
+                        , &pCamera_inflray, &pCamera_ctrl, pMonitorItem, &baseBuffer, &shareBuffer);
             }
             /* 重置 */
             if (pCapture->rw._resetChannel > 0) {
@@ -4731,14 +4635,10 @@ static void *capture_P_T(struct Capture * const pCapture) {
                     fflush(stdout);
                 }
                 pMonitorItem->rw.line = __LINE__;
-
-
-
                 capture_P_item_new(pCapture, pCapture->rw._resetChannel, pConfigManager->ro.__ipList_local
                         , (struct Capture_item **) (itemList_->pNode + itemList_->startIndex + pCapture->rw._resetChannel - 1), camera_rtsp_list_
-                        , camera_gb28181_list_, &pCamera_push, &pCamera_pull, &pCamera_inflray, &pCamera_ctrl, pMonitorItem, &baseBuffer, &shareBuffer);
-
-
+                        , camera_gb28181_list_
+                        , &pCamera_inflray, &pCamera_ctrl, pMonitorItem, &baseBuffer, &shareBuffer);
                 pMonitorItem->rw.line = __LINE__;
                 pCapture->rw._resetChannel = -1;
             }
@@ -5019,22 +4919,9 @@ static void *capture_P_T(struct Capture * const pCapture) {
 void capture_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned long long mask, /* 通道数 */const unsigned int channelCount, void * parent) {
     parent = fs_Config_node_node_add(pConfig, parent, "cameraConfig", "相机配置", "相机配置", 0, 0x7);
     {
-        void *const conditionParent = fs_Config_node_add_property_split(pConfig, parent, NULL, "resolution", "pull_bp", "pull_bg", 0x0000FF00, "pull_camera", "symmetry", "center", "size", 0x050000FF, "direction", "area", 0x05FF0000);
-        void *const conditionGroup = fs_Config_condition_group_add(pConfig, conditionParent);
-        fs_Config_condition_add_static(pConfig, conditionGroup, 0, "cameraType", FsConfig_Condition_equal, "localPull");
-        fs_Config_condition_add_static(pConfig, conditionGroup, 0, "resolution", FsConfig_Condition_equal_false, "0,0");
-    }
-
-    {
-        void *const pNode = fs_Config_node_string_add(pConfig, parent, "cameraType", "相机类型", "相机类型", 0, 0x7, 1, 16, 1);
+        void *const pNode = fs_Config_node_string_add(pConfig, parent, "cameraType", "相机类型", "相机类型", 0, 0x3, 1, 16, 1);
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_default, "rtsp", "rtsp相机", "rtsp相机");
-        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "rtmp", "rtmp相机", "rtmp相机");
-
-        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "localPush", "本地推送相机", "本地推送相机,数据是其他通道根据uuid直接推送");
-
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "gb28181", "gb28181平台或相机", "gb28181平台或相机");
-        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "localPull", "本地拉取相机", "本地拉取相机,根据uuid拉取其他通道的视频流,进行裁剪拼接等操作");
-
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "inflray", "inflray相机", "inflray相机");
     }
     {
@@ -5064,19 +4951,12 @@ void capture_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned l
         void *const pNode = fs_Config_node_string_add(pConfig, parent, "ipv4", "相机或平台的IP或域名", "相机或平台的IP或域名,本机做gb28181平台上级时允许为空", 0, 0x7, 1, 32, 1);
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "192.168.50.252", "192.168.50.252", "192.168.50.252");
         void *const conditionGroup = fs_Config_condition_group_add(pConfig, pNode);
-        fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPush");
-        fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPull");
     }
     {
         void *const pNode = fs_Config_node_integer_add(pConfig, parent, "rtspPort", "rts[m]p或平台端口", "rts[m]p或平台端口,推流此处填0,本机做gb28181平台上级时允许为0", FsConfig_nodeShowType_default, 0, 0x7, 0, 65534, 1);
-
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 554, "554", "554");
-        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 1935, "1935", "1935");
-
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 6666, "6666", "6666");
         void *const conditionGroup = fs_Config_condition_group_add(pConfig, pNode);
-        fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPush");
-        fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPull");
     }
     {
         void *const pNode = fs_Config_node_integer_add(pConfig, parent, "gb28181_sipOver", "sip连接协议", "sip连接协议", FsConfig_nodeShowType_default, 0, 0x7, 1, 3, 2);
@@ -5092,8 +4972,6 @@ void capture_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned l
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_default, "/", "/", "/");
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "34020000001320000002", "34020000001320000002", "34020000001320000002");
         void *const conditionGroup = fs_Config_condition_group_add(pConfig, pNode);
-        fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPush");
-        fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPull");
         fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "inflray");
     }
     {
@@ -5104,16 +4982,12 @@ void capture_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned l
         void *const pNode = fs_Config_node_string_add(pConfig, parent, "rstpUsername", "rtsp或平台用户名", "rtsp或平台用户名,可为空", 0, 0x7, 0, 128, 1);
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "34020000001320000001", "34020000001320000001", "34020000001320000001");
         void *const conditionGroup = fs_Config_condition_group_add(pConfig, pNode);
-        fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPush");
-        fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPull");
         fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "inflray");
     }
     {
         void *const pNode = fs_Config_node_string_add(pConfig, parent, "rstpPasswd", "rtsp或平台密码", "rtsp或平台密码,可为空", 0, 0x7, 0, 128, 1);
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "12345678", "12345678", "12345678");
         void *const conditionGroup = fs_Config_condition_group_add(pConfig, pNode);
-        fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPush");
-        fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPull");
         fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "inflray");
     }
     {
@@ -5163,8 +5037,6 @@ void capture_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned l
         {
             void *const conditionGroup = fs_Config_condition_group_add(pConfig, pNode);
             fs_Config_condition_add_static(pConfig, conditionGroup, 1, "streamMask", FsConfig_Condition_orAnd, "4");
-            fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPush");
-            fs_Config_condition_add_static(pConfig, conditionGroup, 1, "cameraType", FsConfig_Condition_equal_false, "localPull");
         }
     }
     {
@@ -5266,161 +5138,18 @@ void capture_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned l
     // localPull/localPush相机的参数
     {
         {
-            void *const pNode = fs_Config_node_integer_add(pConfig, parent, "stitch", "拼接", "拼接", FsConfig_nodeShowType_default, 0, 0x7, 0, 6, 1);
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "不拼接", "不拼接");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 1, "从左至右拼接", "从左至右拼接");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 2, "从右至左拼接", "从右至左拼接");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 3, "从上至下拼接", "从上至下拼接");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 4, "从下至上拼接", "从下至上拼接");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 5, "从左至右切片", "从左至右切片");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 6, "从上至下切片", "从上至下切片");
-            fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "cameraType", FsConfig_Condition_equal, "localPush");
-        }
-        {
-            void *const pNode = fs_Config_node_integer_add(pConfig, parent, "cutCount", "切片数量", "切片数量", FsConfig_nodeShowType_default, 0, 0x7, 0, 35, 1);
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "切片数量0", "0");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 4, "4", "4");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 16, "16", "16");
-            void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPush");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_greaterOrEqual, "5");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_lessOrEqual, "6");
-        }
-        {
+#ifdef FsAuthority //(Camera_pull, "本地拉取相机;0-不包含;1-包含", 0) == 1
             void *const pNode = fs_Config_node_string_add(pConfig, parent, "resolution", "分辨率", "分辨率,必须是4的倍数,长宽之间用逗号隔开如 1920,1080", 0, 0x7, 1, 16, 1);
             fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_default, "0,0", "自动,仅一个相机时适用", "自动,仅一个相机时适用");
             fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "1920,1080", "1920,1080", "1920,1080");
-            fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "cameraType", FsConfig_Condition_equal, "localPull");
-            {
-                void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-                fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPush");
-                fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_greaterOrEqual, "1");
-                fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_lessOrEqual, "4");
-            }
+#endif
         }
         {
+#ifdef FsAuthority //(Camera_pull, "本地拉取相机;0-不包含;1-包含", 0) == 1
             void *const pNode = fs_Config_node_float_add(pConfig, parent, "pull_fps", "帧率", "帧率,为0表示使用自动帧率", 0, 0x7, 0.0, 50.0, 1);
             fs_Config_node_float_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0.0, "自动帧率", "自动帧率");
             fs_Config_node_float_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 25.0, "25.0", "25.0");
-            {
-                void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-                fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPull");
-                fs_Config_condition_add_static(pConfig, condition_group, 1, "resolution", FsConfig_Condition_equal_false, "0,0");
-            }
-            {
-                void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-                fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPush");
-                fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_greaterOrEqual, "1");
-                fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_lessOrEqual, "4");
-            }
-        }
-        {
-            void *const pNode = fs_Config_node_binary_add(pConfig, parent, "pull_bp", "底图", "底图,从文件中选择图片", 0, 0x7, 1024, 1024 * 1024, 1);
-            void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPull");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "resolution", FsConfig_Condition_equal_false, "0,0");
-        }
-
-        {
-            void *const pNode = fs_Config_node_string_add(pConfig, parent, "pull_bg", "背景色", "背景色,RGB,16进制,其中0x80000000表示不设置背景色", 0, 0x7, 0, 64, 1);
-            fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_default, "0x80000000", "随机值", "随机值");
-            fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "0x000000", "黑色", "黑色");
-            fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "0xFFFFFF", "白色", "白色");
-            fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "0xFF0000", "红色", "红色");
-            fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "0x00FF00", "绿色", "绿色");
-            fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "0x0000FF", "蓝色", "蓝色");
-            void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPull");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "resolution", FsConfig_Condition_equal_false, "0,0");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "pull_bp", FsConfig_Condition_equal, "");
-        }
-        {
-            void *const pNode = fs_Config_node_integer_add(pConfig, parent, "stitch_symmetry", "拼接图像对称", "图像对称", FsConfig_nodeShowType_default, 0, 0x7, 0, 2, 1);
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "不对称", "不对称");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 1, "左右对称", "左右对称");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 2, "上下对称", "上下对称");
-            void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPush");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_greaterOrEqual, "1");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_lessOrEqual, "4");
-        }
-        {
-            void *const pNode = fs_Config_node_float_add(pConfig, parent, "stitch_direction", "方向(0-360)", "方向,单位角度,逆时针方向为正[0-360]", 0, 0x7, 0, 360, 1);
-            fs_Config_node_float_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0.0, "0.0", "0.0");
-            void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPush");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_equal_false, "0");
-        }
-        {
-            void *const pNode = fs_Config_node_integer_add(pConfig, parent, "stitch_start0", "拼接图像开始位置", "拼接图像开始位置,比如在左右拼接时,10表示把最终图像上的左边10像素调整到右边", FsConfig_nodeShowType_default, 0, 0x7, 0, 65535, 1);
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "0", "0");
-            void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPush");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_greaterOrEqual, "1");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_lessOrEqual, "4");
-        }
-        {
-            void *const pNode = fs_Config_node_integer_add(pConfig, parent, "stitch_cutLeft", "拼接图像左裁剪像素", "拼接图像左裁剪像素,-1表示使用相机传过来的值", FsConfig_nodeShowType_default, 0, 0x7, -1, 640, 1);
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, -1, "-1", "-1");
-            void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPush");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_greaterOrEqual, "1");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_lessOrEqual, "4");
-        }
-        {
-            void *const pNode = fs_Config_node_integer_add(pConfig, parent, "stitch_cutRight", "拼接图像右裁剪像素", "拼接图像右裁剪像素,为0表示使用相机传过来的值", FsConfig_nodeShowType_default, 0, 0x7, -1, 640, 1);
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, -1, "-1", "-1");
-            void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPush");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_greaterOrEqual, "1");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_lessOrEqual, "4");
-        }
-        {
-            void *const pNode = fs_Config_node_integer_add(pConfig, parent, "stitch_cutTop", "拼接图像上裁剪像素", "拼接图像右裁剪像素,为0表示使用相机传过来的值", FsConfig_nodeShowType_default, 0, 0x7, -1, 640, 1);
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, -1, "-1", "-1");
-            void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPush");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_greaterOrEqual, "1");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_lessOrEqual, "4");
-        }
-        {
-            void *const pNode = fs_Config_node_integer_add(pConfig, parent, "stitch_cutBottom", "拼接图像下裁剪像素", "拼接图像右裁剪像素,为0表示使用相机传过来的值", FsConfig_nodeShowType_default, 0, 0x7, -1, 640, 1);
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, -1, "-1", "-1");
-            void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "cameraType", FsConfig_Condition_equal, "localPush");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_greaterOrEqual, "1");
-            fs_Config_condition_add_static(pConfig, condition_group, 1, "stitch", FsConfig_Condition_lessOrEqual, "4");
-        }
-        {
-            // 创建相机位置配置
-            void *const pNode = fs_Config_node_template_add(pConfig, parent, "pull_camera", "流成员", NULL, "uuid", "流成员", NULL, NULL, NULL, 0, 0x7, 32);
-            fs_Config_node_add_property_image(pConfig, pNode, 0, "uuid", NULL);
-            fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "cameraType", FsConfig_Condition_equal, "localPull");
-            //fs_Config_node_add_property_image(pConfig, pNode, 1, "uuid", "recordConfig rtspServerURL");
-            fs_Config_node_string_add_value(pConfig, fs_Config_node_string_add(pConfig, pNode, "uuid", "流UUID", "流UUID,拉取uuid对应的视频流,不能与本相机的uuid相同", 0, 0x7, 1, 64, 1)
-                    , FsConfig_nodeValue_default, "uuid", "uuid", "uuid");
-            {
-                void *const pNode1 = fs_Config_node_integer_add(pConfig, pNode, "symmetry", "图像对称", "图像对称", FsConfig_nodeShowType_default, 0, 0x7, 0, 2, 1);
-                fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_default, 0, "不对称", "不对称");
-                fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_optional, 1, "左右对称", "左右对称");
-                fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_optional, 2, "上下对称", "上下对称");
-            }
-            {
-                void *const pNode1 = fs_Config_node_string_add(pConfig, pNode, "center", "中心点坐标", "中心点坐标,相对于目标图像中心点的坐标,向下为y+,之间用逗号隔开如 10.1,20.3", 0, 0x7, 1, 64, 1);
-                fs_Config_node_string_add_value(pConfig, pNode1, FsConfig_nodeValue_default, "0,0", "0,0", "0,0");
-                fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode1), 2, "resolution", FsConfig_Condition_equal_false, "0,0");
-            }
-            {
-                void *const pNode1 = fs_Config_node_string_add(pConfig, pNode, "size", "外接矩形大小", "外接矩形大小,像素,长宽之间用逗号隔开如 1920,1080", 0, 0x7, 1, 64, 1);
-                fs_Config_node_string_add_value(pConfig, pNode1, FsConfig_nodeValue_default, "1920,1080", "1920,1080", "1920,1080");
-                fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode1), 2, "resolution", FsConfig_Condition_equal_false, "0,0");
-            }
-            fs_Config_node_float_add_value(pConfig, fs_Config_node_float_add(pConfig, pNode, "direction", "方向(0-360)", "方向,单位角度,逆时针方向为正[0-360]", 0, 0x7, 0, 360, 1)
-                    , FsConfig_nodeValue_default, 0.0, "0.0", "0.0");
-            {
-                void *const pNode1 = fs_Config_node_string_add(pConfig, pNode, "area", "区域", "区域,以中心点为0点的坐标点 (0,0)(1,1)(2,3)", 0, 0x7, 1, 1024, 1);
-                fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode1), 2, "resolution", FsConfig_Condition_equal_false, "0,0");
-            }
+#endif
         }
     }
 }
@@ -5452,7 +5181,11 @@ int capture_check_channel_changed(struct Capture * const pCapture, /* 通道编�
                     && (/* Recognition */FsMacrosValue2(__check_channel_changed_Server, _Mask) & fs_Config_node_integer_get_mask(pConfig, item0, item, "moduleMask", NULL)) == 0)return 0;
             return 1;
         }
-        if (sum == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum)return 0;
+        if (sum == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum
+#ifdef __check_channel_changed_checkTimeControl
+                && fs_Config_get_sum_timeControl(pConfig, item0, item, __check_channel_changed_checkTimeControl) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._timeControlSum
+#endif
+                ) return 0;
     } else {
         FsLog(FsLogType_error, FsPrintfIndex, "Invalid itemPath:\"%s\".\n", itemPath);
         fflush(stdout);
@@ -5461,15 +5194,18 @@ int capture_check_channel_changed(struct Capture * const pCapture, /* 通道编�
         const void *parent;
         {
             parent0 = pConfig;
-            FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig
-                    , ((ConfigManager*) /* pRecognition */FsMacrosValue2(p, __check_channel_changed_Server)->ro._pConfigManager)->ro.__ipList_local, 0, "vsys");
+            FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, 0, ((ConfigManager*) /* pRecognition */FsMacrosValue2(p, __check_channel_changed_Server)->ro._pConfigManager)->ro.__ipList_local, 0, "vsys");
             parent = list->pNode[list->startIndex];
             fs_ObjectList_delete__OI(list);
-            list = fs_Config_node_template__IO(pConfig, &parent0, parent, NULL, 0, "vsysChannel");
+            list = fs_Config_node_template__IO(pConfig, &parent0, parent, 0, NULL, 0, "vsysChannel");
             parent = list->pNode[list->startIndex + index];
             fs_ObjectList_delete__OI(list);
         }
-        if (fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node *) parent) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum)return 0;
+        if (fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node *) parent) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum
+#ifdef __check_channel_changed_checkTimeControl
+                && fs_Config_get_sum_timeControl(pConfig, item0, item, __check_channel_changed_checkTimeControl) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._timeControlSum
+#endif
+                )return 0;
     }
 #ifdef FsDebug
     FsLog2(FsLogType_info, FsPrintfIndex, "Item(=%p) has changed,index=%u,itemPath:\"%s\"/%p,sum=%llx/%llx\n"
@@ -5478,6 +5214,9 @@ int capture_check_channel_changed(struct Capture * const pCapture, /* 通道编�
     return 1;
 #ifdef __check_channel_changed_itemListLock
 #undef __check_channel_changed_itemListLock
+#endif
+#ifdef __check_channel_changed_checkTimeControl
+#undef __check_channel_changed_checkTimeControl
 #endif
 #undef __check_channel_changed_Server
 #endif

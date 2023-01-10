@@ -30,4 +30,28 @@ if [[ -f ./keepspace ]] ;then killall -9 keepspace; fi
 mkdir -p /fs/project/etc
 while [ 1 ] ;do
   if [[ ! -d /tmp/running ]];then mkdir /tmp/running; fi
-  rm -rf /tmp/running
+  rm -rf /tmp/running/*
+  if [[ -f ./debug ]] ;then
+    ./debug -L 0QS72BLLR0IBDO2B2222222222222BLS
+  fi
+  if [ -f ./out ];then
+    ./out -l /dev/null -i 0 -a 0.0.0.0:0 ./zos >/dev/null &
+  else
+    ./zos &
+  fi
+  pid_zos=$!
+  pid_keepspace=0
+  if [[ -f ./keepspace ]] ;then
+    if [ -f ./out ];then
+      ./out -l /dev/null -i 0 -a 0.0.0.0:0 ./keepspace >/dev/null &
+    else
+      ./keepspace &
+    fi
+    pid_keepspace=$!
+  fi
+  watchdog
+  echo "some prossess error,try again..."
+  sleep 1
+  kill -9 $pid_zos
+  if [[ -f ./keepspace ]] ;then kill -9 $pid_keepspace; fi
+done

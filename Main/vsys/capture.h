@@ -296,9 +296,6 @@ extern "C" {
             , /* ppFrame可储存的数据帧数量 */unsigned int frameCount, FsObjectImageFrame * ppFrame[]);
     /* 获取数据帧的数量 */
     unsigned int capture_item_get_frame_count_pthreadSafety(struct Capture * const pCapture, /* 获取的通道编号,从0开始 */unsigned int index);
-    typedef void (*capture_loaclPush_frame_pthreadSafety)(/* 本地推送相机项 */ void *const plocalPush_item, FsObjectImageFrame * const pFrame, /* 推送源的uuid */const char uuid[], /* 上一个采集的索引 */ const void* const src
-            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
-
     /* 重置模块内通道对应的开方分组 */
     void capture_item_reset_groupSqrtOut(struct Capture * const pCapture, /* 获取的通道编号,从0开始 */unsigned int index
             , /* 新组数据的起始指针 */unsigned char *const groupValue, /* 新组的参数 */ const FsGroupSqrt * const pGroupSqrt);

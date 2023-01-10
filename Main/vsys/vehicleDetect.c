@@ -195,9 +195,9 @@ static void vehicleDetect_P_item_new_vehicleDetect(struct VehicleDetect_item * c
     const void *vehicleDetectConfig0 = pConfig;
     const void *vehicleDetectConfig;
     {
-        vehicleDetectConfig = fs_Config_node_template_get_orderFirst(pConfig, &vehicleDetectConfig0, pConfig, pConfigManager->ro.__ipList_local, 0, "vsys", 0);
+        vehicleDetectConfig = fs_Config_node_template_get_orderFirst(pConfig, &vehicleDetectConfig0, pConfig,0, pConfigManager->ro.__ipList_local, 0, "vsys", 0);
         if (vehicleDetectConfig) {
-            vehicleDetectConfig = fs_Config_node_template_get(pConfig, &vehicleDetectConfig0, vehicleDetectConfig, NULL, 0, "vsysChannel", index);
+            vehicleDetectConfig = fs_Config_node_template_get(pConfig, &vehicleDetectConfig0, vehicleDetectConfig,0, NULL, 0, "vsysChannel", index);
             if (vehicleDetectConfig) {
                 vehicleDetectConfig = fs_Config_node_get_first(pConfig, &vehicleDetectConfig0, vehicleDetectConfig, "vehicleDetectConfig");
             }
@@ -243,15 +243,15 @@ static void vehicleDetect_P_item_new(struct VehicleDetect * const pVehicleDetect
     FsConfig *pConfig = ((ConfigManager*) pVehicleDetect->ro._pConfigManager)->ro.__pConfig;
     if (NULL == pConfig)return;
     const void *vsys0 = pConfig;
-    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, ipList, 0 == channel, "vsys");
+    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig,0, ipList, 0 == channel, "vsys");
     if (clusterList) {
         void **ppNodeCluster = clusterList->pNode + clusterList->startIndex;
         unsigned int uj = clusterList->nodeCount;
         do {
             const void *vsysChannel0 = vsys0;
             const void* const vsys = *ppNodeCluster++;
-            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel")
-                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel", channel - 1);
+            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys,0, NULL, 0, "vsysChannel")
+                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, 0,NULL, 0, "vsysChannel", channel - 1);
             if (list) {
                 void ** ppNode;
                 unsigned int ui, ipv4;
@@ -621,7 +621,7 @@ static unsigned int vehicleDetect_P_get_channelCount(/* 可为空 */FsConfig * c
     const void *vsys0 = pConfig;
     const void *vsys;
     {
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, ipList, 0, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0,ipList, 0, "vsys");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -790,7 +790,7 @@ static unsigned int vehicleDetect_P_get_channelCount(/* 可为空 */FsConfig * c
         }
         pRecord->rw._snapbuffertimeout = fs_Config_node_float_get_first(pConfig, vsys0, vsys, "snapbuffertimeout", 0.0, NULL);
 #endif
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, NULL, 0, "vsysChannel");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0,NULL, 0, "vsysChannel");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -1486,7 +1486,11 @@ int vehicleDetect_check_channel_changed(struct VehicleDetect * const pVehicleDet
                     && (/* Recognition */FsMacrosValue2(__check_channel_changed_Server, _Mask) & fs_Config_node_integer_get_mask(pConfig, item0, item, "moduleMask", NULL)) == 0)return 0;
             return 1;
         }
-        if (sum == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum)return 0;
+        if (sum == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum
+#ifdef __check_channel_changed_checkTimeControl
+                && fs_Config_get_sum_timeControl(pConfig, item0, item, __check_channel_changed_checkTimeControl) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._timeControlSum
+#endif
+                ) return 0;
     } else {
         FsLog(FsLogType_error, FsPrintfIndex, "Invalid itemPath:\"%s\".\n", itemPath);
         fflush(stdout);
@@ -1495,15 +1499,18 @@ int vehicleDetect_check_channel_changed(struct VehicleDetect * const pVehicleDet
         const void *parent;
         {
             parent0 = pConfig;
-            FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig
-                    , ((ConfigManager*) /* pRecognition */FsMacrosValue2(p, __check_channel_changed_Server)->ro._pConfigManager)->ro.__ipList_local, 0, "vsys");
+            FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, 0, ((ConfigManager*) /* pRecognition */FsMacrosValue2(p, __check_channel_changed_Server)->ro._pConfigManager)->ro.__ipList_local, 0, "vsys");
             parent = list->pNode[list->startIndex];
             fs_ObjectList_delete__OI(list);
-            list = fs_Config_node_template__IO(pConfig, &parent0, parent, NULL, 0, "vsysChannel");
+            list = fs_Config_node_template__IO(pConfig, &parent0, parent, 0, NULL, 0, "vsysChannel");
             parent = list->pNode[list->startIndex + index];
             fs_ObjectList_delete__OI(list);
         }
-        if (fs_Config_get_sum((FsEbml*)pConfig, (struct FsEbml_node *) parent) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum)return 0;
+        if (fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node *) parent) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum
+#ifdef __check_channel_changed_checkTimeControl
+                && fs_Config_get_sum_timeControl(pConfig, item0, item, __check_channel_changed_checkTimeControl) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._timeControlSum
+#endif
+                )return 0;
     }
 #ifdef FsDebug
     FsLog2(FsLogType_info, FsPrintfIndex, "Item(=%p) has changed,index=%u,itemPath:\"%s\"/%p,sum=%llx/%llx\n"
@@ -1512,6 +1519,9 @@ int vehicleDetect_check_channel_changed(struct VehicleDetect * const pVehicleDet
     return 1;
 #ifdef __check_channel_changed_itemListLock
 #undef __check_channel_changed_itemListLock
+#endif
+#ifdef __check_channel_changed_checkTimeControl
+#undef __check_channel_changed_checkTimeControl
 #endif
 #undef __check_channel_changed_Server
 #endif

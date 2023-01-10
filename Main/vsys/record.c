@@ -159,7 +159,7 @@ static unsigned int record_P_get_channelCount_and_get_snapbuffertimeout_and_upda
     const void *vsys0 = pConfig;
     const void *vsys;
     {
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, ipList, 0, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 0, "vsys");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -328,7 +328,7 @@ static unsigned int record_P_get_channelCount_and_get_snapbuffertimeout_and_upda
         }
         pRecord->rw._snapbuffertimeout = fs_Config_node_float_get_first(pConfig, vsys0, vsys, "snapbuffertimeout", 0.0, NULL);
 #endif
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, NULL, 0, "vsysChannel");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0, NULL, 0, "vsysChannel");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -1647,15 +1647,6 @@ static void record_P_item_delete__OI(struct Record_item * pRecord_item
             configManager_mask_logoff_pthreadSafety(pRecord_item->ro._pRecord->ro._pConfigManager, "realStream", pRecord_item->ro._uuid, pRecord_item->ro._maskIndex_rtsp);
         }
     }
-    /* rtmp视频转发+集群 */
-    if (pRecord_item->ro.__pRtmpServer_item) {
-        rtmpServer_item_delete__OI(pRecord_item->ro.__pRtmpServer_item);
-        if (0 == pRecord_item->ro._ipv4) {
-            /* 注销rtmp实时视频掩码通信 */
-            configManager_mask_logoff_pthreadSafety(pRecord_item->ro._pRecord->ro._pConfigManager, "realStream", pRecord_item->ro._uuid, pRecord_item->ro._maskIndex_rtmp);
-        }
-    }
-
     /* hls视频转发+集群 */
     if (pRecord_item->ro.__pHlsServer_item) {
         hlsServer_item_delete__OI(pRecord_item->ro.__pHlsServer_item);
@@ -1676,18 +1667,6 @@ static void record_P_item_delete__OI(struct Record_item * pRecord_item
     if (0 == pRecord_item->ro._ipv4) {
         /* 注销录像的掩码 */
         configManager_mask_logoff_pthreadSafety(pRecord_item->ro._pRecord->ro._pConfigManager, "realStream", pRecord_item->ro._uuid, pRecord_item->ro._maskIndex_record);
-        /* 内部数据推送,为空表示不推送 */
-        if (pRecord_item->ro._localPush) {
-            /* 解绑定命令字 */
-            configManager_cmd_disconnect(pRecord_item->ro._pRecord->ro._pConfigManager, "localPush", pRecord_item->ro._localPush, pRecord_item);
-            /* 断开实时视频掩码通信 */
-            configManager_mask_disconnect_pthreadSafety(pRecord_item->ro._pRecord->ro._pConfigManager, "realStream", pRecord_item->ro._localPush, pRecord_item);
-            /* 注销本地推送实时视频掩码通信 */
-            configManager_mask_logoff_pthreadSafety(pRecord_item->ro._pRecord->ro._pConfigManager, "realStream", pRecord_item->ro._uuid, pRecord_item->ro._maskIndex_localPush);
-        }
-        /* 发送流给本地拉流对象 */
-        configManager_transfer_logoff(pRecord_item->ro._pRecord->ro._pConfigManager, pRecord_item->ro._pLocalPull, pRecord_item);
-
         /* 外部储存的节点,为空表示不使用外部储存,比如_recordVideoMode为3时,此值指向pRecord->p.dhsdkConfig__videoInfoDataClientList中的节点,删除时需要同步删除 */
         if (pRecord_item->ro.__storageConfigNode) {
             switch (pRecord_item->ro._recordVideoMode) {
@@ -1785,7 +1764,7 @@ static inline void record_P_videoInfo_create(struct Record * const pRecord, /* �
     struct FsEbml_node * parent = fs_Ebml_node_addChild(rst, (struct FsEbml_node *) rst, "cluster", FsEbmlNodeType_Struct);
     {
         const void *vsys0 = pConfig;
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, ipList, 1, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 1, "vsys");
         if (list) {
             void **ppNode = list->pNode + list->startIndex;
             unsigned int ui = list->nodeCount;
@@ -1798,7 +1777,7 @@ static inline void record_P_videoInfo_create(struct Record * const pRecord, /* �
     }
     {
         const void *vsys0 = pConfig;
-        FsObjectList * list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, ipList, 0, "vsys");
+        FsObjectList * list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 0, "vsys");
         if (list) {
             const void *const vsys = (struct FsEbml_node*) list->pNode[list->startIndex];
             {
@@ -1807,7 +1786,7 @@ static inline void record_P_videoInfo_create(struct Record * const pRecord, /* �
             }
             fs_ObjectList_delete__OI(list);
             const void *vsysChannel0 = vsys0;
-            list = fs_Config_node_template__IO(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel");
+            list = fs_Config_node_template__IO(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel");
             if (list) {
                 parent = fs_Ebml_node_addChild(rst, (struct FsEbml_node *) rst, "videoInfo", FsEbmlNodeType_Struct);
                 *(unsigned long long*) fs_Ebml_node_addChild(rst, (struct FsEbml_node *) parent, "timezone", FsEbmlNodeType_Integer)->data.buffer = fs_time_timezone_get();
@@ -3772,11 +3751,6 @@ static void record_P_cmd_connect_cb(/* 命令字 */ const char cmd[], /* uuid */
                 gb28181Server_item_set_ctrl(pRecord_item->ro.__pGB28181Server_item, pCapture_item->ro._ctrl_function, pCapture_item->ro.__pCamera_item, pCapture_item->ro.__pCamera_ctrl_item);
             } else gb28181Server_item_set_ctrl(pRecord_item->ro.__pGB28181Server_item, NULL, NULL, NULL);
         }
-    } else if (pRecord_item->ro._localPush != NULL && strcmp("localPush", cmd) == 0 && strcmp(uuid, pRecord_item->ro._localPush) == 0) {
-        pthread_mutex_lock(&pRecord_item->ro.__mutexCmdConnect);
-        pRecord_item->p.localPushCameraFun = (capture_loaclPush_frame_pthreadSafety) do_local;
-        pRecord_item->p.pLocalPushCamera = do_local_p;
-        pthread_mutex_unlock(&pRecord_item->ro.__mutexCmdConnect);
     } else {
 
         FsPrintf(1, "Invalid data,cmd:\"%s\",uuid:\"%s/%s\"\n", cmd, uuid, pRecord_item->ro._uuid);
@@ -3792,8 +3766,9 @@ static void record_private_cb_realRtsp(/* 状态,-2-表示无客户端,-1-表示
         //fflush(stdout);
         //configManager_mask_out_pthreadSafety(pRecord_item->ro._pRecord->ro._pConfigManager, stdout);
     } else {
-
-        FsPrintf(1, "-------------index=%d,uuid:\"%s\",localPush:\"%s\"-----\n", index, pRecord_item->ro._uuid, pRecord_item->ro._localPush);
+        FsPrintf(1, "-------------index=%d,uuid:\"%s\",localPush:\"%s\"-----\n", index, pRecord_item->ro._uuid
+                , ""
+                );
         fflush(stdout);
     }
 }
@@ -3801,12 +3776,16 @@ static void record_private_cb_realRtsp(/* 状态,-2-表示无客户端,-1-表示
 static void record_P_cb_realHls(/* 状态,-2-表示无客户端,-1-表示有客户端,大于-1表示历史视频或文件点播新客户端在链表中的位置 */const int index, struct Record_item * const pRecord_item) {
     if (index < 0) {
         configManager_mask_value_set_pthreadSafety(pRecord_item->ro._pRecord->ro._pConfigManager, pRecord_item->ro._realMask, pRecord_item->ro._maskIndex_hls, index + 2);
-        FsPrintf(1, "-------------HlsSatus:[%d],uuid:\"%s\",localPush:\"%s\"-----\n", index + 2, pRecord_item->ro._uuid, pRecord_item->ro._localPush);
+        FsPrintf(1, "-------------HlsSatus:[%d],uuid:\"%s\",localPush:\"%s\"-----\n", index + 2, pRecord_item->ro._uuid
+                , ""
+                );
         fflush(stdout);
         //configManager_mask_out_pthreadSafety(pRecord_item->ro._pRecord->ro._pConfigManager, stdout);
     } else {
 
-        FsPrintf(1, "-------------index=%d,uuid:\"%s\",localPush:\"%s\"-----\n", index, pRecord_item->ro._uuid, pRecord_item->ro._localPush);
+        FsPrintf(1, "-------------index=%d,uuid:\"%s\",localPush:\"%s\"-----\n", index, pRecord_item->ro._uuid
+                , ""
+                );
         fflush(stdout);
     }
 }
@@ -3815,26 +3794,19 @@ static void record_P_cb_realHls(/* 状态,-2-表示无客户端,-1-表示有客�
 static void record_private_cb_realGB28181(/* 状态,-2-表示无客户端,-1-表示有客户端,大于-1表示历史视频或文件点播新客户端在链表中的位置 */const int index, struct Record_item * const pRecord_item) {
     if (index < 0) {
         configManager_mask_value_set_pthreadSafety(pRecord_item->ro._pRecord->ro._pConfigManager, pRecord_item->ro._realMask, pRecord_item->ro._maskIndex_gb28181, index + 2);
-        FsPrintf(1, "-------------RtspSatus:[%d],uuid:\"%s\",localPush:\"%s\"-----\n", index + 2, pRecord_item->ro._uuid, pRecord_item->ro._localPush);
+        FsPrintf(1, "-------------RtspSatus:[%d],uuid:\"%s\",localPush:\"%s\"-----\n", index + 2, pRecord_item->ro._uuid
+                , ""
+                );
         fflush(stdout);
         //configManager_mask_out_pthreadSafety(pRecord_item->ro._pRecord->ro._pConfigManager, stdout);
     } else {
 
-        FsPrintf(1, "-------------index=%d,uuid:\"%s\",localPush:\"%s\"-----\n", index, pRecord_item->ro._uuid, pRecord_item->ro._localPush);
+        FsPrintf(1, "-------------index=%d,uuid:\"%s\",localPush:\"%s\"-----\n", index, pRecord_item->ro._uuid
+                , ""
+                );
         fflush(stdout);
     }
 }
-
-/* 用于推送目的端在有实时客户端时的回调函数 */
-static void record_P_item_cb_realLocalPush(/* 掩码名 */ const char maskName[], /* uuid */ const char uuid[], /* 状态,0-全0,1-部分为1 */ const unsigned char status
-        , /* 是否是在connect中回调,connect连接时会把当前的掩码状态回调出来,0-不是,1-是 */const unsigned char isConnectCb, /* 关联的对象 */ struct Record_item * const pRecord_item) {
-    FsPrintf(1, "-------------LocalPushSatus:[%hhu/%hhu],uuid:\"%s\",localPush:\"%s\"-----\n", status, isConnectCb, pRecord_item->ro._uuid, pRecord_item->ro._localPush);
-    fflush(stdout);
-    configManager_mask_value_set(pRecord_item->ro._realMask, pRecord_item->ro._maskIndex_localPush, status);
-    FsPrintf(1, "-------------LocalPushSatus:[%hhu/%hhu],uuid:\"%s\",localPush:\"%s\"-----\n", status, isConnectCb, pRecord_item->ro._uuid, pRecord_item->ro._localPush);
-    fflush(stdout);
-}
-
 /* 查询录像时长的回调函数,成功返回FsObjectList指针(成员为两个double,第一个double为开始时间,第二个double为结束时间),失败返回NULL */
 static FsStructList * record_P_item_recordInfo_for_GB28181__IO(/* 查找的开始时间 */double startTime, /* 查找的结束时间 */double endTime, struct Record_item * const pRecord_item
         , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
@@ -4044,7 +4016,7 @@ static void record_P_item_new(struct Record * const pRecord, /* 通道号,从1�
     FsConfig * const pConfig = ((ConfigManager*) pRecord->ro._pConfigManager)->ro.__pConfig;
     if (NULL == pConfig)return;
     const void *vsys0 = pConfig;
-    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, ipList, 0 == channel, "vsys");
+    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, 0, ipList, 0 == channel, "vsys");
     if (clusterList) {
         void **ppNodeCluster = clusterList->pNode + clusterList->startIndex;
         unsigned int uj = clusterList->nodeCount, index = 0;
@@ -4068,8 +4040,8 @@ static void record_P_item_new(struct Record * const pRecord, /* 通道号,从1�
         do {
             const void *vsysChannel0 = vsys0;
             void *const vsys = *ppNodeCluster++;
-            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel")
-                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel", channel - 1);
+            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel")
+                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel", channel - 1);
             if (list) {
                 void ** ppNode;
                 unsigned int ui, ipv4;
@@ -4166,12 +4138,10 @@ static void record_P_item_new(struct Record * const pRecord, /* 通道号,从1�
                                 }
                             } else recordVideoMode = 0;
                         } else if (-1 == recordVideoMode)recordVideoMode = 15;
-                        const FsString * localPush, *deviceno, *devicename, *positionname, *position_jwd;
+                        const FsString *deviceno, *devicename, *positionname, *position_jwd;
                         char *pd;
                         unsigned int len = uuid->lenth;
                         if (channel > 0) {
-                            localPush = fs_Config_node_string_get_first_String(pConfig, recordConfig0, recordConfig, "localPush", NULL);
-                            if (localPush)len += localPush->lenth;
                             deviceno = fs_Config_node_string_get_first_String(pConfig, recordConfig0, recordConfig, "deviceno", NULL);
                             len += deviceno->lenth;
                             devicename = fs_Config_node_string_get_first_String(pConfig, recordConfig0, recordConfig, "devicename", NULL);
@@ -4361,20 +4331,6 @@ static void record_P_item_new(struct Record * const pRecord, /* 通道号,从1�
                             /* 实时视频保存的最长时间,单位秒,0表示不限制 */
                             if (rst->ro._recordVideoMode) rst->ro._realVideoSaveTime = fs_Config_node_integer_get_first(pConfig, recordConfig0, recordConfig, "realVideoSaveTime", 0, NULL);
                             else rst->ro._realVideoSaveTime = 1;
-                            /* 内部数据推送,为空表示不推送 */
-                            if (localPush) {
-                                rst->ro._localPush = pd, len = localPush->lenth, memcpy(pd, localPush->buffer, len), pd += len;
-                                /* 注册本地推送实时视频掩码通信 */
-                                rst->ro._maskIndex_localPush = configManager_mask_register_pthreadSafety(&rst->ro._realMask, pRecord->ro._pConfigManager, "realStream", uuid->buffer, Record_BaseLine + __LINE__);
-                                /* 连接实时视频掩码通信 */
-                                configManager_mask_connect_pthreadSafety(pRecord->ro._pConfigManager, "realStream", localPush->buffer, rst
-                                        , (void (*)(const char*, const char*, unsigned char, unsigned char, void*)) record_P_item_cb_realLocalPush, rst);
-                                /* 绑定命令字 */
-                                configManager_cmd_connect(pRecord->ro._pConfigManager, "localPush", localPush->buffer, rst, (void (*)(const char*, const char*, void*, void*, void*))record_P_cmd_connect_cb, rst);
-                            }
-                            /* 发送流给本地拉流对象 */
-                            rst->ro._pLocalPull = configManager_transfer_register(pRecord->ro._pConfigManager, "stream_distribution", uuid->buffer, rst);
-                    
                             /* 外部储存的节点,为空表示不使用外部储存,比如_recordVideoMode为3时,此值指向pRecord->p.dhsdkConfig__videoInfoDataClientList中的节点,删除时需要同步删除 */
                             if (Record_item_is_remoteVideoStorage(recordVideoMode)) {
                                 switch (recordVideoMode) {
@@ -9314,6 +9270,7 @@ static void *record_P_T(struct Record * const pRecord) {
             if (Record_sdkConfigUpdate_check_not0(pRecord->p._sdkConfigUpdate)) {
                 unsigned char update;
                 if ((update = Record_sdkConfigUpdate_get(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_dh)) != 0 && access("/tmp/config/dhsdk_", F_OK)) {
+                    if (access("/tmp/config", F_OK))mkdir("/tmp/config", 0777);
                     pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
                     if (record_P_save_sdkConfig(pRecord->p.dhsdkConfig__videoInfoDataClientList, update, "/tmp/config/dhsdk_", &shareBuffer) == 1) {
                         Record_sdkConfigUpdate_set_01_0(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_dh);
@@ -9324,6 +9281,7 @@ static void *record_P_T(struct Record * const pRecord) {
                     pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
                 }
                 if ((update = Record_sdkConfigUpdate_get(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb)) != 0 && access("/tmp/config/gbsdk_", F_OK)) {
+                    if (access("/tmp/config", F_OK))mkdir("/tmp/config", 0777);
                     pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
                     if (record_P_save_sdkConfig(pRecord->p.gbsdkConfig__videoInfoDataClientList, update, "/tmp/config/gbsdk_", &shareBuffer) == 1) {
                         Record_sdkConfigUpdate_set_01_0(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
@@ -9544,10 +9502,6 @@ void record_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned lo
         void *const pNode = fs_Config_node_integer_add(pConfig, parent, "recordVideoMode", "视频记录模式", "视频记录模式", FsConfig_nodeShowType_default, 0, 0x0, 0, 0, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "不记录", "不记录,删除已储存的数据");
     }
-    {
-        //void *const pNode = 
-        fs_Config_node_string_add(pConfig, parent, "localPush", "本地推送", "本地推送,填写目的通道的uuid,为空表示不推送,支持多通道向同一目的通道同时推送", 0, 0x7, 1, 16, 1);
-    }
     if (mask & (0x1LLU << 0)) {
         {
             void *const pNode = fs_Config_node_string_add(pConfig, parent, "rtspServerURL", "rtsp转发地址", "rtsp转发地址,为空表示不转发", 0, 0x7, 1, 64, 1);
@@ -9630,7 +9584,11 @@ int record_check_channel_changed(struct Record * const pRecord, /* 通道编号,
                     && (/* Recognition */FsMacrosValue2(__check_channel_changed_Server, _Mask) & fs_Config_node_integer_get_mask(pConfig, item0, item, "moduleMask", NULL)) == 0)return 0;
             return 1;
         }
-        if (sum == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum)return 0;
+        if (sum == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum
+#ifdef __check_channel_changed_checkTimeControl
+                && fs_Config_get_sum_timeControl(pConfig, item0, item, __check_channel_changed_checkTimeControl) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._timeControlSum
+#endif
+                ) return 0;
     } else {
         FsLog(FsLogType_error, FsPrintfIndex, "Invalid itemPath:\"%s\".\n", itemPath);
         fflush(stdout);
@@ -9639,15 +9597,18 @@ int record_check_channel_changed(struct Record * const pRecord, /* 通道编号,
         const void *parent;
         {
             parent0 = pConfig;
-            FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig
-                    , ((ConfigManager*) /* pRecognition */FsMacrosValue2(p, __check_channel_changed_Server)->ro._pConfigManager)->ro.__ipList_local, 0, "vsys");
+            FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, 0, ((ConfigManager*) /* pRecognition */FsMacrosValue2(p, __check_channel_changed_Server)->ro._pConfigManager)->ro.__ipList_local, 0, "vsys");
             parent = list->pNode[list->startIndex];
             fs_ObjectList_delete__OI(list);
-            list = fs_Config_node_template__IO(pConfig, &parent0, parent, NULL, 0, "vsysChannel");
+            list = fs_Config_node_template__IO(pConfig, &parent0, parent, 0, NULL, 0, "vsysChannel");
             parent = list->pNode[list->startIndex + index];
             fs_ObjectList_delete__OI(list);
         }
-        if (fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node *) parent) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum)return 0;
+        if (fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node *) parent) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum
+#ifdef __check_channel_changed_checkTimeControl
+                && fs_Config_get_sum_timeControl(pConfig, item0, item, __check_channel_changed_checkTimeControl) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._timeControlSum
+#endif
+                )return 0;
     }
 #ifdef FsDebug
     FsLog2(FsLogType_info, FsPrintfIndex, "Item(=%p) has changed,index=%u,itemPath:\"%s\"/%p,sum=%llx/%llx\n"
@@ -9656,6 +9617,9 @@ int record_check_channel_changed(struct Record * const pRecord, /* 通道编号,
     return 1;
 #ifdef __check_channel_changed_itemListLock
 #undef __check_channel_changed_itemListLock
+#endif
+#ifdef __check_channel_changed_checkTimeControl
+#undef __check_channel_changed_checkTimeControl
 #endif
 #undef __check_channel_changed_Server
 #endif
@@ -9883,19 +9847,6 @@ int record_item_frame_in_pthreadSafety__OI_4(struct Record * const pRecord, /* �
             else if (ImageFrame_valid_H264_2(pFrame->dataValidType)) __record_item_frame_in_server_h264_h265(pRecord_item->ro.__pGB28181Server_item, gb28181Server_item_add_frame, pFrame->data.h264[2]);
         }
     }
-    /* 本地推送 */
-    if (pRecord_item->p.localPushCameraFun) {
-        pthread_mutex_lock(&pRecord_item->ro.__mutexCmdConnect);
-        if (pRecord_item->p.localPushCameraFun) {
-            for (index = 0; index < frameCount; index++) {
-                pRecord_item->p.localPushCameraFun(pRecord_item->p.pLocalPushCamera, ppFrame[index], pRecord_item->ro._uuid, pRecord_item, pShareBuffer);
-            }
-        }
-        pthread_mutex_unlock(&pRecord_item->ro.__mutexCmdConnect);
-    }
-    /* 发送流给本地拉流对象 */
-    configManager_transfer_out(pRecord_item->ro._pLocalPull, frameCount, (void**) ppFrame, pObjectBaseBuffer, pShareBuffer);
-
     signed char rst = -1;
     pthread_mutex_lock(&pRecord_item->ro.__framelistIn->mutex);
     for (index = 0; index < frameCount; index++) {

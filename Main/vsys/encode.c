@@ -38,20 +38,214 @@ static void encode_P_cb_convert(struct Encode_item * const pEncode_item) {
 
 /* 从配置获取通道数 */
 static unsigned int encode_private_get_channelCount(/* 可为空 */FsConfig * const pConfig, /* 本地ip地址 */const FsArray * const ipList) {
-    if (NULL == pConfig)return 0;
+#ifndef __get_channelCount_vsys_vsysChannel 
+    if (NULL == pConfig) {
+#ifdef __get_channelCount_vsys_vsysChannel_in_vsys
+        *rst_pVsysChannel0 = NULL;
+        return fs_ObjectList_new__IO(4);
+#else
+        return 0;
+#endif    
+    }
     /* 通道数 */
-    const void* parent0 = pConfig;
-    FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, ipList, 0, "vsys");
-    if (NULL == list)return 0;
-    const void *parent = list->pNode[list->startIndex];
-    fs_ObjectList_delete__OI(list);
-    list = fs_Config_node_template__IO(pConfig, &parent0, parent, NULL, 0, "vsysChannel");
-    unsigned int rst = 0;
-    if (list) {
-        rst = list->nodeCount;
+    const void *vsys0 = pConfig;
+    const void *vsys;
+    {
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 0, "vsys");
+        if (NULL == list) {
+#ifdef __get_channelCount_vsys_vsysChannel_in_vsys
+            *rst_pVsysChannel0 = NULL;
+            return fs_ObjectList_new__IO(4);
+#else
+            return 0;
+#endif   
+        }
+        vsys = list->pNode[list->startIndex];
         fs_ObjectList_delete__OI(list);
     }
-    return rst;
+    {
+#ifdef __get_channelCount_vsys_vsysChannel_in_vsys
+        *pCronfremethreshold = fs_Config_node_integer_get_first(pConfig, vsys0, vsys, "cronframethreshold", 1, NULL);
+        *pCannelstatuscheckmode = fs_Config_node_integer_get_first(pConfig, vsys0, vsys, "channelstatuscheckmode", 0, NULL);
+
+#endif
+#ifdef __get_channelCount_vsys_vsysChannel_in_record
+        if (pRecord->p.gbsdkConfig__videoInfoDataClientList) {
+#define __record_P_update_sdk_gb28181
+#ifndef __record_P_new_sdk_gb28181 
+            if (Vsys_sdkPlayBack_is_process()) {
+#ifdef __record_P_update_sdk_gb28181
+                FsEbml * const gbsdkConfig = pRecord->p.gbsdkConfig__videoInfoDataClientList;
+                struct FsEbml_node * const gb28181Config = fs_Ebml_node_get_first(gbsdkConfig, (struct FsEbml_node*) gbsdkConfig, "gb28181Config");
+#else
+                struct FsEbml_node * const gb28181Config = fs_Ebml_node_addChild(gbsdkConfig, (struct FsEbml_node*) gbsdkConfig, "gb28181Config", FsEbmlNodeType_Struct);
+#endif
+                {
+                    const FsString * const ipv4_streamPort_PlayBack = fs_Config_node_string_get_first_String(pConfig, vsys0, vsys, "gb28181Config ipv4_streamPort_PlayBack", NULL);
+#ifdef __record_P_update_sdk_gb28181
+                    struct FsEbml_node * const pEbml_node_ipv4_streamPort_PlayBack = fs_Ebml_node_get_first(gbsdkConfig, gb28181Config, "ipv4_streamPort_PlayBack");
+                    if (pEbml_node_ipv4_streamPort_PlayBack->data.lenth != ipv4_streamPort_PlayBack->lenth
+                            || memcmp(pEbml_node_ipv4_streamPort_PlayBack->data.buffer, ipv4_streamPort_PlayBack->buffer, ipv4_streamPort_PlayBack->lenth) != 0) {
+                        pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                        fs_Ebml_node_data_set(pEbml_node_ipv4_streamPort_PlayBack, ipv4_streamPort_PlayBack->lenth, ipv4_streamPort_PlayBack->buffer);
+                        pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                        Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                    }
+#else             
+                    fs_Ebml_node_data_set(
+#ifdef Record_sdkConfig_comment
+                            fs_Ebml_node_addChild_with_a_property
+#else
+                            fs_Ebml_node_addChild
+#endif
+                            (gbsdkConfig, gb28181Config, "ipv4_streamPort_PlayBack", FsEbmlNodeType_String
+#ifdef Record_sdkConfig_comment
+                            , "comment", "回放使用的端口号"
+#endif
+                            ), ipv4_streamPort_PlayBack->lenth, ipv4_streamPort_PlayBack->buffer);
+#endif
+                }
+                {
+                    FsObjectList * const addrmapList = fs_Config_node_string_get_list__IO(pConfig, vsys0, vsys, "addrmap", NULL);
+#ifdef __record_P_update_sdk_gb28181
+                    FsObjectList * const addrmapList1 = fs_Ebml_node_get__IO(gbsdkConfig, gb28181Config, "addrmap");
+                    if (addrmapList) {
+                        if (addrmapList1 != NULL) {
+                            const FsString **ppNode = (const FsString **) addrmapList->pNode + addrmapList->startIndex;
+                            struct FsEbml_node **ppNode1 = (struct FsEbml_node **) addrmapList1->pNode + addrmapList1->startIndex;
+                            unsigned int ui = addrmapList1->nodeCount;
+                            if (ui > (unsigned int) addrmapList->nodeCount) {
+                                pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                do {
+                                    fs_Ebml_node_delete(gbsdkConfig, ppNode1[--ui]);
+                                } while (ui > (unsigned int) addrmapList->nodeCount);
+                                pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                            }
+                            while (ui-- > 0) {
+                                const FsString * const addrmap = *ppNode++;
+                                struct FsEbml_node * const addrmap1 = *ppNode1++;
+                                if (addrmap1->data.lenth != addrmap->lenth || memcmp(addrmap1->data.buffer, addrmap->buffer, addrmap->lenth) != 0) {
+                                    pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                    fs_Ebml_node_data_set(addrmap1, addrmap->lenth, addrmap->buffer);
+                                    pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                    Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                                }
+                            }
+                            if (addrmapList->nodeCount > addrmapList1->nodeCount) {
+                                ui = addrmapList->nodeCount - addrmapList1->nodeCount;
+                                pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                do {
+                                    const FsString * const addrmap = *ppNode++;
+                                    fs_Ebml_node_data_set(
+#ifdef Record_sdkConfig_comment
+                                            fs_Ebml_node_addChild_with_a_property
+#else
+                                            fs_Ebml_node_addChild
+#endif
+                                            (gbsdkConfig, gb28181Config, "addrmap", FsEbmlNodeType_String
+#ifdef Record_sdkConfig_comment
+                                            , "comment", "本地IP映射,在一些应用场景中无法知道本机映射的ip时使用此数据作为映射,格式:'ip/掩码 映射地址 权重',映射地址可为域名,权重空时值为1"
+#endif
+                                            )
+                                            , addrmap->lenth, addrmap->buffer);
+                                } while (--ui > 0);
+                                pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                                Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                            }
+                            fs_ObjectList_delete__OI(addrmapList);
+                            fs_ObjectList_delete__OI(addrmapList1);
+                        } else {
+                            pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+#ifndef __record_P_new_sdk_gb28181_do_addrmapList 
+                            const FsString **ppNode = (const FsString **) addrmapList->pNode + addrmapList->startIndex;
+                            unsigned int ui = addrmapList->nodeCount;
+                            while (ui-- > 0) {
+                                const FsString * const addrmap = *ppNode++;
+                                fs_Ebml_node_data_set(
+#ifdef Record_sdkConfig_comment
+                                        fs_Ebml_node_addChild_with_a_property
+#else
+                                        fs_Ebml_node_addChild
+#endif
+                                        (gbsdkConfig, gb28181Config, "addrmap", FsEbmlNodeType_String
+#ifdef Record_sdkConfig_comment
+                                        , "comment", "本地IP映射,在一些应用场景中无法知道本机映射的ip时使用此数据作为映射,格式:'ip/掩码 映射地址 权重',映射地址可为域名,权重空时值为1"
+#endif
+                                        )
+                                        , addrmap->lenth, addrmap->buffer);
+                            }
+                            fs_ObjectList_delete__OI(addrmapList);
+#endif
+                            pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                            Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                        }
+                    } else if (addrmapList1) {
+                        fs_ObjectList_delete__OI(addrmapList1);
+                        pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                        fs_Ebml_node_delete_child_byString(gbsdkConfig, gb28181Config, "addrmap");
+                        pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
+                        Record_sdkConfigUpdate_set_0_1(pRecord->p._sdkConfigUpdate, Record_sdkConfigUpdate_index_gb);
+                    }
+#else
+                    if (addrmapList) {
+#ifndef __record_P_new_sdk_gb28181_do_addrmapList
+                        const FsString **ppNode = (const FsString **) addrmapList->pNode + addrmapList->startIndex;
+                        unsigned int ui = addrmapList->nodeCount;
+                        while (ui-- > 0) {
+                            const FsString * const addrmap = *ppNode++;
+                            fs_Ebml_node_data_set(
+#ifdef Record_sdkConfig_comment
+                                    fs_Ebml_node_addChild_with_a_property
+#else
+                                    fs_Ebml_node_addChild
+#endif
+                                    (gbsdkConfig, gb28181Config, "addrmap", FsEbmlNodeType_String
+#ifdef Record_sdkConfig_comment
+                                    , "comment", "本地IP映射,在一些应用场景中无法知道本机映射的ip时使用此数据作为映射,格式:'ip/掩码 映射地址 权重',映射地址可为域名,权重空时值为1"
+#endif
+                                    )
+                                    , addrmap->lenth, addrmap->buffer);
+                        }
+                        fs_ObjectList_delete__OI(addrmapList);
+#endif
+                    }
+#endif
+                }
+            }
+#ifdef __record_P_update_sdk_gb28181
+#undef __record_P_update_sdk_gb28181
+#endif
+#endif
+        }
+        pRecord->rw._snapbuffertimeout = fs_Config_node_float_get_first(pConfig, vsys0, vsys, "snapbuffertimeout", 0.0, NULL);
+#endif
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0, NULL, 0, "vsysChannel");
+        if (NULL == list) {
+#ifdef __get_channelCount_vsys_vsysChannel_in_vsys
+            *rst_pVsysChannel0 = NULL;
+            return fs_ObjectList_new__IO(4);
+#else
+            return 0;
+#endif   
+        } else {
+#ifdef __get_channelCount_vsys_vsysChannel_in_vsys
+            *rst_pVsysChannel0 = vsys0;
+            return list;
+#else
+            const unsigned int rst = list->nodeCount;
+            fs_ObjectList_delete__OI(list);
+            return rst;
+#endif   
+        }
+    }
+#ifndef __get_channelCount_vsys_vsysChannel_in_vsys
+#undef __get_channelCount_vsys_vsysChannel_in_vsys
+#endif
+#ifdef __get_channelCount_vsys_vsysChannel_in_record
+#undef __get_channelCount_vsys_vsysChannel_in_record
+#endif
+#endif
 }
 
 /* 删除pEncode_item指向的实例对象 */
@@ -59,8 +253,12 @@ static void encode_P_item_delete__OI(struct Encode_item * const pEncode_item) {
     /* 直正的解码对象 */
     frameConvert_item_delete__OI(pEncode_item->ro.__pFrameConvert_item);
     /* 文字叠加 */
-    if (pEncode_item->ro.__pTypeFace)fs_TypeFace_delete__OI(pEncode_item->ro.__pTypeFace);
-
+    {
+        unsigned int ui = pEncode_item->p._watermarkingCount;
+        while (ui-- > 0) {
+            fs_TypeFace_delete__OI(pEncode_item->p.watermarking[ui].__pTypeFace);
+        }
+    }
     fsFree(pEncode_item);
 }
 
@@ -70,15 +268,15 @@ static void encode_P_item_new(struct Encode * const pEncode, /* 通道号 */cons
     FsConfig * const pConfig = ((ConfigManager*) pEncode->ro._pConfigManager)->ro.__pConfig;
     if (NULL == pConfig)return;
     const void *vsys0 = pConfig;
-    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, ipList, 0 == channel, "vsys");
+    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, 0, ipList, 0 == channel, "vsys");
     if (clusterList) {
         void **ppNodeCluster = clusterList->pNode + clusterList->startIndex;
         unsigned int uj = clusterList->nodeCount;
         do {
             const void *vsysChannel0 = vsys0;
             const void* const vsys = *ppNodeCluster++;
-            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel")
-                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel", channel - 1);
+            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel")
+                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel", channel - 1);
             if (list) {
                 void ** ppNode;
                 unsigned int ui, ipv4;
@@ -121,33 +319,56 @@ static void encode_P_item_new(struct Encode * const pEncode, /* 通道号 */cons
                         unsigned int len = 0; //uuid->lenth;
                         if (channel > 0) {
                             unsigned short moduleMask = fs_Config_node_integer_get_mask(pConfig, vsysChannel0, vsysChannel, "moduleMask", NULL)&0x2;
-                            const void *watermarking0 = vsysChannel0;
-                            const void *const watermarking = fs_Config_node_get_first(pConfig, &watermarking0, vsysChannel, "watermarking");
-                            const FsString * const watermarkingData = moduleMask != 0 ? fs_Config_node_string_get_first_String(pConfig, watermarking0, watermarking, "watermarkingData", NULL) : NULL;
-                            if (watermarkingData)len += watermarkingData->lenth;
-                            else moduleMask = 0;
-
-                            rst = (struct Encode_item*) fsMalloc(sizeof (struct Encode_item) +len);
+                            const void *watermarking_item0 = vsysChannel0;
+                            FsObjectList * const watermarking_itemList = moduleMask != 0 ? fs_Config_node_template__IO(pConfig, &watermarking_item0, vsysChannel, 3, NULL, 0, "watermarking watermarking_item") : NULL;
+                            unsigned int watermarking_itemListCount = 0;
+                            if (watermarking_itemList) {
+                                void **ppNode = watermarking_itemList->pNode + watermarking_itemList->startIndex;
+                                unsigned int count = watermarking_itemList->nodeCount;
+                                while (count-- > 0) {
+                                    const void * const watermarking_item = *ppNode++;
+                                    const FsString * const watermarkingData = fs_Config_node_string_get_first_String(pConfig, watermarking_item0, watermarking_item, "watermarkingData", NULL);
+                                    if (watermarkingData) {
+                                        len += watermarkingData->lenth;
+                                        watermarking_itemListCount++;
+                                    }
+                                }
+                                if (0 == len)moduleMask = 0;
+                            }
+                            rst = (struct Encode_item*) fsMalloc(sizeof (struct Encode_item) + sizeof (rst->p.watermarking[0]) * watermarking_itemListCount + len);
                             memset(rst, 0, sizeof (struct Encode_item));
-                            pd = ((char*) rst) + Memery_Alignment(sizeof (struct Encode_item));
-                            /* 水印开始位置的X坐标 */
-                            rst->ro._watermarking_startX = moduleMask != 0 ? fs_Config_node_integer_get_first(pConfig, watermarking0, watermarking, "watermarking_startX", 0, NULL) : 0;
-                            /* 水印开始位置的Y坐标 */
-                            rst->ro._watermarking_startY = moduleMask != 0 ? fs_Config_node_integer_get_first(pConfig, watermarking0, watermarking, "watermarking_startY", 0, NULL) : 0;
-                            /* 水印颜色,RGB */
-                            if (moduleMask) {
-                                unsigned int watermarking_color = fs_Config_node_integer_get_first(pConfig, watermarking0, watermarking, "watermarking_color", 0, NULL);
-                                rst->ro._watermarking_color = (((unsigned int) (0.257 * (watermarking_color >> 16) + 0.504 * ((watermarking_color >> 8)&0xFF) + 0.098 * (watermarking_color & 0xFF) + 16)) << 16)+
-                                        (((unsigned int) (-0.148 * (watermarking_color >> 16) - 0.291 * ((watermarking_color >> 8)&0xFF) + 0.439 * (watermarking_color & 0xFF) + 128)) << 8) +
-                                        0.439 * (watermarking_color >> 16) - 0.368 * ((watermarking_color >> 8)&0xFF) - 0.071 * (watermarking_color & 0xFF) + 128;
-                            } else rst->ro._watermarking_color = 0;
-                            /* 水印字符 */
-                            if (moduleMask) rst->ro._watermarkingData = pd, memcpy(pd, watermarkingData->buffer, watermarkingData->lenth);
-                            /* 文字叠加 */
-                            if (moduleMask) {
-                                const unsigned short watermarking_width = fs_Config_node_integer_get_first(pConfig, watermarking0, watermarking, "watermarking_width", 32, NULL);
-                                const unsigned short watermarking_height = fs_Config_node_integer_get_first(pConfig, watermarking0, watermarking, "watermarking_height", 32, NULL);
-                                rst->ro.__pTypeFace = fs_TypeFace_new__IO(NULL, watermarking_width, watermarking_height, 1, 0);
+                            pd = ((char*) rst) + sizeof (struct Encode_item) + sizeof (rst->p.watermarking[0]) * watermarking_itemListCount;
+                            /* 水印叠加的任务数 */
+                            rst->p._watermarkingCount = watermarking_itemListCount;
+                            if (watermarking_itemList) {
+                                void **ppNode = watermarking_itemList->pNode + watermarking_itemList->startIndex;
+                                unsigned int count = watermarking_itemList->nodeCount;
+                                watermarking_itemListCount = 0;
+                                while (count-- > 0) {
+                                    const void * const watermarking_item = *ppNode++;
+                                    const FsString * const watermarkingData = fs_Config_node_string_get_first_String(pConfig, watermarking_item0, watermarking_item, "watermarkingData", NULL);
+                                    if (watermarkingData) {
+                                        rst->p.watermarking[watermarking_itemListCount]._watermarkingData = pd, memcpy(pd, watermarkingData->buffer, watermarkingData->lenth), pd += watermarkingData->lenth;
+                                        /* 水印开始位置的X坐标 */
+                                        rst->p.watermarking[watermarking_itemListCount]._watermarking_startX = fs_Config_node_integer_get_first(pConfig, watermarking_item0, watermarking_item, "watermarking_startX", 0, NULL);
+                                        /* 水印开始位置的Y坐标 */
+                                        rst->p.watermarking[watermarking_itemListCount]._watermarking_startY = fs_Config_node_integer_get_first(pConfig, watermarking_item0, watermarking_item, "watermarking_startY", 0, NULL);
+                                        /* 水印颜色,ycbcr */
+                                        {
+                                            unsigned int watermarking_color = fs_Config_node_integer_get_first(pConfig, watermarking_item0, watermarking_item, "watermarking_color", 0, NULL);
+                                            rst->p.watermarking[watermarking_itemListCount]._watermarking_color = (((unsigned int) (0.257 * (watermarking_color >> 16) + 0.504 * ((watermarking_color >> 8)&0xFF) + 0.098 * (watermarking_color & 0xFF) + 16)) << 16)+
+                                                    (((unsigned int) (-0.148 * (watermarking_color >> 16) - 0.291 * ((watermarking_color >> 8)&0xFF) + 0.439 * (watermarking_color & 0xFF) + 128)) << 8) +
+                                                    0.439 * (watermarking_color >> 16) - 0.368 * ((watermarking_color >> 8)&0xFF) - 0.071 * (watermarking_color & 0xFF) + 128;
+                                        }
+                                        /* 文字叠加 */
+                                        {
+                                            const unsigned short watermarking_width = fs_Config_node_integer_get_first(pConfig, watermarking_item0, watermarking_item, "watermarking_width", 32, NULL);
+                                            const unsigned short watermarking_height = fs_Config_node_integer_get_first(pConfig, watermarking_item0, watermarking_item, "watermarking_height", 32, NULL);
+                                            rst->p.watermarking[watermarking_itemListCount].__pTypeFace = fs_TypeFace_new__IO(NULL, watermarking_width, watermarking_height, 1, 0);
+                                        }
+                                        watermarking_itemListCount++;
+                                    }
+                                }
                             }
                         } else {
                             //                        rst = (struct Record_item*) fsMalloc(Record_item_ClusterLen + len);
@@ -355,30 +576,33 @@ void encode_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned lo
     parent = fs_Config_node_node_add(pConfig, parent, "watermarking", "水印配置", "水印配置", 0, 0x7);
     fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, parent), 1, "moduleMask", FsConfig_Condition_orAnd, "2");
 
+    void *const watermarking_item = fs_Config_node_template_add(pConfig, parent, "watermarking_item", "水印", NULL, "watermarkingData", "水印", NULL, NULL, NULL, 0, 0x7, 32);
     {
-        void * const pNode = fs_Config_node_integer_add(pConfig, parent, "watermarking_startX", "水印开始位置的X坐标", "水印开始位置的X坐标", FsConfig_nodeShowType_default, 0, 0x7, 0, 1800, 1);
+        void * const pNode = fs_Config_node_integer_add(pConfig, watermarking_item, "watermarking_startX", "水印开始位置的X坐标", "水印开始位置的X坐标", FsConfig_nodeShowType_default, 0, 0x7, 0, 1800, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "0", "0");
     }
     {
-        void * const pNode = fs_Config_node_integer_add(pConfig, parent, "watermarking_startY", "水印开始位置的Y坐标", "水印开始位置的Y坐标", FsConfig_nodeShowType_default, 0, 0x7, 0, 1000, 1);
+        void * const pNode = fs_Config_node_integer_add(pConfig, watermarking_item, "watermarking_startY", "水印开始位置的Y坐标", "水印开始位置的Y坐标", FsConfig_nodeShowType_default, 0, 0x7, 0, 1000, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "0", "0");
     }
     {
-        void * const pNode = fs_Config_node_integer_add(pConfig, parent, "watermarking_width", "水印字符宽度", "水印字符宽度", FsConfig_nodeShowType_default, 0, 0x7, 1, 128, 1);
+        void * const pNode = fs_Config_node_integer_add(pConfig, watermarking_item, "watermarking_width", "水印字符宽度", "水印字符宽度", FsConfig_nodeShowType_default, 0, 0x7, 1, 128, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 32, "32", "32");
     }
     {
-        void * const pNode = fs_Config_node_integer_add(pConfig, parent, "watermarking_height", "水印字符高度", "水印字符高度", FsConfig_nodeShowType_default, 0, 0x7, 1, 128, 1);
+        void * const pNode = fs_Config_node_integer_add(pConfig, watermarking_item, "watermarking_height", "水印字符高度", "水印字符高度", FsConfig_nodeShowType_default, 0, 0x7, 1, 128, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 32, "32", "32");
     }
     {
-        void * const pNode = fs_Config_node_integer_add(pConfig, parent, "watermarking_color", "水印颜色,RGB", "水印颜色,RGB,16进制", FsConfig_nodeShowType_hex, 0, 0x7, 0, 0xFFFFFF, 1);
+        void * const pNode = fs_Config_node_integer_add(pConfig, watermarking_item, "watermarking_color", "水印颜色,RGB", "水印颜色,RGB,16进制", FsConfig_nodeShowType_hex, 0, 0x7, 0, 0xFFFFFF, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0xFF0000, "红色", "红色");
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0x00FF00, "绿色", "绿色");
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0x0000FF, "蓝色", "蓝色");
     }
     {
-        fs_Config_node_string_add(pConfig, parent, "watermarkingData", "水印数据", "水印数据", 0, 0x7, 1, 128, 1);
+        void * const pNode = fs_Config_node_string_add(pConfig, watermarking_item, "watermarkingData", "水印数据", "水印数据", 0, 0x7, 1, 128, 1);
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time1", "时间1,格式:2022-12-30/10:24:30.123", "时间1,格式:2022-12-30/10:24:30.123");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time2", "时间2,格式:2022-12-30 10:24:30", "时间2,格式:2022-12-30 10:24:30");
     }
 }
 
@@ -409,7 +633,11 @@ int encode_check_channel_changed(struct Encode * const pEncode, /* 通道编号,
                     && (/* Recognition */FsMacrosValue2(__check_channel_changed_Server, _Mask) & fs_Config_node_integer_get_mask(pConfig, item0, item, "moduleMask", NULL)) == 0)return 0;
             return 1;
         }
-        if (sum == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum)return 0;
+        if (sum == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum
+#ifdef __check_channel_changed_checkTimeControl
+                && fs_Config_get_sum_timeControl(pConfig, item0, item, __check_channel_changed_checkTimeControl) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._timeControlSum
+#endif
+                ) return 0;
     } else {
         FsLog(FsLogType_error, FsPrintfIndex, "Invalid itemPath:\"%s\".\n", itemPath);
         fflush(stdout);
@@ -418,15 +646,18 @@ int encode_check_channel_changed(struct Encode * const pEncode, /* 通道编号,
         const void *parent;
         {
             parent0 = pConfig;
-            FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig
-                    , ((ConfigManager*) /* pRecognition */FsMacrosValue2(p, __check_channel_changed_Server)->ro._pConfigManager)->ro.__ipList_local, 0, "vsys");
+            FsObjectList *list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, 0, ((ConfigManager*) /* pRecognition */FsMacrosValue2(p, __check_channel_changed_Server)->ro._pConfigManager)->ro.__ipList_local, 0, "vsys");
             parent = list->pNode[list->startIndex];
             fs_ObjectList_delete__OI(list);
-            list = fs_Config_node_template__IO(pConfig, &parent0, parent, NULL, 0, "vsysChannel");
+            list = fs_Config_node_template__IO(pConfig, &parent0, parent, 0, NULL, 0, "vsysChannel");
             parent = list->pNode[list->startIndex + index];
             fs_ObjectList_delete__OI(list);
         }
-        if (fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node *) parent) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum)return 0;
+        if (fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node *) parent) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._sum
+#ifdef __check_channel_changed_checkTimeControl
+                && fs_Config_get_sum_timeControl(pConfig, item0, item, __check_channel_changed_checkTimeControl) == /* pRecognition_item */ FsMacrosValue3(p, __check_channel_changed_Server, _item)->ro._timeControlSum
+#endif
+                )return 0;
     }
 #ifdef FsDebug
     FsLog2(FsLogType_info, FsPrintfIndex, "Item(=%p) has changed,index=%u,itemPath:\"%s\"/%p,sum=%llx/%llx\n"
@@ -436,6 +667,9 @@ int encode_check_channel_changed(struct Encode * const pEncode, /* 通道编号,
 #ifdef __check_channel_changed_itemListLock
 #undef __check_channel_changed_itemListLock
 #endif
+#ifdef __check_channel_changed_checkTimeControl
+#undef __check_channel_changed_checkTimeControl
+#endif
 #undef __check_channel_changed_Server
 #endif
 }
@@ -444,7 +678,7 @@ int encode_check_channel_changed(struct Encode * const pEncode, /* 通道编号,
  * 创建一个新的Encode对象;
  * 返回Encode指针.
  */
-struct Encode *encode_new__IO(/* 线程名 */const char threadName[]
+struct Encode * encode_new__IO(/* 线程名 */const char threadName[]
         , /* 监控的线程指针对象,开始线程后把创建的监控节点添加到此对象中 */ void *const pMonitor
         , /* 父线程的线程号,由systemThreadTid获得,为0表示无父线程 */ const pthread_t parentTid
         , /* 多线程共有的运行状态,如果此值为空,则引用默认的全局运行状态变量,本线程的运行状态只有与此值相同才能运行 */signed char *const externRunStatus
@@ -609,7 +843,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                 if (pEncode_item->ro._videoCodingFormat & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type) {
                     /* 期望的数据包含当前数据类型 */
                     unsigned char useThisType = 0;
-                    if (pEncode_item->ro.__pTypeFace) {
+                    if (pEncode_item->p._watermarkingCount > 0) {
                         if (0 == pEncode_item->ro._videoCodingFormatFirst || (pEncode_item->ro._videoCodingFormatFirst & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type))useThisType = 1;
                     } else {
                         if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType)) useThisType = 1;
@@ -622,7 +856,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                     }
                     //FsPrintf(1, "pFrame->dataValidType=%llx ,videoCodingFormat=%x,pEncode_item->ro._videoCodingFormat=%x,pEncode_item->ro._videoCodingFormatFirst=%x,useThisType=%hhu\n", pFrame->dataValidType, videoCodingFormat, pEncode_item->ro._videoCodingFormat, pEncode_item->ro._videoCodingFormatFirst, useThisType);
                     if (useThisType) {
-                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && NULL == pEncode_item->ro.__pTypeFace) {
+                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && 0 == pEncode_item->p._watermarkingCount) {
                             goto FsMacrosFunctionTag(set_no_encode);
                             break;
                         } else {
@@ -671,7 +905,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                 if (pEncode_item->ro._videoCodingFormat & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type) {
                     /* 期望的数据包含当前数据类型 */
                     unsigned char useThisType = 0;
-                    if (pEncode_item->ro.__pTypeFace) {
+                    if (pEncode_item->p._watermarkingCount > 0) {
                         if (0 == pEncode_item->ro._videoCodingFormatFirst || (pEncode_item->ro._videoCodingFormatFirst & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type))useThisType = 1;
                     } else {
                         if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType)) useThisType = 1;
@@ -684,7 +918,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                     }
                     //FsPrintf(1, "pFrame->dataValidType=%llx ,videoCodingFormat=%x,pEncode_item->ro._videoCodingFormat=%x,pEncode_item->ro._videoCodingFormatFirst=%x,useThisType=%hhu\n", pFrame->dataValidType, videoCodingFormat, pEncode_item->ro._videoCodingFormat, pEncode_item->ro._videoCodingFormatFirst, useThisType);
                     if (useThisType) {
-                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && NULL == pEncode_item->ro.__pTypeFace) {
+                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && 0 == pEncode_item->p._watermarkingCount) {
                             goto FsMacrosFunctionTag(set_no_encode);
                             break;
                         } else {
@@ -733,7 +967,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                 if (pEncode_item->ro._videoCodingFormat & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type) {
                     /* 期望的数据包含当前数据类型 */
                     unsigned char useThisType = 0;
-                    if (pEncode_item->ro.__pTypeFace) {
+                    if (pEncode_item->p._watermarkingCount > 0) {
                         if (0 == pEncode_item->ro._videoCodingFormatFirst || (pEncode_item->ro._videoCodingFormatFirst & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type))useThisType = 1;
                     } else {
                         if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType)) useThisType = 1;
@@ -746,7 +980,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                     }
                     //FsPrintf(1, "pFrame->dataValidType=%llx ,videoCodingFormat=%x,pEncode_item->ro._videoCodingFormat=%x,pEncode_item->ro._videoCodingFormatFirst=%x,useThisType=%hhu\n", pFrame->dataValidType, videoCodingFormat, pEncode_item->ro._videoCodingFormat, pEncode_item->ro._videoCodingFormatFirst, useThisType);
                     if (useThisType) {
-                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && NULL == pEncode_item->ro.__pTypeFace) {
+                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && 0 == pEncode_item->p._watermarkingCount) {
                             goto FsMacrosFunctionTag(set_no_encode);
                             break;
                         } else {
@@ -795,7 +1029,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                 if (pEncode_item->ro._videoCodingFormat & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type) {
                     /* 期望的数据包含当前数据类型 */
                     unsigned char useThisType = 0;
-                    if (pEncode_item->ro.__pTypeFace) {
+                    if (pEncode_item->p._watermarkingCount > 0) {
                         if (0 == pEncode_item->ro._videoCodingFormatFirst || (pEncode_item->ro._videoCodingFormatFirst & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type))useThisType = 1;
                     } else {
                         if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType)) useThisType = 1;
@@ -808,7 +1042,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                     }
                     //FsPrintf(1, "pFrame->dataValidType=%llx ,videoCodingFormat=%x,pEncode_item->ro._videoCodingFormat=%x,pEncode_item->ro._videoCodingFormatFirst=%x,useThisType=%hhu\n", pFrame->dataValidType, videoCodingFormat, pEncode_item->ro._videoCodingFormat, pEncode_item->ro._videoCodingFormatFirst, useThisType);
                     if (useThisType) {
-                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && NULL == pEncode_item->ro.__pTypeFace) {
+                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && 0 == pEncode_item->p._watermarkingCount) {
                             goto FsMacrosFunctionTag(set_no_encode);
                             break;
                         } else {
@@ -857,7 +1091,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                 if (pEncode_item->ro._videoCodingFormat & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type) {
                     /* 期望的数据包含当前数据类型 */
                     unsigned char useThisType = 0;
-                    if (pEncode_item->ro.__pTypeFace) {
+                    if (pEncode_item->p._watermarkingCount > 0) {
                         if (0 == pEncode_item->ro._videoCodingFormatFirst || (pEncode_item->ro._videoCodingFormatFirst & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type))useThisType = 1;
                     } else {
                         if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType)) useThisType = 1;
@@ -870,7 +1104,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                     }
                     //FsPrintf(1, "pFrame->dataValidType=%llx ,videoCodingFormat=%x,pEncode_item->ro._videoCodingFormat=%x,pEncode_item->ro._videoCodingFormatFirst=%x,useThisType=%hhu\n", pFrame->dataValidType, videoCodingFormat, pEncode_item->ro._videoCodingFormat, pEncode_item->ro._videoCodingFormatFirst, useThisType);
                     if (useThisType) {
-                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && NULL == pEncode_item->ro.__pTypeFace) {
+                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && 0 == pEncode_item->p._watermarkingCount) {
                             goto FsMacrosFunctionTag(set_no_encode);
                             break;
                         } else {
@@ -919,7 +1153,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                 if (pEncode_item->ro._videoCodingFormat & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type) {
                     /* 期望的数据包含当前数据类型 */
                     unsigned char useThisType = 0;
-                    if (pEncode_item->ro.__pTypeFace) {
+                    if (pEncode_item->p._watermarkingCount > 0) {
                         if (0 == pEncode_item->ro._videoCodingFormatFirst || (pEncode_item->ro._videoCodingFormatFirst & __encode_item_frame_in_pthreadSafety__OI_4_check_encode_type))useThisType = 1;
                     } else {
                         if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType)) useThisType = 1;
@@ -932,7 +1166,7 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                     }
                     //FsPrintf(1, "pFrame->dataValidType=%llx ,videoCodingFormat=%x,pEncode_item->ro._videoCodingFormat=%x,pEncode_item->ro._videoCodingFormatFirst=%x,useThisType=%hhu\n", pFrame->dataValidType, videoCodingFormat, pEncode_item->ro._videoCodingFormat, pEncode_item->ro._videoCodingFormatFirst, useThisType);
                     if (useThisType) {
-                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && NULL == pEncode_item->ro.__pTypeFace) {
+                        if (FsMacrosValue4(ImageFrame_valid_, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_tag, _, __encode_item_frame_in_pthreadSafety__OI_4_check_encode_size)(pFrame->dataValidType) && 0 == pEncode_item->p._watermarkingCount) {
                             goto FsMacrosFunctionTag(set_no_encode);
                             break;
                         } else {
@@ -985,7 +1219,21 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
             }
         }
     }
-    if (pEncode_item->ro.__pTypeFace) {
+    if (pEncode_item->p._watermarkingCount > 0) {
+#undef Fs_ShareBuffer_var    
+#undef Fs_ShareBuffer_var_check
+#undef Fs_ShareBuffer_var_array
+#undef Fs_ShareBuffer_var_array_check
+        /* 初始化共享buffer的使用环境 */ FsLocal_ShareBuffer_init(pShareBuffer, 1);
+        /* 定义与共享buffer--FsLocal_ShareBuffer关联的局部变量,以_in结尾,多个变量使用逗号隔开,如#define Fs_ShareBuffer_var a_in_acin,b_in */
+#define Fs_ShareBuffer_var
+        /* 定义可能与共享buffer--FsLocal_ShareBuffer关联的局部变量,以_cin结尾,多个变量使用逗号隔开,如#define Fs_ShareBuffer_var_check a_cin_acin,b_cin */
+#define Fs_ShareBuffer_var_check
+        /* 定义与共享buffer--FsLocal_ShareBuffer关联的局部指针数组变量,以_ain结尾,需要指明数组成员的个数,多个变量使用逗号隔开,如#define Fs_ShareBuffer_var_array a_cin_ain,2 */
+#define Fs_ShareBuffer_var_array
+        /* 定义可能与共享buffer--FsLocal_ShareBuffer关联的局部指针数组变量,以_acin结尾,需要指明数组成员的个数,多个变量使用逗号隔开,如#define Fs_ShareBuffer_var_array_check a_cin_acin,2 */
+#define Fs_ShareBuffer_var_array_check
+
         for (index = 0; index < frameCount;) {
             FsObjectImageFrame * const pFrame = ppFrame[index++];
             pFrame->stats->decodeMask_set |= ImageFrame_YUV420P_0 | decodeMask_set;
@@ -993,16 +1241,40 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
             if (1 == image_frame_prapare(pFrame, ImageFrame_YUV420P_0)) {
                 if (ImageFrame_valid_H264_0(pFrame->dataValidType))image_frame_clear_data(pFrame, ImageFrame_H264_0);
                 if (ImageFrame_valid_H265_0(pFrame->dataValidType))image_frame_clear_data(pFrame, ImageFrame_H265_0);
-                fs_TypeFace_write(pEncode_item->ro.__pTypeFace, (unsigned char*) pEncode_item->ro._watermarkingData, pFrame->data.yuv420p[0]->data, pFrame->width[0], pFrame->height[0],
-                        pFrame->width[0], pEncode_item->ro._watermarking_startX, pEncode_item->ro._watermarking_startY, pEncode_item->ro._watermarking_color >> 16);
-                fs_TypeFace_write_uv(pEncode_item->ro.__pTypeFace, (unsigned char*) pEncode_item->ro._watermarkingData, pFrame->data.yuv420p[0]->data + pFrame->sizeWidthHeight[0], pFrame->width[0], pFrame->height[0],
-                        pFrame->width[0] >> 1, pEncode_item->ro._watermarking_startX, pEncode_item->ro._watermarking_startY, (pEncode_item->ro._watermarking_color >> 8)&0xFF);
-                fs_TypeFace_write_uv(pEncode_item->ro.__pTypeFace, (unsigned char*) pEncode_item->ro._watermarkingData, pFrame->data.yuv420p[0]->data + pFrame->sizeWidthHeight[0]+(pFrame->sizeWidthHeight[0] >> 2), pFrame->width[0], pFrame->height[0],
-                        pFrame->width[0] >> 1, pEncode_item->ro._watermarking_startX, pEncode_item->ro._watermarking_startY, pEncode_item->ro._watermarking_color & 0xFF);
+                unsigned int watermarkingIndex = 0;
+                for (; watermarkingIndex < pEncode_item->p._watermarkingCount; watermarkingIndex++) {
+                    unsigned char * watermarkingData = (unsigned char*) pEncode_item->p.watermarking[watermarkingIndex]._watermarkingData;
+                    if (strcmp((char*) watermarkingData, "$$time1") == 0) {
+                        FsLocal_ShareBuffer_resize(sizeof (Fs_date_year_string_max"-12-30/10:24:30.123"));
+                        watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                        time_t ts = (time_t) pFrame->capture_gmtTime;
+                        struct tm ti;
+                        localtime_r(&ts, &ti);
+
+                        sprintf((char*) watermarkingData, "%d-%02d-%02d/%02d:%02d:%02d.%03d", 1900 + ti.tm_year, ti.tm_mon + 1, ti.tm_mday
+                                , ti.tm_hour, ti.tm_min, ti.tm_sec, (int) ((pFrame->capture_gmtTime - ts)*1000));
+                    } else if (strcmp((char*) watermarkingData, "$$time2") == 0) {
+                        FsLocal_ShareBuffer_resize(sizeof (Fs_date_year_string_max"-12-30 10:24:30"));
+                        watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                        time_t ts = (time_t) pFrame->capture_gmtTime;
+                        struct tm ti;
+                        localtime_r(&ts, &ti);
+
+                        sprintf((char*) watermarkingData, "%d-%02d-%02d %02d:%02d:%02d", 1900 + ti.tm_year, ti.tm_mon + 1, ti.tm_mday
+                                , ti.tm_hour, ti.tm_min, ti.tm_sec);
+                    }
+                    fs_TypeFace_write(pEncode_item->p.watermarking[watermarkingIndex].__pTypeFace, watermarkingData, pFrame->data.yuv420p[0]->data, pFrame->width[0], pFrame->height[0],
+                            pFrame->width[0], pEncode_item->p.watermarking[watermarkingIndex]._watermarking_startX, pEncode_item->p.watermarking[watermarkingIndex]._watermarking_startY, pEncode_item->p.watermarking[watermarkingIndex]._watermarking_color >> 16);
+                    fs_TypeFace_write_uv(pEncode_item->p.watermarking[watermarkingIndex].__pTypeFace, watermarkingData, pFrame->data.yuv420p[0]->data + pFrame->sizeWidthHeight[0], pFrame->width[0], pFrame->height[0],
+                            pFrame->width[0] >> 1, pEncode_item->p.watermarking[watermarkingIndex]._watermarking_startX, pEncode_item->p.watermarking[watermarkingIndex]._watermarking_startY, (pEncode_item->p.watermarking[watermarkingIndex]._watermarking_color >> 8)&0xFF);
+                    fs_TypeFace_write_uv(pEncode_item->p.watermarking[watermarkingIndex].__pTypeFace, watermarkingData, pFrame->data.yuv420p[0]->data + pFrame->sizeWidthHeight[0]+(pFrame->sizeWidthHeight[0] >> 2), pFrame->width[0], pFrame->height[0],
+                            pFrame->width[0] >> 1, pEncode_item->p.watermarking[watermarkingIndex]._watermarking_startX, pEncode_item->p.watermarking[watermarkingIndex]._watermarking_startY, pEncode_item->p.watermarking[watermarkingIndex]._watermarking_color & 0xFF);
+                }
             }
             pthread_mutex_unlock(&((FsObject*) pFrame)->mutex);
             frameConvert_item_frame_in_pthreadSafety__OI_2(pFrameConvert_item, pFrame);
         }
+        /* 释放共享buffer */ FsLocal_ShareBuffer_release(pShareBuffer, 0);
     } else {
         for (index = 0; index < frameCount;) {
             FsObjectImageFrame * const pFrame = ppFrame[index++];

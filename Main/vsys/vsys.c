@@ -38,6 +38,7 @@
 #include "vehicleDetect.h"
 #include "recognition.h"
 #include "inflrayObject.h"
+#include "ptzObject.h"
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////定义外部变量与函数开始/////////////////////////////////
 #ifdef FsPrintfIndex
@@ -80,7 +81,7 @@ static struct {
     char tag[2];
     /* 模块中所有通道的缓存数据帧的最大值 */
     int show_max;
-} modules[11];
+} modules[12];
 ///////////////////////////定义私有结构结束//////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////定义私有函数开始//////////////////////////////////////
@@ -101,7 +102,7 @@ static void vsys_P_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
         fs_Config_node_string_add(pConfig, parent, "instanceName", "实例名", "实例名", 0, 0x7, 0, 64, 1);
     }
     {
-        void *const pNode = fs_Config_node_string_add(pConfig, parent, "timerControl", "有效时间", "有效时间,时区+时间区间", 0, 0x7, 24, 33, 1);
+        void *const pNode = fs_Config_node_string_add(pConfig, parent, "timerControl", "有效时间", "有效时间,时区+时间区间", 0, 0x7, 24, 33, 2);
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_default, "+08 01-01/00:00:00 12-31/23:59:59", "+08 01-01/00:00:00 12-31/23:59:59", "每年");
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "+08 00-01/00:00:00 00-31/23:59:59", "+08 00-01/00:00:00 00-31/23:59:59", "每月");
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "+08 00-00/00:00:00 00-00/23:59:59", "+08 00-00/00:00:00 00-00/23:59:59", "每天");
@@ -272,7 +273,7 @@ static void vsys_P_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
             fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_optional, 1, "1-在线", "1-在线");
         }
         {
-            void *const pNode1 = fs_Config_node_integer_add(pConfig, pNode, "moduleMask", "增值功能", "增值功能", FsConfig_nodeShowType_default, 0, 0x7, 0, 127, 10);
+            void *const pNode1 = fs_Config_node_integer_add(pConfig, pNode, "moduleMask", "增值功能", "增值功能", FsConfig_nodeShowType_default, 0, 0x7, 0, 255, 10);
             fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_default, 0, "默认", "默认");
             fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_optional, 1, "开启雷达跟踪", "开启雷达跟踪");
             if (mask & (0x1LLU << 3)) fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_optional, 2, "开启水印", "开启水印");
@@ -282,6 +283,7 @@ static void vsys_P_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
 
             fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_optional, 0x20U, "车辆检测", "车辆检测");
             fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_optional, 0x40U, "Inflray目标检测", "Inflray目标检测");
+            fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_optional, 0x80U, "Inflray球机联动", "Inflray球机联动");
         }
         // 创建相机位置配置
         {
@@ -307,6 +309,8 @@ static void vsys_P_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
         vehicleDetect_createConfig(pConfig, mask, channelCount, pNode);
         // Inflray目标检测配置
         inflrayObject_createConfig(pConfig, mask, channelCount, pNode);
+        // 报警联动配置
+        ptzObject_createConfig(pConfig, mask, channelCount, pNode);
         // 识别配置
         recognition_createConfig(pConfig, mask, channelCount, pNode);
         // 创建编码配置
@@ -472,8 +476,26 @@ static unsigned int vsys_P_module_init(struct Vsys * const pVsys_t0, /* 初始�
         fs_memeryFree_add_thread(pMemeryFree_t0, (void (*)(void*)) inflrayObject_stopThread, (void (*)(void*)) inflrayObject_delete__OI, pInflrayObject);
     } else if (0 == InflrayObject_Mask || (moduleMask_t1 & InflrayObject_Mask) != 0)rst |= 1LLU << Vsys_P_module_InflrayObject_index;
 #endif
+    // 报警联动
+#define Vsys_P_module_PtzObject_index 8
+#ifndef __vsys_P_module_init_PtzObject 
+#define pPtzObject ((struct PtzObject*)modules[Vsys_P_module_PtzObject_index].p)
+    if (0 == type) {
+        modules[Vsys_P_module_PtzObject_index].check_channel_changed = (int (*)(void*, unsigned int, const void*, const void*, long long unsigned int, const char*))ptzObject_check_channel_changed;
+        modules[Vsys_P_module_PtzObject_index].frame_in__OI_4 = (void (*)(void * const, unsigned int, unsigned int, FsObjectImageFrame * [], FsObjectBaseBuffer * const, FsShareBuffer * const))ptzObject_item_frame_in_pthreadSafety__OI_4;
+        modules[Vsys_P_module_PtzObject_index].frame_out__IO_4 = (unsigned int (*)(void * const, unsigned int, unsigned int, FsObjectImageFrame *[]))ptzObject_item_frame_out_pthreadSafety__IO_4;
+        modules[Vsys_P_module_PtzObject_index].get_frame_count = (unsigned int (*)(void * const, unsigned int)) ptzObject_item_get_frame_count_pthreadSafety;
+        modules[Vsys_P_module_PtzObject_index].reset_groupSqrtOut = (void (*)(void*, unsigned int, unsigned char*, const FsGroupSqrt*))ptzObject_item_reset_groupSqrtOut;
+        modules[Vsys_P_module_PtzObject_index].resetChannelOffset = FsPointer_to_long(&((struct PtzObject*) 0)->rw._resetChannel);
+        modules[Vsys_P_module_PtzObject_index].tag[0] = 'P', modules[Vsys_P_module_PtzObject_index].tag[1] = 'O';
+        modules[Vsys_P_module_PtzObject_index].show_max = 0;
+        modules[Vsys_P_module_PtzObject_index].p = ptzObject_new__IO(pVsys_t0->ro._pMonitor, externRunStatus_t0, systemThreadTid, "PtzObject", pVsys_t0->ro._pConfigManager, pGroupSqrt_t0, pShareBuffer);
+        ptzObject_startThread(pPtzObject, -1);
+        fs_memeryFree_add_thread(pMemeryFree_t0, (void (*)(void*)) ptzObject_stopThread, (void (*)(void*)) ptzObject_delete__OI, pPtzObject);
+    } else if (0 == PtzObject_Mask || (moduleMask_t1 & PtzObject_Mask) != 0)rst |= 1LLU << Vsys_P_module_PtzObject_index;
+#endif
     // 识别
-#define Vsys_P_module_Recognition_index 8
+#define Vsys_P_module_Recognition_index 9
 #ifndef __vsys_P_module_init_pRecognition 
 #define pRecognition ((struct Recognition*)modules[Vsys_P_module_Recognition_index].p)
     if (0 == type) {
@@ -491,7 +513,7 @@ static unsigned int vsys_P_module_init(struct Vsys * const pVsys_t0, /* 初始�
     } else if (0 == Recognition_Mask || (moduleMask_t1 & Recognition_Mask) != 0)rst |= 1LLU << Vsys_P_module_Recognition_index;
 #endif
     // 编码
-#define Vsys_P_module_Encode_index 9
+#define Vsys_P_module_Encode_index 10
 #ifndef __vsys_P_module_init_pEncode 
 #define pEncode ((struct Encode*)modules[Vsys_P_module_Encode_index].p)
     if (0 == type) {
@@ -509,7 +531,7 @@ static unsigned int vsys_P_module_init(struct Vsys * const pVsys_t0, /* 初始�
     } else if (0 == Encode_Mask || (moduleMask_t1 & Encode_Mask) != 0)rst |= 1LLU << Vsys_P_module_Encode_index;
 #endif
     // 记录
-#define Vsys_P_module_Record_index 10
+#define Vsys_P_module_Record_index 11
 #ifndef __vsys_P_module_init_pRecord 
 #define pRecord ((struct Record*)modules[Vsys_P_module_Record_index].p)
     if (0 == type) {
@@ -550,7 +572,7 @@ static FsObjectList* vsys_P_get_channelCount__IO(/* 通过rst_pVsysChannel0返�
     const void *vsys0 = pConfig;
     const void *vsys;
     {
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, ipList, 0, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 0, "vsys");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -719,7 +741,7 @@ static FsObjectList* vsys_P_get_channelCount__IO(/* 通过rst_pVsysChannel0返�
         }
         pRecord->rw._snapbuffertimeout = fs_Config_node_float_get_first(pConfig, vsys0, vsys, "snapbuffertimeout", 0.0, NULL);
 #endif
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, NULL, 0, "vsysChannel");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0, NULL, 0, "vsysChannel");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -761,13 +783,13 @@ static FsStringBuilder * vsys_P_ConfigUpdate_and_get_keepspaceConfig__IO(/* 可�
     {
         /* 通道数 */
         parent0 = pConfig;
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, ipList, 0, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, 0, ipList, 0, "vsys");
         if (NULL == list)return NULL;
         parent = list->pNode[list->startIndex];
         fs_ObjectList_delete__OI(list);
     }
     const void *vsysChannel0 = parent0;
-    FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsysChannel0, parent, NULL, 0, "vsysChannel");
+    FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsysChannel0, parent, 0, NULL, 0, "vsysChannel");
     if (NULL == list)return NULL;
     /* 硬盘上已存在的文件夹 */
     struct dirent **namelist = NULL;
@@ -880,11 +902,11 @@ static FsStringBuilder * vsys_private_get_uploadConfig__IO(/* 可为空 */FsConf
     if (NULL == pConfig)return NULL;
     const void *parent0 = pConfig;
     /* 通道数 */
-    FsObjectList * list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, ipList, 0, "vsys");
+    FsObjectList * list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, 0, ipList, 0, "vsys");
     if (NULL == list)return NULL;
     const void *parent = list->pNode[list->startIndex];
     fs_ObjectList_delete__OI(list);
-    list = fs_Config_node_template__IO(pConfig, &parent0, parent, NULL, 0, "vsysChannel");
+    list = fs_Config_node_template__IO(pConfig, &parent0, parent, 0, NULL, 0, "vsysChannel");
     if (NULL == list)return NULL;
     FsStringBuilder * const rst = fs_StringBuilder_new__IO();
     fs_StringBuilder_apend(rst, "[setup]\r\n");
@@ -894,7 +916,7 @@ static FsStringBuilder * vsys_private_get_uploadConfig__IO(/* 可为空 */FsConf
         parent = *ppNode++;
         if (fs_Config_node_integer_get_first(pConfig, parent0, parent, "recordConfig recordVideoMode", 0, NULL) == 0)continue;
         const void *dataServer0 = parent0;
-        FsObjectList * const list1 = fs_Config_node_template__IO(pConfig, &dataServer0, parent, NULL, 0, "recordConfig dataServer");
+        FsObjectList * const list1 = fs_Config_node_template__IO(pConfig, &dataServer0, parent, 0, NULL, 0, "recordConfig dataServer");
         if (list1) {
             const FsString * const uuid = fs_Config_node_string_get_first_String(pConfig, parent0, parent, "uuid", NULL);
             void **ppNode_dataServer = list1->pNode + list1->startIndex;
@@ -971,7 +993,7 @@ static void vsys_P_channelStatus_init(/* 可为空 */FsConfig * const pConfig, /
 static void vsys_private_update_ntpConfig(/* 可为空 */FsConfig * const pConfig, const char ntpConfig[], /* 本地ip地址 */const FsArray * const ipList) {
     if (NULL == pConfig)return;
     const void* parent0 = pConfig;
-    FsObjectList * list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, ipList, 0, "vsys");
+    FsObjectList * list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, 0, ipList, 0, "vsys");
     if (NULL == list)return;
     const void *parent = list->pNode[list->startIndex];
     fs_ObjectList_delete__OI(list);
@@ -1038,7 +1060,7 @@ static void vsys_P_update_server(/* 可为空 */FsConfig * const pConfig, Rtsp *
         , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     if (NULL == pConfig)return;
     const void *vsys0 = pConfig;
-    const void *const vsys = fs_Config_node_template_get(pConfig, &vsys0, pConfig, ipList, 0, "vsys", 0);
+    const void *const vsys = fs_Config_node_template_get(pConfig, &vsys0, pConfig, 0, ipList, 0, "vsys", 0);
     if (NULL == vsys)return;
     const float realbuffertimeout = fs_Config_node_float_get_first(pConfig, vsys0, vsys, "realbuffertimeout", 0.0, NULL);
     /////////////////////////////////rtsp///////////////////////////////////////
@@ -1118,7 +1140,7 @@ static void vsys_P_update_router(/* 可为空 */FsConfig * const pConfig, FsRout
     const void *parent0 = pConfig;
     const void *parent;
     {
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, ipList, 0, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, 0, ipList, 0, "vsys");
         if (NULL == list)return;
         parent = list->pNode[list->startIndex];
         fs_ObjectList_delete__OI(list);
@@ -1160,7 +1182,7 @@ static void vsys_P_update_gb28181(/* 可为空 */FsConfig * const pConfig, GB281
     const void *vsys0 = pConfig;
     const void *vsys;
     {
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, ipList, 0, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 0, "vsys");
         if (NULL == list)return;
         vsys = list->pNode[list->startIndex];
         fs_ObjectList_delete__OI(list);
@@ -1175,7 +1197,7 @@ static void vsys_P_update_gb28181(/* 可为空 */FsConfig * const pConfig, GB281
             *pGB28181GroupSum = sum;
             gb28181_group_clean_pthreadSafety(pGB28181);
             const void *group0 = groupConfig0;
-            FsObjectList * const list = fs_Config_node_template__IO(pConfig, &group0, groupConfig, NULL, 0, "group");
+            FsObjectList * const list = fs_Config_node_template__IO(pConfig, &group0, groupConfig, 0, NULL, 0, "group");
             if (list) {
                 void **ppNode = list->pNode + list->startIndex;
                 unsigned int ui = list->nodeCount;
@@ -1222,7 +1244,7 @@ static void vsys_P_update_gb28181(/* 可为空 */FsConfig * const pConfig, GB281
                 }
                 /* 添加sip服务器 */
                 const void * sip0 = gb28181Config0;
-                FsObjectList * const list = fs_Config_node_template__IO(pConfig, &sip0, gb28181Config, NULL, 0, "sip");
+                FsObjectList * const list = fs_Config_node_template__IO(pConfig, &sip0, gb28181Config, 0, NULL, 0, "sip");
                 if (list) {
                     void **ppNode = list->pNode + list->startIndex;
                     unsigned int i;
@@ -1324,7 +1346,7 @@ static struct FsEbml_node * vsys_P_update_channelStatus_create(struct Vsys * con
     *(unsigned long long*) fs_Ebml_node_addChild(rst, (struct FsEbml_node *) rst, "sum", FsEbmlNodeType_Integer)->data.buffer = pVsys->p.channelStatusIndex;
     struct FsEbml_node * parent = fs_Ebml_node_addChild(rst, (struct FsEbml_node *) rst, "cluster", FsEbmlNodeType_Struct);
     const void *vsys0 = pConfig;
-    FsObjectList * list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, ipList, 1, "vsys");
+    FsObjectList * list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 1, "vsys");
     if (list) {
         void **ppNode = list->pNode + list->startIndex;
         unsigned int i = list->nodeCount;
@@ -1336,7 +1358,7 @@ static struct FsEbml_node * vsys_P_update_channelStatus_create(struct Vsys * con
     }
     vsys0 = pConfig;
     struct FsEbml_node * channelStatus;
-    list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, ipList, 0, "vsys");
+    list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 0, "vsys");
     if (list) {
         const void *const vsys = (struct FsEbml_node*) list->pNode[list->startIndex];
         {
@@ -1345,7 +1367,7 @@ static struct FsEbml_node * vsys_P_update_channelStatus_create(struct Vsys * con
         }
         fs_ObjectList_delete__OI(list);
         const void *vsysChannel0 = vsys0;
-        list = fs_Config_node_template__IO(pConfig, &vsysChannel0, vsys, NULL, 0, "vsysChannel");
+        list = fs_Config_node_template__IO(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel");
         if (list) {
             *(long long*) fs_Ebml_node_addChild(rst, (struct FsEbml_node *) rst, "offlineChannelCount", FsEbmlNodeType_Integer)->data.buffer = list->nodeCount;
             channelStatus = fs_Ebml_node_addChild(rst, (struct FsEbml_node *) rst, "channelStatus", FsEbmlNodeType_Struct);
@@ -1652,8 +1674,8 @@ static FsConfig *vsys_P_protocol_channelStatus_get() {
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "xml", "xml", "xml");
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "json", "json", "json");
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "ebml_all", "ebml_all(压缩数据,包含集群内的所有主机)", "ebml_all(压缩数据,包含集群内的所有主机)");
-        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "xml_all", "xml_all(压缩数据,包含集群内的所有主机)", "xml_all(压缩数据,包含集群内的所有主机)");
-        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "json_all", "json_all(压缩数据,包含集群内的所有主机)", "json_all(压缩数据,包含集群内的所有主机)");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "xml_all", "xml_all(xml数据,包含集群内的所有主机)", "xml_all(xml数据,包含集群内的所有主机)");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "json_all", "json_all(json数据,包含集群内的所有主机)", "json_all(json数据,包含集群内的所有主机)");
     }
     return pConfig;
 }
@@ -2214,7 +2236,7 @@ static void *vsys_P_T(struct Vsys * const pVsys) {
 #define __vsys_P_T_clean1_18 {rtsp_stopThread(pRtsp);rtsp_delete__OI(pRtsp);}
 #define __vsys_P_T_clean1_19
     // hls服务器
-    pHls = hls_new__IO(pVsys->ro._pMonitor, &childRun, systemThreadTid, "Hls", "/fs/bin/hls.html", 0, 16880, 128 * pVsys->ro._threadMulti, 0.0
+    pHls = hls_new__IO(pVsys->ro._pMonitor, &childRun, systemThreadTid, "Hls", access("/fs/bin/hls.html", F_OK) == 0 ? "/fs/bin/hls.html" : (access("./hls.html", F_OK) == 0 ? "./hls.html" : "/fs/bin/hls.html"), 0, 16880, 128 * pVsys->ro._threadMulti, 0.0
             , (FsObjectBase * (*)(unsigned int*, void*, FsConfig_ExportType, FsShareBuffer * const))configManager_config_get_with_sum_pthreadSafety__IO
 
             , (int (*)(FsEbml*, unsigned char, void*, char**))configManager_config_set_pthreadSafety__OI, pConfigManager, (FsObjectBasePthreadSafety * (*)(long long unsigned int*, void*, unsigned char, FsShareBuffer * const))vsys_P_channelStatusGet__IO, pVsys);

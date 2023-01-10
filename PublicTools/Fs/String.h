@@ -244,6 +244,12 @@ extern "C" {
     unsigned long fs_String_buffer_encode_by_base64_custom_from_string_reverse(/* 编码结果储存的空间,必须足够大 */unsigned char rstBuffer[],
             /* 数据开始指针位置 */const char buffer[], /* 数据长度,必须大于0 */register const unsigned long bufferLen, /* base64的编码码表,不能为空 */register const unsigned char base64[]);
     /*
+     * 把buffer用特定的Base64表进行编码(组内交换储存),编码过程倒序执行;
+     * 函数不会失败,返回编码后的长度.
+     */
+    unsigned long fs_String_buffer_encode_by_base64_custom_from_string_reverse_groupSwap(/* 编码结果储存的空间,必须足够大 */unsigned char rstBuffer[]
+            , /* 数据开始指针位置 */const char buffer[], /* 数据长度,必须大于0 */ const unsigned long bufferLen, /* base64的编码码表,不能为空 */ const unsigned char base64[]);
+    /*
      * 把buffer用预定义的Base64表进行编码;
      * 函数不会失败,返回编码后的长度.
      */

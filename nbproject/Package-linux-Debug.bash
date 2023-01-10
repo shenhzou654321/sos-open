@@ -13,7 +13,7 @@ CND_BUILDDIR=build
 CND_DLIB_EXT=so
 NBTMPDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}/tmp-packaging
 TMPDIRNAME=tmp-packaging
-OUTPUT_PATH=../dist/linux/zos
+OUTPUT_PATH=./zos
 OUTPUT_BASENAME=zos
 PACKAGE_TOP_DIR=zos-open/
 
