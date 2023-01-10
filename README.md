@@ -48,7 +48,7 @@ ZOS子模块主要有：**ZOS去中心化的配置管理模块**、**ZOS掩码�
 下载源码解压到Centos7下 如/opt/ZOS-open,执行以下命令编译
 >- cd /opt/ZOS-open
 >- make
->- 编译结果在/opt/dist/linux下,文件名为zos
+>- 编译结果在/opt/ZOS-open下,文件名为zos
 + **SOS-open 运行**    
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在通用操作系统下运行
 >- 拷贝编译的zos及hls.html、sysinfo.gz、xiaozhi.run到/fs/bin目录（这4个文件放在同一目录即可）
