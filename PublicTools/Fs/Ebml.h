@@ -125,7 +125,7 @@ extern "C" {
 
     /* 检查数据是否可能是ebml数据,可能是返回1,否则返回-1 */
 
-    int fs_Ebml_check(/* 数据长度 */unsigned long long bufferLenth, /* 数据开始地址 */unsigned char buffer[]);
+    int fs_Ebml_check(/* 数据长度 */unsigned long long bufferLenth, /* 数据开始地址 */const unsigned char buffer[]);
 
     /* 
      * 计算n变长编码的长度;
@@ -346,7 +346,7 @@ extern "C" {
     /* 删除pEbml指向的实例 */
 
     void fs_Ebml_delete__OI(FsEbml * const pEbml
-            , /* 共享buffer,不可为空 */ FsShareBuffer * const pShareBuffer);
+            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
 
     /* 
      * 获取此EBML数据的真实长度;
@@ -356,6 +356,25 @@ extern "C" {
 
     long long fs_Ebml_get_lenth(/* 分析的数据长度,不少于5个字节 */const unsigned long long len, /* 分析数据的开始指针 */ const unsigned char buffer[]);
 
+    /* 分析pEbml_node子节点,发现数组节点(节点名以[12]结尾的为数组节点),把数组节点调整到一起 */
+
+    void fs_Ebml_node_array_analyze(FsEbml * const pEbml, struct FsEbml_node * const pEbml_node
+            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
+
+    /* 把pEbml_node1下的子节点合并到pEbml_node下,并清空pEbml_node1的子节点 */
+
+    void fs_ebml_node_combine_clean(FsEbml * const pEbml, struct FsEbml_node * pEbml_node, FsEbml * const pEbml1, struct FsEbml_node * pEbml_node1
+            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
+
+    /*
+     * 向pEbml中的节点pEbml_node添加子节点;
+     * 在根节点下添加请把pEbml强制转换为FsEbml_node传入;
+     * 返回添加的节点的指针.
+     */
+
+    struct FsEbml_node* fs_Ebml_node_addChilds(FsEbml * const pEbml, struct FsEbml_node * const pEbml_node
+            , /* 节点名,不能为空,多级节点可用空格或.隔开,其中[]表示数组,本函数不处理数组 */ const char nodeName[], /* nodeName的长度 */ unsigned int nodeNameLen, /* 最后一级节点类型.必须为有效值,请使用宏定义 */ const FsEbmlNodeType ebmlNodeType);
+
     /*
      * 向pEbml中的节点pEbml_node添加一个子节点;
      * 在根节点下添加请把pEbml强制转换为FsEbml_node传入;
@@ -364,6 +383,15 @@ extern "C" {
 
     struct FsEbml_node* fs_Ebml_node_addChild(FsEbml * const pEbml, struct FsEbml_node * const pEbml_node
             , /* 节点名,不能为空 */ const char nodeName[], /* 节点类型.必须为有效值,请使用宏定义 */ const FsEbmlNodeType ebmlNodeType);
+
+    /*
+     * 向pEbml中的节点pEbml_node添加一个子节点;
+     * 在根节点下添加请把pEbml强制转换为FsEbml_node传入;
+     * 返回添加的节点的指针.
+     */
+
+    struct FsEbml_node* fs_Ebml_node_addChild1(FsEbml * const pEbml, struct FsEbml_node * const pEbml_node
+            , /* 节点名,不能为空 */ const char nodeName[], /* 节点名长度 */const unsigned int nodeNameLen, /* 节点类型.必须为有效值,请使用宏定义 */ const FsEbmlNodeType ebmlNodeType);
 
     /*
      * 向pEbml中的节点pEbml_node添加一个子节点,添加到头,相比fs_Ebml_node_addChild会消耗更多的cpu;
@@ -390,7 +418,7 @@ extern "C" {
      */
 
     struct FsEbml_node* fs_Ebml_node_addChild_extern(FsEbml * const pEbml, struct FsEbml_node * const pEbml_node
-            , /* 节点名前缀,可为空 */const char prefix[], /* 节点名,不能为空 */ const char nodeName[], /* 节点名前缀,可为空 */const char suffix[]
+            , /* 节点名前缀,可为空 */const char prefix[], /* 节点名,不能为空 */ const char nodeName[], /* 节点名后缀,可为空 */const char suffix[]
             , /* 节点类型.必须为有效值,请使用宏定义 */ const FsEbmlNodeType ebmlNodeType);
 
     /*
@@ -517,6 +545,10 @@ extern "C" {
 
     void fs_Ebml_node_data_set_string(struct FsEbml_node * const pEbml_node, /* 要设置的字符串值,可为空 */ const char string[]);
 
+    /* 设置pEbml_node节点的值,节点类型只能为FsEbmlNodeType_String或FsEbmlNodeType_Binary的子类型 */
+
+    void fs_Ebml_node_data_set_string1(struct FsEbml_node * const pEbml_node, /* 要设置的字符串值,可为空 */ const char string[], /* string的长度 */const unsigned int stringLen);
+
     /* 
      * 分析pEbml中pEbml_node下的所有节点;
      * 完全分析成功返回NULL;
@@ -603,6 +635,11 @@ extern "C" {
     unsigned int fs_Ebml_node_get_array(/* 在哪个节点下查找,在根节下查找请把pEbml强制转换为FsEbml_node传入 */ struct FsEbml_node* pEbml_node
             , /* 节点名,只支持一级节点查找 */ const char* nodeNameArray[], /* 要查找的节点名的数量,最多64个 */unsigned char arrayCount_max64);
 
+    /* 在已解析的节点pEbml_node下查找直接子节点包含name的个数,成功返回找到的第一个目标,失败返回NULL */
+
+    unsigned int fs_Ebml_node_get_child_count(/* 在哪个节点下查找,在根节下查找请把pEbml强制转换为FsEbml_node传入 */const struct FsEbml_node * const pEbml_node
+            , /* 查找的开始下标,必须为有效下标,从0开始 */unsigned int begin, /* 查找的结束下标,必须为有效下标,从0开始 */unsigned int end, /* 直接子节点名 */const char name[]);
+
     /* 在已解析的节点pEbml_node下查找直接子节点的第一个下标,成功返回下标,失败返回-1 */
 
     int fs_Ebml_node_get_child_index_byName(/* 在哪个节点下查找,在根节下查找请把pEbml强制转换为FsEbml_node传入 */ struct FsEbml_node * const pEbml_node
@@ -612,6 +649,11 @@ extern "C" {
 
     struct FsEbml_node * fs_Ebml_node_get_child_byName(/* 在哪个节点下查找,在根节下查找请把pEbml强制转换为FsEbml_node传入 */const struct FsEbml_node * const pEbml_node
             , /* 查找的开始下标,必须为有效下标,从0开始 */unsigned int begin, /* 查找的结束下标,必须为有效下标,从0开始 */unsigned int end, /* 直接子节点名 */const char name[]);
+
+    /* 在已解析的节点pEbml_node下查找直接子节点的第一个下标,成功返回找到的第一个目标,失败返回NULL */
+
+    struct FsEbml_node * fs_Ebml_node_get_child_byNameBuffer(/* 在哪个节点下查找,在根节下查找请把pEbml强制转换为FsEbml_node传入 */const struct FsEbml_node * const pEbml_node
+            , /* 查找的开始下标,必须为有效下标,从0开始 */unsigned int begin, /* 查找的结束下标,必须为有效下标,从0开始 */unsigned int end, /* 直接子节点名 */const char name[], /* name的长度 */const unsigned int nameLen);
 
     /* 
      * 获取pEbml中第一个名为nodeName的节点,支持多节点查找,用空格分开,如a b表示查找第一个a节点下的第一个b节点的值;
@@ -706,6 +748,15 @@ extern "C" {
             , /* 过滤器,返回-1表示不要,返回1表示节点需要,返回3表示节点需要且子节点也需要无须匹配 */int (* const filter) (struct FsEbml_node *pEbml_node));
 
     /*
+     * 把pEbml_node内已解析的子节点按http中get传参方式(如a=b&&c=d)转换成-个Buffer;
+     * 返回FsObjectBase对象.
+     */
+
+    FsObjectBase *fs_Ebml_node_child_to_ObjectBase_get_attribute__IO(const struct FsEbml_node * pEbml_node, /* 指data的偏移位置,不小于sizeof(FsObjectBase) */ const unsigned int dataOffset
+            , /* 实际数据结束位置距离返回结果的data尾的字节数 */const unsigned int suffixCount
+            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
+
+    /*
      * 把pEbml转换为FsXml;
      * 成功返回FsXml的实例指针; 
      * 失败返回NULL.
@@ -779,8 +830,16 @@ extern "C" {
      */
 
     FsObjectBase *fs_Ebml_to_ObjectBase_with_buffer__IO(const FsEbml * const pEbml
-            , /* 原缓存,不为空,在(*pObjectBaseBuffer)为空时,会把当前返回的对象的_unowned置1并设置到(*pObjectBaseBuffer)中,在(*pObjectBaseBuffer)->referCount为0时返回的数据会使用缓存 */
+            , /* 原缓存,不为空,在(*pObjectBaseBuffer)为空时,会把当前返回的对象的_unownedTag置1并设置到(*pObjectBaseBuffer)中,在(*pObjectBaseBuffer)->referCount为0时返回的数据会使用缓存 */
             FsObjectBase* * const pObjectBaseBuffer, /* 指data的偏移位置,不小于sizeof(FsObjectBase) */ const unsigned int dataOffset
+            , /* 实际数据结束位置距离返回结果的data尾的字节数 */const unsigned int suffixCount, /* 密码,为空或长度为0表示不加密 */const char password[]);
+
+    /*
+     * 把pEbml转换成-个Buffer;
+     * 返回FsObjectBase对象.
+     */
+    FsObjectBase * fs_Ebml_to_ObjectBase_from_buffer__IO(const FsEbml * const pEbml, /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer
+            , /* 指data的偏移位置,不小于sizeof(FsObjectBase) */ const unsigned int dataOffset
             , /* 实际数据结束位置距离返回结果的data尾的字节数 */const unsigned int suffixCount, /* 密码,为空或长度为0表示不加密 */const char password[]);
 
 

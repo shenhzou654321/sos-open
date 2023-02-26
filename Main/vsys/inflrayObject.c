@@ -15,7 +15,7 @@
 ///////////////////////////定义外部变量与函数开始/////////////////////////////////
 #ifdef FsPrintfIndex
 #undef FsPrintfIndex
-#endif 
+#endif
 #define FsPrintfIndex 1
 ///////////////////////////定义外部变量与函数结束/////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -33,8 +33,14 @@ static pthread_mutex_t groupSqrt_mutex = PTHREAD_MUTEX_INITIALIZER;
 /* 缓存轨迹的最大数量 */
 #define InflrayObject_trail_count 64
 
+#define PI acos(-1)
+
 struct InflrayObject_P_pos_node {
     struct ObjectTrack_pos_node pos_node;
+    /* 目标距离 */
+    int distance;
+    /* 目标经纬度 */
+    double longitude, latitude;
     /* 类别的概率,(需要开启识别才有效,没有开启时为0.85) */
     float prob;
     /* 类型(需要开启识别才有效),-1未知,1-人 */
@@ -43,6 +49,8 @@ struct InflrayObject_P_pos_node {
     signed char is_detected;
     /* 是否要画轨迹,算法初期检测到目标可能还未确定目标,未确定时此值为0,确定此值为1 */
     signed char isDrawing_tracks;
+
+    char belong_area_name[64];
 };
 
 struct InflrayObject_P_item_track {
@@ -52,12 +60,24 @@ struct InflrayObject_P_item_track {
     /* 原始目标id用于匹配 */
     unsigned int id;
 };
+
+struct InflrayObject_P_area {
+    /* 区域点集 */
+    struct Fs_Points const *pPoint;
+    /* 区域名称 */
+    char area_name[64];
+};
+
 ///////////////////////////定义私有结构结束//////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////定义私有函数开始//////////////////////////////////////
 
 static void inflrayObject_P_item_track_delete__OI(struct InflrayObject_P_item_track * const pInflrayObject_P_item_track) {
     objectTrack_pos_item_delete__OI((struct ObjectTrack_pos_item *) pInflrayObject_P_item_track);
+}
+
+static void inflrayObject_P_area_delete__OI(struct InflrayObject_P_area * const pInflrayObject_P_area) {
+    fsFree(pInflrayObject_P_area);
 }
 
 /* 从ObjectTrack_pos_item对象中获取id的方法 */
@@ -74,16 +94,18 @@ static void inflrayObject_P_pos_node_init_extern(struct InflrayObject_P_pos_node
 static int inflrayObject_P_item_cb_connect_error(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */ const unsigned int requestID_3[]
         , /* 调用函数的指针 */struct InflrayObject_item * const pInflrayObject_item
         , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
-    FsStructList * const clientList = pInflrayObject_item->ro.__clientList;
-    pthread_mutex_lock(&clientList->mutex);
-    configManager_conncet_refer_check(pInflrayObject_item->ro._pInflrayObject->ro._pConfigManager, clientList);
-    pthread_mutex_unlock(&clientList->mutex);
+    FsStructList * const clientList_i8 = pInflrayObject_item->ro.__clientList_i8;
+    pthread_mutex_lock(&clientList_i8->mutex);
+    configManager_conncet_refer_check(pInflrayObject_item->ro._pInflrayObject->ro._pConfigManager, clientList_i8);
+    pthread_mutex_unlock(&clientList_i8->mutex);
     return 1;
 }
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128 */
-static int inflrayObject_P_item_cb_debug(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型 */ char requestDataType, /* 调用函数的指针 */ struct InflrayObject_item * const pInflrayObject_item
+static int inflrayObject_P_item_cb_debug(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct InflrayObject_item * const pInflrayObject_item
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     const unsigned int datatype = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "datatype", 0);
     if (datatype <= 1) {
@@ -97,14 +119,14 @@ static int inflrayObject_P_item_cb_debug(/* 与请求相关的信息,用于识�
             }
 #endif
         }
-        unsigned int data[6] = {requestID_3[0], requestID_3[1], requestID_3[2], head, (unsigned int) requestDataType, datatype};
-        pthread_mutex_lock(&pInflrayObject_item->ro.__clientList->mutex);
-        configManager_conncet_refer_check(pInflrayObject_item->ro._pInflrayObject->ro._pConfigManager, pInflrayObject_item->ro.__clientList);
-        if (fs_StructList_insert_order(pInflrayObject_item->ro.__clientList, data) < 0) {
-            pthread_mutex_unlock(&pInflrayObject_item->ro.__clientList->mutex);
+        unsigned int data[8] = {ConfigManager_refer_connect_node_make6_array(requestID_3, headType, checkMethod, virtualConnection, requestDataType, head), datatype, 0};
+        pthread_mutex_lock(&pInflrayObject_item->ro.__clientList_i8->mutex);
+        configManager_conncet_refer_check(pInflrayObject_item->ro._pInflrayObject->ro._pConfigManager, pInflrayObject_item->ro.__clientList_i8);
+        if (fs_StructList_insert_order(pInflrayObject_item->ro.__clientList_i8, data) < 0) {
+            pthread_mutex_unlock(&pInflrayObject_item->ro.__clientList_i8->mutex);
             return 1;
         } else {
-            pthread_mutex_unlock(&pInflrayObject_item->ro.__clientList->mutex);
+            pthread_mutex_unlock(&pInflrayObject_item->ro.__clientList_i8->mutex);
             return -128;
         }
         //    } else if (0 == datatype) {
@@ -173,9 +195,9 @@ static void inflrayObject_P_item_delete__OI(struct InflrayObject_item * const pI
         /* 传出的数据帧链表 */
         fs_ObjectList_delete_destructor__OI(pInflrayObject_item->ro.__framelistOut);
         /* 关闭所有与之相关的客户端链表 */
-        configManager_conncet_refer_close(pConfigManager, pInflrayObject_item->ro.__clientList, 1);
+        configManager_conncet_refer_close(pConfigManager, pInflrayObject_item->ro.__clientList_i8, 1);
         /* 与之相关的客户端链表 */
-        fs_StructList_delete__OI(pInflrayObject_item->ro.__clientList);
+        fs_StructList_delete__OI(pInflrayObject_item->ro.__clientList_i8);
         /* 储存ConventionalDetect检测对象的链表 */
         if (pInflrayObject_item->p.__pConventionalDetectList_)fs_ObjectList_delete_unsafe_custom__OI(pInflrayObject_item->p.__pConventionalDetectList_, detectAlgorithmLib_ConventionalDetect_delete__OI);
         /* 跟踪中的所有目标 */
@@ -186,6 +208,8 @@ static void inflrayObject_P_item_delete__OI(struct InflrayObject_item * const pI
         fs_StructList_delete__OI(pInflrayObject_item->p.__excludeAreaLineList_);
         /* 水印文字链表,成员为struct FsTypeFaceText */
         fs_ObjectList_delete_unsafe_custom__OI(pInflrayObject_item->p.__textList_, (void (*)(void*))fs_TypeFace_text_delete__OI);
+        /* 区域及对应名称链表 */
+        fs_ObjectList_delete_unsafe_custom__OI(pInflrayObject_item->p.__areaNameList, (void (*)(void*))inflrayObject_P_area_delete__OI);
     }
     fsFree(pInflrayObject_item);
 }
@@ -251,6 +275,8 @@ static void inflrayObject_P_item_new(struct InflrayObject * const pInflrayObject
                                 fs_StructList_clear(rst->p.__excludeAreaLineList_);
                                 /* 水印文字链表,成员为struct FsTypeFaceText */
                                 fs_ObjectList_clear_custom(rst->p.__textList_, (void (*)(void*))fs_TypeFace_text_delete__OI);
+                                /* 区域及对应名称链表 */
+                                fs_ObjectList_clear_custom(rst->p.__areaNameList, (void (*)(void*))inflrayObject_P_area_delete__OI);
                             }
                             break;
                         }
@@ -267,12 +293,18 @@ static void inflrayObject_P_item_new(struct InflrayObject * const pInflrayObject
                         char *pd;
                         const FsString * const uuid = fs_Config_node_string_get_first_String(pConfig, vsysChannel0, vsysChannel, "uuid", NULL);
                         unsigned int len = uuid->lenth;
-                        const FsString * ptz_uuid;
+                        const FsString * ptz_uuid = NULL;
+                        const FsString * device_name = NULL;
                         if (channel > 0) {
                             const void *inflrayObjectConfig0 = vsysChannel0;
                             const void *const inflrayObjectConfig = fs_Config_node_get_first(pConfig, &inflrayObjectConfig0, vsysChannel, "inflrayObjectConfig");
-                            ptz_uuid = fs_Config_node_string_get_first_String(pConfig, inflrayObjectConfig0, inflrayObjectConfig, "ptz_uuid", NULL);
+                            int ptz_link_enable = fs_Config_node_integer_get_first(pConfig, inflrayObjectConfig0, inflrayObjectConfig, "ptz_link_enable", 1, NULL);
+                            if (ptz_link_enable) {
+                                ptz_uuid = fs_Config_node_string_get_first_String(pConfig, inflrayObjectConfig0, inflrayObjectConfig, "ptz_uuid", NULL);
+                            }
                             if (ptz_uuid)len += ptz_uuid->lenth;
+                            device_name = fs_Config_node_string_get_first_String(pConfig, vsysChannel0, vsysChannel, "recordConfig devicename", NULL);
+                            if (device_name)len += device_name->lenth;
                             rst = (struct InflrayObject_item*) fsMalloc(Memery_Alignment(sizeof (struct InflrayObject_item)) + len);
                             memset(rst, 0, sizeof (struct InflrayObject_item));
                             pd = ((char*) rst) + Memery_Alignment(sizeof (struct InflrayObject_item));
@@ -281,13 +313,15 @@ static void inflrayObject_P_item_new(struct InflrayObject * const pInflrayObject
                             /* 传出的数据帧链表 */
                             rst->ro.__framelistOut = fs_ObjectList_new__IO(6);
                             /* 与之相关的客户端链表 */
-                            rst->ro.__clientList = fs_StructList_new__IO(6, sizeof (int)*6);
+                            rst->ro.__clientList_i8 = fs_StructList_new__IO(6, sizeof (int)*8);
                             /* 跟踪中的所有目标 */
                             rst->p.__objectList_ = fs_ObjectList_new_unsafe__IO(5);
-                            /* 区域线条链表(x1,y1)(x2,y2),每个数字占2字节 */
-                            rst->p.__areaLineList_ = fs_StructList_new__IO(2, sizeof (unsigned short)*4);
+                            /* 区域线条链表(x1,y1)(x2,y2),每个数字占2字节+color(4字节,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔) */
+                            rst->p.__areaLineList_ = fs_StructList_new__IO(2, sizeof (unsigned short)*6);
                             /* 屏蔽区域线条链表(x1,y1)(x2,y2),每个数字占2字节 */
                             rst->p.__excludeAreaLineList_ = fs_StructList_new__IO(2, sizeof (unsigned short)*4);
+                            /* 区域及对应名称链表 */
+                            rst->p.__areaNameList = fs_ObjectList_new_unsafe__IO(6);
                             /* 联动目标编号 */
                             rst->p.objIndex = 0;
                             /* 水印文字链表,成员为struct FsTypeFaceText */
@@ -318,8 +352,34 @@ static void inflrayObject_P_item_new(struct InflrayObject * const pInflrayObject
                         if (channel > 0) {
                             // 获取配置参数
                             if (ptz_uuid) {
-                                rst->p.ptz_uuid = pd, len = ptz_uuid->lenth, memcpy(pd, ptz_uuid->buffer, len);
+                                rst->p.ptz_uuid = pd, len = ptz_uuid->lenth, memcpy(pd, ptz_uuid->buffer, len), pd += len;
                                 FsPrintf(1, "bind rst->ro._uuid=%s\n", rst->p.ptz_uuid);
+                            }
+                        }
+                        if (channel > 0) {
+                            rst->p.device_name = pd, len = device_name->lenth, memcpy(pd, device_name->buffer, len), pd += len;
+                        }
+                        if (channel > 0) {
+                            // 获取距离标定参数
+                            rst->p.target_distance_enable = fs_Config_node_integer_get_first(pConfig, vsysChannel0, vsysChannel, "distance distance_enable", 0, NULL);
+                            FsPrintf(1, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
+                            FsPrintf(1, "target_distance_enable=%d\n", rst->p.target_distance_enable);
+                            if (rst->p.target_distance_enable) {
+                                rst->p.start_x = fs_Config_node_integer_get_first(pConfig, vsysChannel0, vsysChannel, "distance start_x", 0, NULL);
+                                rst->p.start_y = fs_Config_node_integer_get_first(pConfig, vsysChannel0, vsysChannel, "distance start_y", 0, NULL);
+                                rst->p.end_x = fs_Config_node_integer_get_first(pConfig, vsysChannel0, vsysChannel, "distance end_x", 0, NULL);
+                                rst->p.end_y = fs_Config_node_integer_get_first(pConfig, vsysChannel0, vsysChannel, "distance end_y", 0, NULL);
+                                rst->p.device_height = fs_Config_node_float_get_first(pConfig, vsysChannel0, vsysChannel, "distance device_height", 0.0, NULL);
+                                rst->p.device_field_angle = fs_Config_node_float_get_first(pConfig, vsysChannel0, vsysChannel, "distance device_field_angle", 6.4, NULL);
+                                const FsString * const position_jwd = fs_Config_node_string_get_first_String(pConfig, vsysChannel0, vsysChannel, "positon center", NULL);
+                                if (NULL == position_jwd || sscanf(position_jwd->buffer, "%f,%f", &rst->p.device_longitude, &rst->p.device_latitude) != 2) {
+                                    rst->p.device_longitude = 0.0;
+                                    rst->p.device_latitude = 0.0;
+                                }
+                                FsPrintf(1, "device_height=%f,device_latitude=%f", rst->p.device_longitude, rst->p.device_latitude);
+                                //FsPrintf(1, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
+                                //FsPrintf(1, "start_pos=(%d, %d)--end_pos=(%d, %d)--device_height=%lf--device_field_angle=%lf\n", rst->p.start_x, rst->p.start_y, rst->p.end_x, rst->p.end_y, rst->p.device_height, rst->p.device_field_angle);
+
                             }
                         }
                         ////////////////////////////////////////////////////////////////////////////
@@ -328,7 +388,7 @@ static void inflrayObject_P_item_new(struct InflrayObject * const pInflrayObject
                                 , (int (*)(const unsigned int *, void *, char * * const))inflrayObject_P_item_cb_connect_error, rst);
                         /* 注册命令字 */
                         if (0 == ipv4) configManager_cmd_register(pInflrayObject->ro._pConfigManager, "inflrayObject_debug", rst->ro._uuid, ipv4, rst, 0
-                                , (int (* const) (const unsigned int *, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))inflrayObject_P_item_cb_debug, NULL, rst, pShareBuffer);
+                                , (int (* const) (const unsigned int *, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))inflrayObject_P_item_cb_debug, NULL, rst, pShareBuffer);
                         //                    if (0 == ipv4)configManager_cmd_register(pRecord->ro._pConfigManager, "record_inc", rst->ro._uuid, 0, rst, NULL, (void*) record_item_add_inc_pthreadSafety__OI_2, rst);
                         //                    configManager_cmd_register(pRecord->ro._pConfigManager, "videolist_get", rst->ro._uuid, ipv4, rst, 0 == ipv4 ? record_private_cmd_cb : NULL, NULL, rst);
                         //                    configManager_cmd_register(pRecord->ro._pConfigManager, "videotimeinfo_get", rst->ro._uuid, ipv4, rst, 0 == ipv4 ? record_private_cmd_cb : NULL, NULL, rst);
@@ -389,6 +449,7 @@ static FsObjectList* inflrayObject_P_item_new_conventionalDetect__IO(struct Infl
     fs_StructList_clear(pInflrayObject_item->p.__excludeAreaLineList_);
     fs_ObjectList_clear_custom(pInflrayObject_item->p.__textList_, (void (*)(void*))fs_TypeFace_text_delete__OI);
     fs_ObjectList_clear_custom(pInflrayObject_item->p.__objectList_, (void (*)(void*))inflrayObject_P_item_track_delete__OI);
+    fs_ObjectList_clear_custom(pInflrayObject_item->p.__areaNameList, (void (*)(void*))inflrayObject_P_area_delete__OI);
     if (inflrayObjectConfig) {
         const void * targetCheckErea0 = inflrayObjectConfig0;
         FsObjectList * const targetCheckEreaList = fs_Config_node_template__IO(pConfig, &targetCheckErea0, inflrayObjectConfig, 3, NULL, 0, "targetCheckErea");
@@ -417,11 +478,11 @@ static FsObjectList* inflrayObject_P_item_new_conventionalDetect__IO(struct Infl
                         int x = thePoint[0][0], y = thePoint[0][1];
                         thePoint++;
                         if (ui > 0) {
-                            unsigned short line[] = {x, y, thePoint[0][0], thePoint[0][1]};
+                            unsigned short line[] = {(unsigned short) x, (unsigned short) y, (unsigned short) thePoint[0][0], (unsigned short) thePoint[0][1]};
                             //FsPrintf(1, "(%hu,%hu)(%hu,%hu)\n", line[0], line[1], line[2], line[3]);
                             fs_StructList_insert_tail(pInflrayObject_item->p.__excludeAreaLineList_, line);
                         } else {
-                            unsigned short line[] = {x, y, pPoint->point[0][0], pPoint->point[0][1]};
+                            unsigned short line[] = {(unsigned short) x, (unsigned short) y, (unsigned short) pPoint->point[0][0], (unsigned short) pPoint->point[0][1]};
                             //FsPrintf(1, "(%hu,%hu)(%hu,%hu)\n", line[0], line[1], line[2], line[3]);
                             fs_StructList_insert_tail(pInflrayObject_item->p.__excludeAreaLineList_, line);
                         }
@@ -439,9 +500,7 @@ static FsObjectList* inflrayObject_P_item_new_conventionalDetect__IO(struct Infl
                         if (NULL == pTypeFace) {
                             excludeAreaName_color = fs_Config_node_integer_get_first(pConfig, inflrayObjectConfig0, inflrayObjectConfig, "excludeAreaName_color", 0xFF0000, NULL);
                             if (excludeAreaName_color < 0xFF000000U) {
-                                excludeAreaName_color = (((unsigned int) (0.257 * ((excludeAreaName_color >> 16)&0xFF) + 0.504 * ((excludeAreaName_color >> 8)&0xFF) + 0.098 * (excludeAreaName_color & 0xFF) + 16)) << 16)+
-                                        (((unsigned int) (-0.148 * ((excludeAreaName_color >> 16)&0xFF) - 0.291 * ((excludeAreaName_color >> 8)&0xFF) + 0.439 * (excludeAreaName_color & 0xFF) + 128)) << 8) +
-                                        0.439 * ((excludeAreaName_color >> 16)&0xFF) - 0.368 * ((excludeAreaName_color >> 8)&0xFF) - 0.071 * (excludeAreaName_color & 0xFF) + 128;
+                                excludeAreaName_color = image_dib_rgb_to_ycc(excludeAreaName_color);
                                 const unsigned short excludeAreaName_width = fs_Config_node_integer_get_first(pConfig, inflrayObjectConfig0, inflrayObjectConfig, "excludeAreaName_width", 32, NULL);
                                 const unsigned short excludeAreaName_height = fs_Config_node_integer_get_first(pConfig, inflrayObjectConfig0, inflrayObjectConfig, "excludeAreaName_height", 32, NULL);
                                 pTypeFace = fs_TypeFace_new__IO(NULL, excludeAreaName_width, excludeAreaName_height, 1, 0);
@@ -474,112 +533,180 @@ static FsObjectList* inflrayObject_P_item_new_conventionalDetect__IO(struct Infl
                     const void * const targetCheckErea = *ppNode++;
                     if (fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "enable", 1, NULL) == 0)continue;
                     FsConfigResult_area * const pArea = fs_Config_node_string_area_lenth_get__IO(pConfig, targetCheckErea0, targetCheckErea, "area", NULL, width0 * 1.0 / width, height0 * 1.0 / height, 0, 0);
-                    FsConfigResult_string * const pAreaName = fs_Config_node_string_get__IO(pConfig, targetCheckErea0, targetCheckErea, "areaName", NULL);
+                    FsPrintf(1, "pArea=%p\n", pArea);
+                    fflush(stdout);
                     if (pArea) {
-                        FsTypeFace *pTypeFace = NULL;
-                        unsigned int watermarking_color = 0xFF0000;
-                        ////////////////////////////////////////////////////////////////////
-                        /* 计算区域的外接矩形 */
-                        if (1) {
-                            unsigned int uj;
-                            x1 = width - 1, y1 = height - 1, x2 = 0, y2 = 0;
-                            for (uj = 0; uj < pArea->count; uj++) {
-                                int _x1 = width - 1, _y1 = height - 1, _x2 = 0, _y2 = 0;
-                                // printf(" kkkkkkkkkkkkk1,uj =%u,pArea->count=%u,pArea=%p,%lu\n", uj, pArea->count,pArea,((char*) pArea->data)-((char*) pArea));
-                                struct Fs_Points * const pPoint = (struct Fs_Points *) pArea->data[uj];
-                                // printf("kkkkkkkkkkkkk2 uj =%u,pArea->count=%u,pPoint=%p/%lu\n", uj, pArea->count, pPoint, ((char*) pPoint)-((char*) pArea));
-                                unsigned int ui = pPoint->count;
-                                int (*thePoint)[2] = pPoint->point;
-                                while (ui-- > 0) {
-                                    int x = thePoint[0][0], y = thePoint[0][1];
-                                    thePoint++;
-                                    if (ui > 0) {
-                                        unsigned short line[] = {x, y, thePoint[0][0], thePoint[0][1]};
-                                        //FsPrintf(1, "(%hu,%hu)(%hu,%hu)\n", line[0], line[1], line[2], line[3]);
-                                        fs_StructList_insert_tail(pInflrayObject_item->p.__areaLineList_, line);
-                                    } else {
-                                        unsigned short line[] = {x, y, pPoint->point[0][0], pPoint->point[0][1]};
-                                        //FsPrintf(1, "(%hu,%hu)(%hu,%hu)\n", line[0], line[1], line[2], line[3]);
-                                        fs_StructList_insert_tail(pInflrayObject_item->p.__areaLineList_, line);
+                        FsConfigResult_integer * const pAreaColor = fs_Config_node_integer_get__IO(pConfig, targetCheckErea0, targetCheckErea, "areaColor", NULL);
+                        FsConfigResult_string * const pAreaName = fs_Config_node_string_get__IO(pConfig, targetCheckErea0, targetCheckErea, "areaName", NULL);
+                        FsConfigResult_integer * const pWatermarking_color = fs_Config_node_integer_get__IO(pConfig, targetCheckErea0, targetCheckErea, "watermarking_color", NULL);
+                        {
+                            FsConfigResult_integer * const pArea_enable = fs_Config_node_integer_get__IO(pConfig, targetCheckErea0, targetCheckErea, "area_enable", NULL);
+                            if (pArea_enable) {
+                                unsigned int uj, ui = 0;
+                                for (uj = 0; uj < pArea->count; uj++) {
+                                    if ((pArea_enable->count > uj && ((long long*) (((char*) pArea_enable) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[uj])
+                                            || (pArea_enable->count <= uj && ((long long*) (((char*) pArea_enable) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[pArea_enable->count - 1])) {
+                                        if (((long long*) (((char*) pArea_enable) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[uj]) {
+                                            pArea->data[ui] = pArea->data[uj];
+                                            if (pAreaColor) {
+                                                if (pAreaColor->count > uj) {
+                                                    ((long long*) (((char*) pAreaColor) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[ui] = ((long long*) (((char*) pAreaColor) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[uj];
+                                                } else if (ui < pAreaColor->count) {
+                                                    ((long long*) (((char*) pAreaColor) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[ui] = ((long long*) (((char*) pAreaColor) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[pAreaColor->count - 1];
+                                                }
+                                            }
+                                            if (pAreaName) {
+                                                if (pAreaName->count > uj) {
+                                                    pAreaName->data[ui] = pAreaName->data[uj];
+                                                } else if (ui < pAreaName->count) {
+                                                    pAreaName->count = ui;
+                                                }
+                                            }
+                                            if (pWatermarking_color) {
+                                                if (pWatermarking_color->count > uj) {
+                                                    ((long long*) (((char*) pWatermarking_color) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[ui] = ((long long*) (((char*) pWatermarking_color) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[uj];
+                                                } else if (ui < pWatermarking_color->count) {
+                                                    ((long long*) (((char*) pWatermarking_color) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[ui] = ((long long*) (((char*) pWatermarking_color) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))[pWatermarking_color->count - 1];
+                                                }
+                                            }
+                                            ui++;
+                                        }
                                     }
-                                    if (_x1 > x)_x1 = x;
-                                    if (_x2 < x)_x2 = x;
-                                    if (_y1 > y)_y1 = y;
-                                    if (_y2 < y)_y2 = y;
-                                    if (x1 > x)x1 = x;
-                                    if (x2 < x)x2 = x;
-                                    if (y1 > y)y1 = y;
-                                    if (y2 < y)y2 = y;
                                 }
-                                if (pAreaName && uj < pAreaName->count) {
-                                    /* 有设置区域名字 */
-                                    if (NULL == pTypeFace) {
-                                        watermarking_color = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "watermarking_color", 0xFF0000, NULL);
-                                        if (watermarking_color < 0xFF000000U) {
-                                            watermarking_color = (((unsigned int) (0.257 * ((watermarking_color >> 16)&0xFF) + 0.504 * ((watermarking_color >> 8)&0xFF) + 0.098 * (watermarking_color & 0xFF) + 16)) << 16)+
-                                                    (((unsigned int) (-0.148 * ((watermarking_color >> 16)&0xFF) - 0.291 * ((watermarking_color >> 8)&0xFF) + 0.439 * (watermarking_color & 0xFF) + 128)) << 8) +
-                                                    0.439 * ((watermarking_color >> 16)&0xFF) - 0.368 * ((watermarking_color >> 8)&0xFF) - 0.071 * (watermarking_color & 0xFF) + 128;
+                                pArea->count = ui;
+                                fsFree(pArea_enable);
+                            }
+                        }
+                        FsPrintf(1, "pArea=%p/%u\n", pArea, pArea->count);
+                        fflush(stdout);
+                        if (pArea->count > 0) {
+                            FsTypeFace *pTypeFace = NULL;
+                            ////////////////////////////////////////////////////////////////////
+                            /* 计算区域的外接矩形 */
+                            if (1) {
+                                unsigned int uj;
+                                x1 = width - 1, y1 = height - 1, x2 = 0, y2 = 0;
+                                for (uj = 0; uj < pArea->count; uj++) {
+                                    int _x1 = width - 1, _y1 = height - 1, _x2 = 0, _y2 = 0;
+                                    // printf(" kkkkkkkkkkkkk1,uj =%u,pArea->count=%u,pArea=%p,%lu\n", uj, pArea->count,pArea,((char*) pArea->data)-((char*) pArea));
+                                    struct Fs_Points * const pPoint = (struct Fs_Points *) pArea->data[uj];
+                                    // printf("kkkkkkkkkkkkk2 uj =%u,pArea->count=%u,pPoint=%p/%lu\n", uj, pArea->count, pPoint, ((char*) pPoint)-((char*) pArea));
+                                    unsigned int ui = pPoint->count;
+                                    int (*thePoint)[2] = pPoint->point;
+                                    while (ui-- > 0) {
+                                        int x = thePoint[0][0], y = thePoint[0][1];
+                                        thePoint++;
+                                        unsigned int areaColor = pAreaColor != NULL ? ((long long*) (((char*) pAreaColor) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8))) [pAreaColor->count > uj ? uj : pAreaColor->count - 1] : 0xFF000000;
+                                        if (areaColor < 0xFF000000U) {
+                                            areaColor = image_dib_rgb_to_ycc(areaColor);
+                                            if (ui > 0) {
+                                                unsigned short line[] = {(unsigned short) x, (unsigned short) y, (unsigned short) thePoint[0][0], (unsigned short) thePoint[0][1], ((unsigned short*) &areaColor)[0], ((unsigned short*) &areaColor)[1]};
+                                                //FsPrintf(1, "(%hu,%hu)(%hu,%hu)\n", line[0], line[1], line[2], line[3]);
+                                                fs_StructList_insert_tail(pInflrayObject_item->p.__areaLineList_, line);
+                                            } else {
+                                                unsigned short line[] = {(unsigned short) x, (unsigned short) y, (unsigned short) pPoint->point[0][0], (unsigned short) pPoint->point[0][1], ((unsigned short*) &areaColor)[0], ((unsigned short*) &areaColor)[1]};
+                                                //FsPrintf(1, "(%hu,%hu)(%hu,%hu)\n", line[0], line[1], line[2], line[3]);
+                                                fs_StructList_insert_tail(pInflrayObject_item->p.__areaLineList_, line);
+                                            }
+                                        }
+                                        if (_x1 > x)_x1 = x;
+                                        if (_x2 < x)_x2 = x;
+                                        if (_y1 > y)_y1 = y;
+                                        if (_y2 < y)_y2 = y;
+                                        if (x1 > x)x1 = x;
+                                        if (x2 < x)x2 = x;
+                                        if (y1 > y)y1 = y;
+                                        if (y2 < y)y2 = y;
+                                    }
+                                    if (pAreaName && uj < pAreaName->count) {
+                                        /* 有设置区域名字 */
+                                        if (NULL == pTypeFace) {
                                             const unsigned short watermarking_width = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "watermarking_width", 32, NULL);
                                             const unsigned short watermarking_height = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "watermarking_height", 32, NULL);
                                             pTypeFace = fs_TypeFace_new__IO(NULL, watermarking_width, watermarking_height, 1, 0);
                                         }
-                                    }
-                                    if (pTypeFace) {
-                                        const int chars = fs_String_buffer_get_chars_width(strlen(pAreaName->data[uj]), (const unsigned char*) pAreaName->data[uj], FsStringCode_Unkown);
-                                        int _x0 = (_x1 + _x2) / 2;
-                                        int _y0 = (_y1 + _y2) / 2;
-                                        _x0 -= pTypeFace->width * (chars + 1) / 2;
-                                        _y0 -= (pTypeFace->height + 1) / 2;
-                                        struct FsTypeFaceText * const pTypeFaceText = fs_TypeFace_text_new__IO(pTypeFace, Fs_num_max(_x0, _x1), Fs_num_max(_y0, _y1), watermarking_color, pAreaName->data[uj]);
-                                        fs_ObjectList_insert_tail(pInflrayObject_item->p.__textList_, pTypeFaceText);
-                                    } else if (watermarking_color < 0xFF000000U) {
-                                        FsLog(FsLogType_error, FsPrintfIndex, "New TypeFace failed.\n");
-                                        fflush(stdout);
+                                        if (pTypeFace) {
+                                            unsigned int watermarking_color = pWatermarking_color != NULL ? ((long long*) (((char*) pWatermarking_color) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8)))
+                                                    [pWatermarking_color->count > uj ? uj : pWatermarking_color->count - 1] : 0xFF0000;
+                                            if (watermarking_color < 0xFF000000U) {
+                                                watermarking_color = image_dib_rgb_to_ycc(watermarking_color);
+                                                const int chars = fs_String_buffer_get_chars_width(strlen(pAreaName->data[uj]), (const unsigned char*) pAreaName->data[uj], FsStringCode_Unkown);
+                                                int _x0 = (_x1 + _x2) / 2;
+                                                int _y0 = (_y1 + _y2) / 2;
+                                                _x0 -= pTypeFace->width * (chars + 1) / 2;
+                                                _y0 -= (pTypeFace->height + 1) / 2;
+                                                struct FsTypeFaceText * const pTypeFaceText = fs_TypeFace_text_new__IO(pTypeFace, Fs_num_max(_x0, _x1), Fs_num_max(_y0, _y1), watermarking_color, pAreaName->data[uj]);
+                                                fs_ObjectList_insert_tail(pInflrayObject_item->p.__textList_, pTypeFaceText);
+                                                {
+                                                    // 插入区域名称表
+                                                    unsigned int pCount = pPoint->count;
+                                                    struct Fs_Points * const pFs_Points = (struct Fs_Points *) fsMalloc(sizeof ( struct Fs_Points) + sizeof (int) * 2 * pCount);
+                                                    int (*resPoint)[2] = pPoint->point;
+                                                    int (*dstPoint)[2] = pFs_Points->point;
+                                                    pFs_Points->count = pCount;
+                                                    while (pCount-- > 0) {
+                                                        dstPoint[0][0] = resPoint[0][0], dstPoint[0][1] = resPoint[0][1];
+                                                        resPoint++;
+                                                        dstPoint++;
+                                                    }
+                                                    struct InflrayObject_P_area * const pInflrayObject_P_area = (struct InflrayObject_P_area *) fsMalloc(sizeof ( struct InflrayObject_P_area));
+                                                    pInflrayObject_P_area->pPoint = pFs_Points;
+                                                    int iLen = strlen(pAreaName->data[uj]) + 1;
+                                                    memcpy(pInflrayObject_P_area->area_name, pAreaName->data[uj], iLen);
+                                                    fs_ObjectList_insert_tail(pInflrayObject_item->p.__areaNameList, pInflrayObject_P_area);
+                                                }
+                                            }
+                                        } else {
+                                            FsLog(FsLogType_error, FsPrintfIndex, "New TypeFace failed.\n");
+                                            fflush(stdout);
+                                        }
                                     }
                                 }
+                                if (x2 > width - 1)x2 = width - 1;
+                                if (y2 > height - 1)y2 = height - 1;
+                                if (x2 <= x1 || y2 <= y1) {
+                                    x1 = 0, y1 = 0, x2 = width - 1, y2 = height - 1;
+                                }
                             }
-                            if (x2 > width - 1)x2 = width - 1;
-                            if (y2 > height - 1)y2 = height - 1;
-                            if (x2 <= x1 || y2 <= y1) {
-                                x1 = 0, y1 = 0, x2 = width - 1, y2 = height - 1;
+                            ////////////////////////////////////////////////////////////////////   
+                            {
+                                const int eDetectAlgorithm = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "eDetectAlgorithm", 1, NULL);
+                                const int iShiftRadius = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iShiftRadius", 10, NULL);
+                                const int iBarRatio = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iBarRatio", 6, NULL);
+                                const int iMinSizeX = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "minSizeX", 0, NULL);
+                                const int iMinSizeY = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "minSizeY", 0, NULL);
+                                const int iMaxSizeX = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "maxSizeX", 512, NULL);
+                                const int iMaxSizeY = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "maxSizeY", 512, NULL);
+                                const int classCheck = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "classCheck", 0, NULL);
+                                const int trackEnable = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "trackEnable", 0, NULL);
+                                const int iMaxAngle = trackEnable ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iMaxAngle", 45, NULL) : 45;
+                                const double dLimitGauss = trackEnable ? fs_Config_node_float_get_first(pConfig, targetCheckErea0, targetCheckErea, "dLimitGauss", 0.4, NULL) : 0.4;
+                                const int iLearnCount = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "learnCount", 5, NULL);
+                                const int iSkipCount = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "skipCount", 3, NULL);
+                                const int trackOut = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "trackOut", 0, NULL);
+                                const int iUseForSkyTHthresh = 0 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iUseForSkyTHthresh", 65, NULL) : 65;
+                                const int iUseForSkyColorType = 0 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iUseForSkyColorType", 0, NULL) : 0;
+                                const int iVibeRadius = 1 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iVibeRadius", 0, NULL) : 1;
+                                const double fGmmD = 2 == eDetectAlgorithm ? fs_Config_node_float_get_first(pConfig, targetCheckErea0, targetCheckErea, "fGmmD", 1.2, NULL) : 1.2;
+                                const int fGmmSdInit = 2 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "fGmmSdInit", 12, NULL) : 12;
+                                const int iGrimsonGmmMatchThreshold = 3 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iGrimsonGmmMatchThreshold", 20, NULL) : 20;
+                                const int iGrimsonGmmMedianBlurKernelSize = 3 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iGrimsonGmmMedianBlurKernelSize", 3, NULL) : 3;
+                                const int iFireRadius = 4 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iFireRadius", 32, NULL) : 32;
+                                void *const pConventionalDetect = detectAlgorithmLib_ConventionalDetect_new__IO(width, height, eDetectAlgorithm, classCheck, iShiftRadius, iMinSizeX, iMinSizeY, iMaxSizeX, iMaxSizeY, iBarRatio, trackEnable, iMaxAngle, dLimitGauss, iLearnCount, iSkipCount, trackOut
+                                        , iUseForSkyTHthresh, iUseForSkyColorType, iVibeRadius, fGmmD, fGmmSdInit, iGrimsonGmmMatchThreshold, iGrimsonGmmMedianBlurKernelSize, iFireRadius, pArea, pExcludeArea, 0, 0);
+                                if (NULL == pConventionalDetect) {
+                                    FsLog2(FsLogType_info, FsPrintfIndex, "Run detectAlgorithmLib_ConventionalDetect_new__IO failed,uuid:\"%s\",ipv4:\"%hhu.%hhu.%hhu.%hhu\"", pInflrayObject_item->ro._uuid, Fs_Network_Ipv4_print(pInflrayObject_item->ro._ipv4));
+                                } else {
+                                    fs_ObjectList_insert_tail(rst, pConventionalDetect);
+                                }
                             }
+                            if (pTypeFace)fs_TypeFace_delete__OI(pTypeFace);
                         }
-                        ////////////////////////////////////////////////////////////////////   
-                        {
-                            const int eDetectAlgorithm = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "eDetectAlgorithm", 1, NULL);
-                            const int iShiftRadius = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iShiftRadius", 10, NULL);
-                            const int iBarRatio = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iBarRatio", 6, NULL);
-                            const int iMinSizeX = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "minSizeX", 0, NULL);
-                            const int iMinSizeY = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "minSizeY", 0, NULL);
-                            const int iMaxSizeX = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "maxSizeX", 512, NULL);
-                            const int iMaxSizeY = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "maxSizeY", 512, NULL);
-                            const int classCheck = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "classCheck", 0, NULL);
-                            const int trackEnable = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "trackEnable", 0, NULL);
-                            const int iMaxAngle = trackEnable ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iMaxAngle", 45, NULL) : 45;
-                            const double dLimitGauss = trackEnable ? fs_Config_node_float_get_first(pConfig, targetCheckErea0, targetCheckErea, "dLimitGauss", 0.4, NULL) : 0.4;
-                            const int iLearnCount = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "learnCount", 5, NULL);
-                            const int iSkipCount = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "skipCount", 3, NULL);
-                            const int trackOut = fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "trackOut", 0, NULL);
-                            const int iUseForSkyTHthresh = 0 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iUseForSkyTHthresh", 65, NULL) : 65;
-                            const int iUseForSkyColorType = 0 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iUseForSkyColorType", 0, NULL) : 0;
-                            const int iVibeRadius = 1 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iVibeRadius", 0, NULL) : 1;
-                            const double fGmmD = 2 == eDetectAlgorithm ? fs_Config_node_float_get_first(pConfig, targetCheckErea0, targetCheckErea, "fGmmD", 1.2, NULL) : 1.2;
-                            const int fGmmSdInit = 2 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "fGmmSdInit", 12, NULL) : 12;
-                            const int iGrimsonGmmMatchThreshold = 3 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iGrimsonGmmMatchThreshold", 20, NULL) : 20;
-                            const int iGrimsonGmmMedianBlurKernelSize = 3 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iGrimsonGmmMedianBlurKernelSize", 3, NULL) : 3;
-                            const int iFireRadius = 4 == eDetectAlgorithm ? fs_Config_node_integer_get_first(pConfig, targetCheckErea0, targetCheckErea, "iFireRadius", 32, NULL) : 32;
-                            void *const pConventionalDetect = detectAlgorithmLib_ConventionalDetect_new__IO(width, height, eDetectAlgorithm, classCheck, iShiftRadius, iMinSizeX, iMinSizeY, iMaxSizeX, iMaxSizeY, iBarRatio, trackEnable, iMaxAngle, dLimitGauss, iLearnCount, iSkipCount, trackOut
-                                    , iUseForSkyTHthresh, iUseForSkyColorType, iVibeRadius, fGmmD, fGmmSdInit, iGrimsonGmmMatchThreshold, iGrimsonGmmMedianBlurKernelSize, iFireRadius, pArea, pExcludeArea, 0, 0);
-                            if (NULL == pConventionalDetect) {
-                                FsLog2(FsLogType_info, FsPrintfIndex, "Run detectAlgorithmLib_ConventionalDetect_new__IO failed,uuid:\"%s\",ipv4:\"%hhu.%hhu.%hhu.%hhu\"", pInflrayObject_item->ro._uuid, Fs_Network_Ipv4_print(pInflrayObject_item->ro._ipv4));
-                            } else {
-                                fs_ObjectList_insert_tail(rst, pConventionalDetect);
-                            }
-                        }
-                        if (pTypeFace)fs_TypeFace_delete__OI(pTypeFace);
+                        if (pAreaColor)fsFree(pAreaColor);
+                        if (pAreaName)fsFree(pAreaName);
+                        if (pWatermarking_color)fsFree(pWatermarking_color);
                         fsFree(pArea);
                     }
-                    if (pAreaName)fsFree(pAreaName);
                 }
 
             }
@@ -590,9 +717,7 @@ static FsObjectList* inflrayObject_P_item_new_conventionalDetect__IO(struct Infl
             } else {
                 pInflrayObject_item->p.target_x_extern = fs_Config_node_integer_get_first(pConfig, inflrayObjectConfig0, inflrayObjectConfig, "target_x_extern", 60000, NULL);
                 pInflrayObject_item->p.target_y_extern = fs_Config_node_integer_get_first(pConfig, inflrayObjectConfig0, inflrayObjectConfig, "target_y_extern", 60000, NULL);
-                /* 区域颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */
-                pInflrayObject_item->p.areaColor = fs_Config_node_integer_get_first(pConfig, inflrayObjectConfig0, inflrayObjectConfig, "areaColor", 0xFF000000U, NULL);
-                /* 目标颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */
+                /* 屏蔽区域颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔,255个间隔时不叠加 */
                 pInflrayObject_item->p.targetColor = fs_Config_node_integer_get_first(pConfig, inflrayObjectConfig0, inflrayObjectConfig, "targetColor", 0xFF000000U, NULL);
             }
         }
@@ -823,7 +948,7 @@ static void inflrayObject_P_item_add_target_to_frame(struct InflrayObject_item *
     if (pInflrayObject_item->p.targetColor >= 0xFF000000U)return;
     const unsigned int ycc = image_dib_rgb_to_ycc(pInflrayObject_item->p.targetColor);
     /* 先取图像 */
-    FsObjectImageYUV420P * const pYUV420P = image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
+    FsObjectImageYUV420P * const pYUV420P = (FsObjectImageYUV420P*) image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
     if (NULL == pYUV420P) {
         FsLog(FsLogType_error, FsPrintfIndex, "Prapare YUV420P_0 failed.\n");
         FsLogTag(10);
@@ -843,13 +968,13 @@ static void inflrayObject_P_item_add_target_to_frame(struct InflrayObject_item *
                 x1 = pObjectTrack_pos_node->x1, y1 = pObjectTrack_pos_node->y1, x2 = pObjectTrack_pos_node->x2, y2 = pObjectTrack_pos_node->y2;
             }
             {
-                unsigned int pX2[] = {x2, x2, x1, x1};
-                unsigned int pY2[] = {y1, y2, y2, y1};
+                unsigned int pX2[] = {(unsigned int) x2, (unsigned int) x2, (unsigned int) x1, (unsigned int) x1};
+                unsigned int pY2[] = {(unsigned int) y1, (unsigned int) y2, (unsigned int) y2, (unsigned int) y1};
                 image_dib_draw_lines_ch1(pYUV420P->data, pFrame->width[0], x1, y1, pX2, pY2, Fs_Array_len(pX2), ycc, 0);
             }
             {
-                unsigned int pX2[] = {x2 / 2, x2 / 2, x1 / 2, x1 / 2};
-                unsigned int pY2[] = {y1 / 2, y2 / 2, y2 / 2, y1 / 2};
+                unsigned int pX2[] = {(unsigned int) x2 / 2, (unsigned int) x2 / 2, (unsigned int) x1 / 2, (unsigned int) x1 / 2};
+                unsigned int pY2[] = {(unsigned int) y1 / 2, (unsigned int) y2 / 2, (unsigned int) y2 / 2, (unsigned int) y1 / 2};
                 image_dib_draw_lines_ch1(pYUV420P->data + pFrame->width[0] * pFrame->height[0], pFrame->width[0] / 2, x1 / 2, y1 / 2, pX2, pY2, Fs_Array_len(pX2), (ycc >> 8) | ((ycc & 0xFF000000U) / 2), 0);
                 //FsPrintf(1, "tt (%d,%d)(%d,%d) %d,%d\n", x1, y1, x2, y2, pFrame->width[0], pFrame->height[0]);
                 image_dib_draw_lines_ch1(pYUV420P->data + pFrame->width[0] * pFrame->height[0]+ ((pFrame->width[0] + 1) / 2)* ((pFrame->height[0] + 1) / 2), pFrame->width[0] / 2, x1 / 2, y1 / 2, pX2, pY2, Fs_Array_len(pX2), (ycc >> 16) | ((ycc & 0xFF000000U) / 2), 0);
@@ -862,13 +987,13 @@ static void inflrayObject_P_item_add_target_to_frame(struct InflrayObject_item *
             do {
                 x2 = (pObjectTrack_pos_node->x1 + pObjectTrack_pos_node->x2) / 2, y2 = (pObjectTrack_pos_node->y1 + pObjectTrack_pos_node->y2) / 2;
                 {
-                    unsigned int pX2[] = {x2};
-                    unsigned int pY2[] = {y2};
+                    unsigned int pX2[] = {(unsigned int) x2};
+                    unsigned int pY2[] = {(unsigned int) y2};
                     image_dib_draw_lines_ch1(pYUV420P->data, pFrame->width[0], x1, y1, pX2, pY2, Fs_Array_len(pX2), ycc, 0);
                 }
                 {
-                    unsigned int pX2[] = {x2 / 2};
-                    unsigned int pY2[] = {y2 / 2};
+                    unsigned int pX2[] = {(unsigned int) x2 / 2};
+                    unsigned int pY2[] = {(unsigned int) y2 / 2};
                     image_dib_draw_lines_ch1(pYUV420P->data + pFrame->width[0] * pFrame->height[0], pFrame->width[0] / 2, x1 / 2, y1 / 2, pX2, pY2, Fs_Array_len(pX2), (ycc >> 8) | ((ycc & 0xFF000000U) / 2), 0);
                     image_dib_draw_lines_ch1(pYUV420P->data + pFrame->width[0] * pFrame->height[0]+ ((pFrame->width[0] + 1) / 2)* ((pFrame->height[0] + 1) / 2), pFrame->width[0] / 2, x1 / 2, y1 / 2, pX2, pY2, Fs_Array_len(pX2), (ycc >> 16) | ((ycc & 0xFF000000U) / 2), 0);
                 }
@@ -881,32 +1006,32 @@ static void inflrayObject_P_item_add_target_to_frame(struct InflrayObject_item *
 
 /* 叠加区域框 */
 static void inflrayObject_P_item_add_area_to_frame(struct InflrayObject_item * const pInflrayObject_item, FsObjectImageFrame * const pFrame) {
-    if (pInflrayObject_item->p.areaColor >= 0xFF000000U)return;
-    FsPrintf(1, "areaColor=%x,%u,%u,count=%lu\n", pInflrayObject_item->p.areaColor, pFrame->width[0], pFrame->height[0], pInflrayObject_item->p.__areaLineList_->nodeCount);
-    const unsigned int ycc = image_dib_rgb_to_ycc(pInflrayObject_item->p.areaColor);
+    if (0 == pInflrayObject_item->p.__areaLineList_->nodeCount)return;
+    FsPrintf(1, "__areaLineList_=%p/%lu,%u,%u,count=%lu\n", pInflrayObject_item->p.__areaLineList_, pInflrayObject_item->p.__areaLineList_->nodeCount, pFrame->width[0], pFrame->height[0], pInflrayObject_item->p.__areaLineList_->nodeCount);
     /* 先取图像 */
-    FsObjectImageYUV420P * const pYUV420P = image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
+    FsObjectImageYUV420P * const pYUV420P = (FsObjectImageYUV420P*) image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
     if (NULL == pYUV420P) {
         FsLog(FsLogType_error, FsPrintfIndex, "Prapare YUV420P_0 failed.\n");
         FsLogTag(10);
         fflush(stdout);
         return;
     }
-    unsigned short (* const pNode) [4] = (unsigned short (*)[4]) (pInflrayObject_item->p.__areaLineList_->pNode + pInflrayObject_item->p.__areaLineList_->startIndex * pInflrayObject_item->p.__areaLineList_->structSize);
+    unsigned short (* const pNode) [6] = (unsigned short (*)[6]) (pInflrayObject_item->p.__areaLineList_->pNode + pInflrayObject_item->p.__areaLineList_->startIndex * pInflrayObject_item->p.__areaLineList_->structSize);
     const unsigned int count = pInflrayObject_item->p.__areaLineList_->nodeCount;
     unsigned int ui = 0;
     for (; ui < count; ui++) {
         //FsPrintf(1, "TTTTTTTTTTTTTTTTTTt,%u/%u\n", ui, count);
         int x1 = pNode[ui][0], y1 = pNode[ui][1], x2 = pNode[ui][2], y2 = pNode[ui][3];
+        const unsigned int ycc = ((unsigned int*) (pNode[ui] + 4))[0];
         //FsPrintf(1, "TTTTTTTTTTTTTTTTTTt(%d,%d)(%d,%d),%u/%u\n", x1, y1, x2, y2, ui, count);
         {
-            unsigned int pX2[] = {x2};
-            unsigned int pY2[] = {y2};
+            unsigned int pX2[] = {(unsigned int) x2};
+            unsigned int pY2[] = {(unsigned int) y2};
             image_dib_draw_lines_ch1(pYUV420P->data, pFrame->width[0], x1, y1, pX2, pY2, Fs_Array_len(pX2), ycc, 0);
         }
         {
-            unsigned int pX2[] = {x2 / 2};
-            unsigned int pY2[] = {y2 / 2};
+            unsigned int pX2[] = {(unsigned int) x2 / 2};
+            unsigned int pY2[] = {(unsigned int) y2 / 2};
             image_dib_draw_lines_ch1(pYUV420P->data + pFrame->width[0] * pFrame->height[0], pFrame->width[0] / 2, x1 / 2, y1 / 2, pX2, pY2, Fs_Array_len(pX2), (ycc >> 8) | ((ycc & 0xFF000000U) / 2), 0);
             image_dib_draw_lines_ch1(pYUV420P->data + pFrame->width[0] * pFrame->height[0]+ ((pFrame->width[0] + 1) / 2)* ((pFrame->height[0] + 1) / 2), pFrame->width[0] / 2, x1 / 2, y1 / 2, pX2, pY2, Fs_Array_len(pX2), (ycc >> 16) | ((ycc & 0xFF000000U) / 2), 0);
         }
@@ -920,7 +1045,7 @@ static void inflrayObject_P_item_add_excludeArea_to_frame(struct InflrayObject_i
     FsPrintf(1, "excludeAreaColor=%x,%u,%u,count=%lu\n", pInflrayObject_item->p.excludeAreaColor, pFrame->width[0], pFrame->height[0], pInflrayObject_item->p.__excludeAreaLineList_->nodeCount);
     const unsigned int ycc = image_dib_rgb_to_ycc(pInflrayObject_item->p.excludeAreaColor);
     /* 先取图像 */
-    FsObjectImageYUV420P * const pYUV420P = image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
+    FsObjectImageYUV420P * const pYUV420P = (FsObjectImageYUV420P*) image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
     if (NULL == pYUV420P) {
         FsLog(FsLogType_error, FsPrintfIndex, "Prapare YUV420P_0 failed.\n");
         FsLogTag(10);
@@ -935,13 +1060,13 @@ static void inflrayObject_P_item_add_excludeArea_to_frame(struct InflrayObject_i
         int x1 = pNode[ui][0], y1 = pNode[ui][1], x2 = pNode[ui][2], y2 = pNode[ui][3];
         //FsPrintf(1, "TTTTTTTTTTTTTTTTTTt(%d,%d)(%d,%d),%u/%u\n", x1, y1, x2, y2, ui, count);
         {
-            unsigned int pX2[] = {x2};
-            unsigned int pY2[] = {y2};
+            unsigned int pX2[] = {(unsigned int) x2};
+            unsigned int pY2[] = {(unsigned int) y2};
             image_dib_draw_lines_ch1(pYUV420P->data, pFrame->width[0], x1, y1, pX2, pY2, Fs_Array_len(pX2), ycc, 0);
         }
         {
-            unsigned int pX2[] = {x2 / 2};
-            unsigned int pY2[] = {y2 / 2};
+            unsigned int pX2[] = {(unsigned int) x2 / 2};
+            unsigned int pY2[] = {(unsigned int) y2 / 2};
             image_dib_draw_lines_ch1(pYUV420P->data + pFrame->width[0] * pFrame->height[0], pFrame->width[0] / 2, x1 / 2, y1 / 2, pX2, pY2, Fs_Array_len(pX2), (ycc >> 8) | ((ycc & 0xFF000000U) / 2), 0);
             image_dib_draw_lines_ch1(pYUV420P->data + pFrame->width[0] * pFrame->height[0]+ ((pFrame->width[0] + 1) / 2)* ((pFrame->height[0] + 1) / 2), pFrame->width[0] / 2, x1 / 2, y1 / 2, pX2, pY2, Fs_Array_len(pX2), (ycc >> 16) | ((ycc & 0xFF000000U) / 2), 0);
         }
@@ -954,7 +1079,7 @@ static void inflrayObject_P_item_add_text_to_frame(struct InflrayObject_item * c
     if (0 == pInflrayObject_item->p.__textList_->nodeCount)return;
     FsPrintf(1, "%u,%u,count=%lu\n", pFrame->width[0], pFrame->height[0], pInflrayObject_item->p.__textList_->nodeCount);
     /* 先取图像 */
-    FsObjectImageYUV420P * const pYUV420P = image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
+    FsObjectImageYUV420P * const pYUV420P = (FsObjectImageYUV420P*) image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
     if (NULL == pYUV420P) {
         FsLog(FsLogType_error, FsPrintfIndex, "Prapare YUV420P_0 failed.\n");
         FsLogTag(10);
@@ -967,19 +1092,19 @@ static void inflrayObject_P_item_add_text_to_frame(struct InflrayObject_item * c
     for (; ui < count; ui++) {
         const struct FsTypeFaceText * const pTypeFaceText = ppNode[ui];
         fs_TypeFace_write(pTypeFaceText->__pTypeFace, (unsigned char*) pTypeFaceText->text, pFrame->data.yuv420p[0]->data, pFrame->width[0], pFrame->height[0],
-                pFrame->width[0], pTypeFaceText->x, pTypeFaceText->y, pTypeFaceText->color >> 16);
+                pFrame->width[0], pTypeFaceText->x, pTypeFaceText->y, pTypeFaceText->color & 0xFF);
         fs_TypeFace_write_uv(pTypeFaceText->__pTypeFace, (unsigned char*) pTypeFaceText->text, pFrame->data.yuv420p[0]->data + pFrame->sizeWidthHeight[0], pFrame->width[0], pFrame->height[0],
                 pFrame->width[0] >> 1, pTypeFaceText->x, pTypeFaceText->y, (pTypeFaceText->color >> 8)&0xFF);
         fs_TypeFace_write_uv(pTypeFaceText->__pTypeFace, (unsigned char*) pTypeFaceText->text, pFrame->data.yuv420p[0]->data + pFrame->sizeWidthHeight[0]+(pFrame->sizeWidthHeight[0] >> 2), pFrame->width[0], pFrame->height[0],
-                pFrame->width[0] >> 1, pTypeFaceText->x, pTypeFaceText->y, pTypeFaceText->color & 0xFF);
+                pFrame->width[0] >> 1, pTypeFaceText->x, pTypeFaceText->y, (pTypeFaceText->color >> 16)&0xFF);
     }
     fs_Object_delete_pthreadSafety__OI(pYUV420P);
 }
 
 static void inflrayObject_P_item_send_detect_debug(struct InflrayObject_item * const pInflrayObject_item, FsObjectImageFrame * const pFrame
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
-    FsStructList * const clientList = pInflrayObject_item->ro.__clientList;
-    if (0 == clientList->nodeCount)return;
+    FsStructList * const clientList_i8 = pInflrayObject_item->ro.__clientList_i8;
+    if (0 == clientList_i8->nodeCount)return;
     FsObjectBase * ppObjectBase0[7];
     FsEbml * pEbml_send = NULL;
     FsObjectBase **ppObjectBase = ppObjectBase0;
@@ -989,23 +1114,23 @@ static void inflrayObject_P_item_send_detect_debug(struct InflrayObject_item * c
     unsigned long debugTypeMask = 0;
     while (1) {
         unsigned int debugType;
-        pthread_mutex_lock(&clientList->mutex);
+        pthread_mutex_lock(&clientList_i8->mutex);
         {
-            unsigned int (*const ppNode) [6] = ((unsigned int (*)[6])clientList->pNode) + clientList->startIndex;
-            for (; pos < clientList->nodeCount; pos++) {
-                debugType = ppNode[pos][5];
+            unsigned int (*const ppNode) [8] = ((unsigned int (*)[8])clientList_i8->pNode) + clientList_i8->startIndex;
+            for (; pos < clientList_i8->nodeCount; pos++) {
+                debugType = ppNode[pos][6];
                 if ((debugTypeMask & (1LU << debugType)) == 0) {
                     debugTypeMask |= 1LU << debugType;
                     break;
                 }
             }
         }
-        if (pos >= clientList->nodeCount) {
+        if (pos >= clientList_i8->nodeCount) {
             /* 无数据处理了 */
-            pthread_mutex_unlock(&clientList->mutex);
+            pthread_mutex_unlock(&clientList_i8->mutex);
             return;
         }
-        pthread_mutex_unlock(&clientList->mutex);
+        pthread_mutex_unlock(&clientList_i8->mutex);
         ////////////////////////////////////////////////////////////////////////
         unsigned int ppObjectBaseUseCount;
         unsigned int head, len;
@@ -1020,7 +1145,7 @@ static void inflrayObject_P_item_send_detect_debug(struct InflrayObject_item * c
                     break;
                 }
                 /* 先取图像 */
-                FsObjectImageYUV420P * const pYUV420P = image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
+                FsObjectImageYUV420P * const pYUV420P = (FsObjectImageYUV420P*) image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
                 if (NULL == pYUV420P) {
                     FsLog(FsLogType_error, FsPrintfIndex, "Prapare YUV420P_0 failed.\n");
                     FsLogTag(10);
@@ -1053,12 +1178,37 @@ static void inflrayObject_P_item_send_detect_debug(struct InflrayObject_item * c
                         if (x2 < pInflrayObject_P_pos_node->pos_node.x2)x2 = pInflrayObject_P_pos_node->pos_node.x1;
                         *(long long*) fs_Ebml_node_addChild(pEbml_send, trackItem, "y2", FsEbmlNodeType_Integer)->data.buffer = pInflrayObject_P_pos_node->pos_node.y2;
                         if (y2 < pInflrayObject_P_pos_node->pos_node.y2)y2 = pInflrayObject_P_pos_node->pos_node.y2;
-                        *(long long*) fs_Ebml_node_addChild(pEbml_send, trackItem, "type", FsEbmlNodeType_Integer)->data.buffer = pInflrayObject_P_pos_node->type;
+                        fs_Ebml_node_data_set_string(fs_Ebml_node_addChild(pEbml_send, trackItem, "device_name", FsEbmlNodeType_String), pInflrayObject_item->p.device_name);
+                        fs_Ebml_node_data_set(fs_Ebml_node_addChild(pEbml_send, trackItem, "area_name", FsEbmlNodeType_String), strlen(pInflrayObject_P_pos_node->belong_area_name) + 1, pInflrayObject_P_pos_node->belong_area_name);
+                        *(double*) fs_Ebml_node_addChild(pEbml_send, trackItem, "target_azimuth", FsEbmlNodeType_Float)->data.buffer = 0;
+                        *(double*) fs_Ebml_node_addChild(pEbml_send, trackItem, "target_pitch", FsEbmlNodeType_Float)->data.buffer = 0;
+                        *(long long*) fs_Ebml_node_addChild(pEbml_send, trackItem, "distance", FsEbmlNodeType_Integer)->data.buffer = pInflrayObject_P_pos_node->distance;
+                        *(double*) fs_Ebml_node_addChild(pEbml_send, trackItem, "longitude", FsEbmlNodeType_Float)->data.buffer = pInflrayObject_P_pos_node->longitude;
+                        *(double*) fs_Ebml_node_addChild(pEbml_send, trackItem, "latitude", FsEbmlNodeType_Float)->data.buffer = pInflrayObject_P_pos_node->latitude;
+                        *(long long*) fs_Ebml_node_addChild(pEbml_send, trackItem, "alarm_type", FsEbmlNodeType_Integer)->data.buffer = 0;
+                        *(long long*) fs_Ebml_node_addChild(pEbml_send, trackItem, "target_type", FsEbmlNodeType_Integer)->data.buffer = pInflrayObject_P_pos_node->type;
                         *(long long*) fs_Ebml_node_addChild(pEbml_send, trackItem, "is_detected", FsEbmlNodeType_Integer)->data.buffer = pInflrayObject_P_pos_node->is_detected;
                         *(long long*) fs_Ebml_node_addChild(pEbml_send, trackItem, "isDrawing_tracks", FsEbmlNodeType_Integer)->data.buffer = pInflrayObject_P_pos_node->isDrawing_tracks;
                         *(double*) fs_Ebml_node_addChild(pEbml_send, trackItem, "isDrawing_tracks", FsEbmlNodeType_Float)->data.buffer = pInflrayObject_P_pos_node->prob;
                     } while ((pInflrayObject_P_pos_node = (struct InflrayObject_P_pos_node*) pInflrayObject_P_pos_node->pos_node.next) != NULL);
                     // FsPrintf(1, "TTTTTTTTTTTTTTTTTTt,%u/%u\n", ui, count);
+                    {
+                        struct FsEbml_node * const aisItem = fs_Ebml_node_addChild(pEbml_send, objectItem, "ais", FsEbmlNodeType_Struct);
+                        FsString boatName;
+                        boatName.buffer = (char*) "boat";
+                        boatName.lenth = strlen(boatName.buffer) + 1;
+                        fs_Ebml_node_data_set(fs_Ebml_node_addChild(pEbml_send, aisItem, "boat_name", FsEbmlNodeType_String), boatName.lenth, boatName.buffer);
+                        *(double*) fs_Ebml_node_addChild(pEbml_send, aisItem, "boat_longitude", FsEbmlNodeType_Float)->data.buffer = 0;
+                        *(double*) fs_Ebml_node_addChild(pEbml_send, aisItem, "boat_latitude", FsEbmlNodeType_Float)->data.buffer = 0;
+                        *(long long*) fs_Ebml_node_addChild(pEbml_send, aisItem, "boat_type", FsEbmlNodeType_Integer)->data.buffer = 0;
+                        *(long long*) fs_Ebml_node_addChild(pEbml_send, aisItem, "MMSI", FsEbmlNodeType_Integer)->data.buffer = 0;
+                        *(long long*) fs_Ebml_node_addChild(pEbml_send, aisItem, "IMO", FsEbmlNodeType_Integer)->data.buffer = 0;
+                        *(double*) fs_Ebml_node_addChild(pEbml_send, aisItem, "boat_speed", FsEbmlNodeType_Float)->data.buffer = 0;
+                        FsString desName;
+                        desName.buffer = (char*) "desName";
+                        desName.lenth = strlen(desName.buffer) + 1;
+                        fs_Ebml_node_data_set(fs_Ebml_node_addChild(pEbml_send, aisItem, "boat_destination", FsEbmlNodeType_String), desName.lenth, desName.buffer);
+                    }
                     {
                         x1 -= pInflrayObject_item->p.target_x_extern;
                         if (x1 < 0)x1 = 0;
@@ -1118,7 +1268,7 @@ static void inflrayObject_P_item_send_detect_debug(struct InflrayObject_item * c
                     ppObjectBaseCount = 7;
                 }
                 {
-                    FsObjectImageYUV420P * const pYUV420P = image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
+                    FsObjectImageYUV420P * const pYUV420P = (FsObjectImageYUV420P*) image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
                     if (NULL == pYUV420P) {
                         FsLog(FsLogType_error, FsPrintfIndex, "Prapare YUV420P_0 failed.\n");
                         FsLogTag(10);
@@ -1286,18 +1436,21 @@ static void inflrayObject_P_item_send_detect_debug(struct InflrayObject_item * c
         if (0 == head)continue;
         ////////////////////////////////////////////////////////////////////////
         /* 遍历连接,发送数据 */
-        pthread_mutex_lock(&clientList->mutex);
+        pthread_mutex_lock(&clientList_i8->mutex);
         {
-            unsigned int (*const ppNode) [6] = ((unsigned int (*)[6])clientList->pNode) + clientList->startIndex;
+            unsigned int (*const ppNode) [8] = ((unsigned int (*)[8])clientList_i8->pNode) + clientList_i8->startIndex;
             unsigned long uli;
             FsObjectBasePthreadSafety * pData_ebml = NULL;
             FsObjectBasePthreadSafety * pData_xml = NULL;
             FsObjectBasePthreadSafety * pData_json = NULL;
-            for (uli = pos; uli < clientList->nodeCount; uli++) {
-                if (debugType == ppNode[uli][5]) {
+            for (uli = pos; uli < clientList_i8->nodeCount; uli++) {
+                if (debugType == ppNode[uli][6]) {
                     if (0 == debugType) {
-                        configManager_conncet_refer_sendData(&pData_ebml, &pData_xml, &pData_json
-                                , pEbml_send, ppNode[uli], ppNode[uli][3] | 0x2, ppNode[uli][4], pObjectBaseBuffer);
+                        configManager_conncet_refer_sendData(&pData_ebml, &pData_xml, &pData_json, pEbml_send
+                                , ConfigManager_refer_connect_node_get_requestID_3(ppNode[uli]), ConfigManager_refer_connect_node_get_headType(ppNode[uli])
+                                , ConfigManager_refer_connect_node_get_checkMethod(ppNode[uli]), ConfigManager_refer_connect_node_get_virtualConnection(ppNode[uli])
+                                , ConfigManager_refer_connect_node_get_head(ppNode[uli]) | 0x2, ConfigManager_refer_connect_node_get_requestDataType(ppNode[uli])
+                                , pObjectBaseBuffer, pShareBuffer);
                     } else {
                         ppObjectBase[0] = fs_ObjectBaseBuffer_get__IO(pObjectBaseBuffer, 0, sizeof (FsObjectBase) + 8, sizeof (FsObjectBase));
                         /* 把pObjectBase[0]后面的数据加入缓存 */
@@ -1315,7 +1468,7 @@ static void inflrayObject_P_item_send_detect_debug(struct InflrayObject_item * c
             if (pData_xml)pData_xml->_delete(pData_xml);
             if (pData_json)pData_json->_delete(pData_json);
         }
-        pthread_mutex_unlock(&clientList->mutex);
+        pthread_mutex_unlock(&clientList_i8->mutex);
         {
             unsigned int j;
             for (j = 1; j < ppObjectBaseUseCount; j++) fs_ObjectBasePthreadSafety_delete__OI(ppObjectBase[j]);
@@ -1447,6 +1600,97 @@ static inline int inflrayObject_P_item_do_detect(/* 检测项 */struct InflrayOb
         }
     }
     FsPrintf(1, "index=%u,capture_gmtTime=%lf,objCount=%lu\n", pFrame->index, pFrame->capture_gmtTime, pInflrayObject_item->p.__objectList_->nodeCount);
+
+    {
+        const unsigned int count = pInflrayObject_item->p.__objectList_->nodeCount;
+        struct InflrayObject_P_item_track * * const ppNode = (struct InflrayObject_P_item_track * *) pInflrayObject_item->p.__objectList_->pNode + pInflrayObject_item->p.__objectList_->startIndex;
+        unsigned int ui = 0;
+        for (; ui < count; ui++) {
+            struct InflrayObject_P_item_track * const pInflrayObject_P_item_track = ppNode[ui];
+            struct InflrayObject_P_pos_node * pInflrayObject_P_pos_node = (struct InflrayObject_P_pos_node*) pInflrayObject_P_item_track->objectTrack_pos_item.head;
+            // 计算目标距离
+            if (pInflrayObject_item->p.target_distance_enable) {
+                // 目标框宽度
+                int iPosRectW = pInflrayObject_P_pos_node->pos_node.x2 - pInflrayObject_P_pos_node->pos_node.x1;
+                // 目标框底部位置
+                double dPoint_x = pInflrayObject_P_pos_node->pos_node.x1 + (double) iPosRectW / 2.0;
+                double dPoint_y = pInflrayObject_P_pos_node->pos_node.y2;
+                // 计算
+                double dV1_x = pInflrayObject_item->p.end_x - pInflrayObject_item->p.start_x;
+                double dV1_y = pInflrayObject_item->p.end_y - pInflrayObject_item->p.start_y;
+                double dV2_x = dPoint_x - pInflrayObject_item->p.start_x;
+                double dV2_y = dPoint_y - pInflrayObject_item->p.start_y;
+
+                double tmp = dV1_x * dV2_y - dV1_y * dV2_x;
+                int vertical = fabs(tmp / sqrt(dV1_x * dV1_x + dV1_y * dV1_y));
+                double angle = (double) vertical / pFrame->height[0] * pInflrayObject_item->p.device_field_angle;
+                int distance = pInflrayObject_item->p.device_height / tan(angle) / 180.0 * PI;
+                // 目标方向角
+                double direction = dPoint_x / pFrame->width[0] * 360.0;
+
+                // 计算目标经纬度
+                pInflrayObject_P_pos_node->longitude = pInflrayObject_item->p.device_longitude + distance * sin(direction / 180.0 * PI) / cos(pInflrayObject_item->p.device_longitude / 180.0 * PI) / 63713930.0 / 2.0 / PI * 360.0;
+                pInflrayObject_P_pos_node->latitude = pInflrayObject_item->p.device_latitude + distance * cos(direction / 180.0 * PI) / 63713930.0 / 2.0 / PI * 360.0;
+
+                // 距离异常
+                if (distance < 0) {
+                    distance = 6000;
+                    pInflrayObject_P_pos_node->longitude = 0;
+                    pInflrayObject_P_pos_node->latitude = 0;
+                } else if (distance > 6000) {
+                    distance = 6000;
+                    pInflrayObject_P_pos_node->longitude = 0;
+                    pInflrayObject_P_pos_node->latitude = 0;
+                }
+                pInflrayObject_P_pos_node->distance = distance;
+            } else {
+                pInflrayObject_P_pos_node->distance = 0;
+                pInflrayObject_P_pos_node->longitude = 0;
+                pInflrayObject_P_pos_node->latitude = 0;
+            }
+            // 获取报警目标所属区域
+            if (pInflrayObject_item->p.__areaNameList->nodeCount > 0) {
+                const struct InflrayObject_P_area * * const ppNode = (const struct InflrayObject_P_area **) pInflrayObject_item->p.__areaNameList->pNode + pInflrayObject_item->p.__areaNameList->startIndex;
+                const unsigned int count = pInflrayObject_item->p.__areaNameList->nodeCount;
+                unsigned int ui = 0;
+                // 目标中心坐标
+                int target_x = (pInflrayObject_P_pos_node->pos_node.x2 - pInflrayObject_P_pos_node->pos_node.x1) / 2 + pInflrayObject_P_pos_node->pos_node.x1;
+                int target_y = (pInflrayObject_P_pos_node->pos_node.y2 - pInflrayObject_P_pos_node->pos_node.y1) / 2 + pInflrayObject_P_pos_node->pos_node.y1;
+                // 遍历区域
+                for (; ui < count; ui++) {
+                    const struct InflrayObject_P_area * const pInflrayObject_P_area = ppNode[ui];
+                    //FsPrintf(1, "point count=%d\n", ui);
+                    struct Fs_Points * const pPoint = (struct Fs_Points *) pInflrayObject_P_area->pPoint;
+                    unsigned int iPtCount = pPoint->count;
+                    int (*thePoint)[2] = pPoint->point;
+                    unsigned int uj = 0, flag = 0;
+                    for (; uj < iPtCount; uj++) {
+                        // 多边形的边的两个点 p1, p2
+                        int x1 = thePoint[0][0], y1 = thePoint[0][1];
+                        thePoint++;
+                        int x2, y2;
+                        if (uj == iPtCount - 1) {
+                            x2 = pPoint->point[0][0], y2 = pPoint->point[0][1];
+                        } else {
+                            x2 = thePoint[0][0], y2 = thePoint[0][1];
+                        }
+
+                        if ((target_y >= y1 && target_y < y2) || (target_y >= y2 && target_y < y1)) {
+                            float tmp_x = (target_y - y1) * (x2 - x1) / (y2 - y1) + x1;
+                            if (tmp_x > target_x) {
+                                flag++;
+                            }
+                        }
+                    }
+                    if (flag % 2) {
+                        const int iLen = strlen(pInflrayObject_P_area->area_name) + 1;
+                        memcpy(pInflrayObject_P_pos_node->belong_area_name, pInflrayObject_P_area->area_name, iLen);
+                        break;
+                    }
+                }
+            }
+        }
+    }
 
     /* 释放共享buffer */ FsLocal_ShareBuffer_release(pShareBuffer, 0);
     /* 叠加目标框 */
@@ -1591,7 +1835,7 @@ static void *inflrayObject_P_T(struct InflrayObject * const pInflrayObject) {
 #endif
                 struct InflrayObject_item * const pInflrayObject_item = ppNode_itemList[ui];
                 if (NULL == pInflrayObject_item)continue;
-                FsPrintf(1, "pInflrayObject_item->ro.__framelistIn->nodeCount=%lu\n", pInflrayObject_item->ro.__framelistIn->nodeCount);
+                //FsPrintf(1, "pInflrayObject_item->ro.__framelistIn->nodeCount=%lu\n", pInflrayObject_item->ro.__framelistIn->nodeCount);
                 ////////////////////////////////////////////////////////////////
                 //////////////////////// 状态机 开始 ////////////////////////////
 #define __inflrayObject_P_T_state_check_end (1U<<0) // 检查缓存是否足够,不够退出循环
@@ -1653,7 +1897,7 @@ static void *inflrayObject_P_T(struct InflrayObject * const pInflrayObject) {
                                 pthread_mutex_lock(&pInflrayObject_item->ro.__framelistIn->mutex);
                                 pFrame = (FsObjectImageFrame*) pInflrayObject_item->ro.__framelistIn->pNode[ pInflrayObject_item->ro.__framelistIn->startIndex + frameBufferCount - 1];
                                 pthread_mutex_unlock(&pInflrayObject_item->ro.__framelistIn->mutex);
-                                FsPrintf(1, "TTTTTTTTTTTTTTTinflrayObject_P_item_new_conventionalDetect__IO,index=%u\n", pFrame->index);
+                                FsPrintf(1, "TTTTTTTTTTTTTTTinflrayObject_P_item_new_conventionalDetect__IO,index=%u,classIndex=%u\n", pFrame->index, pFrame->classIndex);
                                 pConventionalDetectList_ = pInflrayObject_item->p.__pConventionalDetectList_ = inflrayObject_P_item_new_conventionalDetect__IO(pInflrayObject_item, ui, pFrame->width[0], pFrame->height[0], pFrame->width[0], pFrame->height[0], &shareBuffer);
                                 if (NULL == pConventionalDetectList_) {
                                     /* 重置 */
@@ -1683,13 +1927,13 @@ static void *inflrayObject_P_T(struct InflrayObject * const pInflrayObject) {
                             } else {
                                 // 插入联动任务
                                 const unsigned int count = pInflrayObject_item->p.__objectList_->nodeCount;
-                                FsPrintf(1, "pInflrayObject_item->p.__objectList_->nodeCount=%d\n", count);
+                                //FsPrintf(1, "pInflrayObject_item->p.__objectList_->nodeCount=%d\n", count);
                                 struct InflrayObject_P_item_track * * const ppNode = (struct InflrayObject_P_item_track * *) pInflrayObject_item->p.__objectList_->pNode + pInflrayObject_item->p.__objectList_->startIndex;
                                 unsigned int ui = 0;
                                 int res = 0;
                                 for (; ui < count; ui++) {
                                     struct InflrayObject_P_item_track * const pInflrayObject_P_item_track = ppNode[ui];
-                                    FsPrintf(1, "pInflrayObject_item->p.objIndex=%llu, pInflrayObject_P_item_track->objIndex=%llu\n", pInflrayObject_item->p.objIndex, pInflrayObject_P_item_track->objIndex);
+                                    // FsPrintf(1, "pInflrayObject_item->p.objIndex=%llu, pInflrayObject_P_item_track->objIndex=%llu\n", pInflrayObject_item->p.objIndex, pInflrayObject_P_item_track->objIndex);
                                     if (pInflrayObject_item->p.objIndex == 0) {
                                         pInflrayObject_item->p.objIndex = pInflrayObject_P_item_track->objIndex;
                                         struct InflrayObject_P_pos_node * pInflrayObject_P_pos_node = (struct InflrayObject_P_pos_node*) pInflrayObject_P_item_track->objectTrack_pos_item.head;
@@ -1719,7 +1963,7 @@ static void *inflrayObject_P_T(struct InflrayObject * const pInflrayObject) {
                                 }
 
                                 if ((count > 0) && (res == 0)) {
-                                    FsPrintf(1, "pInflrayObject_item->p.ptz_item_linkPtz_3 \n");
+                                    //FsPrintf(1, "pInflrayObject_item->p.ptz_item_linkPtz_3 \n");
                                     struct InflrayObject_P_item_track * const pInflrayObject_P_item_track = ppNode[0];
                                     pInflrayObject_item->p.objIndex = pInflrayObject_P_item_track->objIndex;
                                     struct InflrayObject_P_pos_node * pInflrayObject_P_pos_node = (struct InflrayObject_P_pos_node*) pInflrayObject_P_item_track->objectTrack_pos_item.head;
@@ -1854,15 +2098,12 @@ static void *inflrayObject_P_T(struct InflrayObject * const pInflrayObject) {
 void inflrayObject_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned long long mask, /* 通道数 */const unsigned int channelCount, void * parent) {
     parent = fs_Config_node_node_add(pConfig, parent, "inflrayObjectConfig", "Inflray目标检测配置", "Inflray目标检测配置", 0, 0x7);
     fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, parent), 1, "moduleMask", FsConfig_Condition_orAnd, "64");
-    fs_Config_node_add_property_area(pConfig, parent, "targetCheckErea", "area", 0x000000FF);
+    fs_Config_node_add_property_area(pConfig, parent, NULL, "targetCheckErea", NULL, NULL, NULL, "area", 0x000000FF);
+    fs_Config_node_add_property_area(pConfig, parent, "屏蔽区域", NULL, NULL, NULL, NULL, "excludeArea", 0x0000FF00);
+    fs_Config_node_add_property_area(pConfig, parent, "测试区域", "tt1", "tt2", "tt3", "tt4", "area", 0x00FF0000);
+    void *tt = fs_Config_node_add_property_area(pConfig, parent, "测试区域1", "tt1", NULL, NULL, NULL, "area", 0x0000FF00);
+    fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, tt), 1, "cc", FsConfig_Condition_orAnd, "64");
     fs_Config_node_add_property_image(pConfig, parent, 1, "uuid", "recordConfig rtspServerURL");
-    {
-        void* const pNode = fs_Config_node_integer_add(pConfig, parent, "areaColor", "区域颜色", "区域颜色,RGB+虚线间隔,255虚线间隔表示禁用", FsConfig_nodeShowType_hex, 0, 0x7, 0, 0xFFFFFFFFU, 1);
-        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0xFF000000, "不叠加", "不叠加");
-        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF, "实线红色", "实线红色");
-        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF00, "实线绿色", "实线绿色");
-        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF0000, "实线蓝色", "实线蓝色");
-    }
     {
         void* const pNode = fs_Config_node_integer_add(pConfig, parent, "targetColor", "目标颜色", "目标颜色,RGB+虚线间隔,255虚线间隔表示禁用", FsConfig_nodeShowType_hex, 0, 0x7, 0, 0xFFFFFFFFU, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0xFF000000, "不叠加", "不叠加");
@@ -1873,6 +2114,11 @@ void inflrayObject_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
     {
         void* const pNode = fs_Config_node_string_add(pConfig, parent, "ptz_uuid", "联动可见光通道标识", "联动可见光通道标识", 0, 0x7, 1, 64, 1);
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_default, "0", "0", "0");
+    }
+    {
+        void* const pNode = fs_Config_node_integer_add(pConfig, parent, "ptz_link_enable", "是否联动可见光", "是否联动可见光", FsConfig_nodeShowType_default, 0, 0x7, 0, 1, 1);
+        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 1, "1-启用", "1-启用");
+        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0, "0-禁用", "0-禁用");
     }
     {
         void* const pNode = fs_Config_node_integer_add(pConfig, parent, "target_x_extern", "目标x方向扩展大小", "目标x方向扩展大小", FsConfig_nodeShowType_default, 0, 0x7, 0, 65535, 1);
@@ -1918,9 +2164,9 @@ void inflrayObject_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
     }
     {
         void * const pNode = fs_Config_node_integer_add(pConfig, parent, "excludeAreaName_color", "屏蔽区域名字符颜色,RGB", "屏蔽区域名字符颜色,RGB,16进制", FsConfig_nodeShowType_hex, 0, 0x7, 0, 0xFFFFFFFFU, 1);
-        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0xFF0000, "红色", "红色");
-        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0x00FF00, "绿色", "绿色");
-        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0x0000FF, "蓝色", "蓝色");
+        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0xFF, "红色", "红色");
+        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF00, "绿色", "绿色");
+        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF0000, "蓝色", "蓝色");
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF000000, "不叠加", "不叠加");
         {
             void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
@@ -1944,7 +2190,7 @@ void inflrayObject_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
             fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0, "0-禁用", "0-禁用");
         }
         {
-            void *const pNode = fs_Config_node_string_add(pConfig, targetCheckErea, "timerControl", "有效时间", "有效时间,时区+时间区间", 0, 0x7, 24, 33, 2);
+            void *const pNode = fs_Config_node_string_add(pConfig, targetCheckErea, "timerControl", "有效时间", "有效时间,时区+时间区间", 0, 0x7, 24, 33, 7);
             fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_default, "+08 01-01/00:00:00 12-31/23:59:59", "+08 01-01/00:00:00 12-31/23:59:59", "每年");
             fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "+08 00-01/00:00:00 00-31/23:59:59", "+08 00-01/00:00:00 00-31/23:59:59", "每月");
             fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "+08 00-00/00:00:00 00-00/23:59:59", "+08 00-00/00:00:00 00-00/23:59:59", "每天");
@@ -2108,12 +2354,24 @@ void inflrayObject_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
             {
                 void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
                 fs_Config_condition_add_static(pConfig, condition_group, 1, "enable", FsConfig_Condition_equal, "1");
-                fs_Config_condition_add_static(pConfig, condition_group, 1, "eDetectAlgorithm", FsConfig_Condition_equal, "3");
+                fs_Config_condition_add_static(pConfig, condition_group, 1, "eDetectAlgorithm", FsConfig_Condition_equal, "4");
             }
         }
         {
             void* const pNode = fs_Config_node_string_add(pConfig, targetCheckErea, "area", "区域", "区域,以图像左上角为坐标原点,单位为像素点 (0,0)(1,1)(2,3)", 0, 0x7, 1, 1024, 50);
             fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "enable", FsConfig_Condition_equal, "1");
+        }
+        {
+            void* const pNode = fs_Config_node_integer_add(pConfig, targetCheckErea, "area_enable", "区域是否有效", "区域是否有效,值的数量少于area时,使用最后一个值", FsConfig_nodeShowType_hex, 0, 0x7, 0, 1, 50);
+            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 1, "1-有效", "1-有效");
+            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0, "0-无效", "0-无效");
+        }
+        {
+            void* const pNode = fs_Config_node_integer_add(pConfig, targetCheckErea, "areaColor", "区域颜色", "区域颜色,RGB+虚线间隔,255虚线间隔表示禁用,值的数量少于area时,使用最后一个值", FsConfig_nodeShowType_hex, 0, 0x7, 0, 0xFFFFFFFFU, 50);
+            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0xFF000000, "不叠加", "不叠加");
+            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF, "实线红色", "实线红色");
+            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF00, "实线绿色", "实线绿色");
+            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF0000, "实线蓝色", "实线蓝色");
         }
         {
             void * const pNode = fs_Config_node_string_add(pConfig, targetCheckErea, "areaName", "区域名", "区域名,与区域对应,为空表示不叠加", 0, 0x7, 1, 64, 31);
@@ -2144,10 +2402,10 @@ void inflrayObject_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
             }
         }
         {
-            void * const pNode = fs_Config_node_integer_add(pConfig, targetCheckErea, "watermarking_color", "水印颜色,RGB", "水印颜色,RGB,16进制", FsConfig_nodeShowType_hex, 0, 0x7, 0, 0xFFFFFFFFU, 1);
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0xFF0000, "红色", "红色");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0x00FF00, "绿色", "绿色");
-            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0x0000FF, "蓝色", "蓝色");
+            void * const pNode = fs_Config_node_integer_add(pConfig, targetCheckErea, "watermarking_color", "水印颜色,RGB", "水印颜色,RGB,16进制", FsConfig_nodeShowType_hex, 0, 0x7, 0, 0xFFFFFFFFU, 50);
+            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0xFF, "红色", "红色");
+            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF00, "绿色", "绿色");
+            fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF0000, "蓝色", "蓝色");
             fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 0xFF000000, "不叠加", "不叠加");
             {
                 void *const condition_group = fs_Config_condition_group_add(pConfig, pNode);
@@ -2155,6 +2413,19 @@ void inflrayObject_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
                 fs_Config_condition_add_static(pConfig, condition_group, 1, "area", FsConfig_Condition_equal_false, NULL);
                 fs_Config_condition_add_static(pConfig, condition_group, 1, "areaName", FsConfig_Condition_equal_false, NULL);
             }
+        }
+    }
+    // 测试
+    {
+        void* const tt1 = fs_Config_node_node_add(pConfig, parent, "tt1", "tt1", "tt1", 0, 0x7);
+        {
+            void* const pNode = fs_Config_node_string_add(pConfig, tt1, "area", "区域", "区域,以图像左上角为坐标原点,单位为像素点 (0,0)(1,1)(2,3)", 0, 0x7, 1, 1024, 50);
+        }
+        void* const tt2 = fs_Config_node_template_add(pConfig, tt1, "tt2", "tt2", NULL, NULL, "tt2", NULL, NULL, NULL, 0, 0x7, 20);
+        void* const tt3 = fs_Config_node_node_add(pConfig, tt2, "tt3", "tt3", "tt3", 0, 0x7);
+        void* const tt4 = fs_Config_node_template_add(pConfig, tt3, "tt4", "tt4", NULL, NULL, "tt4", NULL, NULL, NULL, 0, 0x7, 20);
+        {
+            void* const pNode = fs_Config_node_string_add(pConfig, tt4, "area", "区域", "区域,以图像左上角为坐标原点,单位为像素点 (0,0)(1,1)(2,3)", 0, 0x7, 1, 1024, 50);
         }
     }
 }
@@ -2455,7 +2726,7 @@ unsigned int inflrayObject_item_frame_out_pthreadSafety__IO_4(struct InflrayObje
         if (index > frameCount)index = frameCount;
         FsObjectImageFrame **ppNode = (FsObjectImageFrame**) /* pRecognition_item */ FsMacrosValue3(p, __item_frame_out_pthreadSafety__IO_4_Server, _item)->ro.__framelistOut->pNode + /* pRecognition_item */ FsMacrosValue3(p, __item_frame_out_pthreadSafety__IO_4_Server, _item)->ro.__framelistOut->startIndex;
         for (frameCount = index; frameCount > 0; frameCount--) {
-            FsPrintf(1, "index=%d,stats->decodeMask_set=%llx/%llx/%lx\n", (*ppNode)->index, (*ppNode)->stats->decodeMask_set, (*ppNode)->stats->decodeMask, ImageFrame_YUV420P_0);
+            // FsPrintf(1, "index=%d,stats->decodeMask_set=%llx/%llx/%lx\n", (*ppNode)->index, (*ppNode)->stats->decodeMask_set, (*ppNode)->stats->decodeMask, ImageFrame_YUV420P_0);
             *ppFrame++ = *ppNode++;
         }
         fs_ObjectList_remove_head_n(/* pRecognition_item */ FsMacrosValue3(p, __item_frame_out_pthreadSafety__IO_4_Server, _item)->ro.__framelistOut, index);

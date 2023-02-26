@@ -46,8 +46,10 @@ static int recognition_P_item_cb_connect_error(/* 与请求相关的信息,用�
 }
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128 */
-static int recognition_P_item_cb_debug(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型 */ char requestDataType, /* 调用函数的指针 */struct Recognition_item * const pRecognition_item
+static int recognition_P_item_cb_debug(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */struct Recognition_item * const pRecognition_item
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     const unsigned int datatype = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "datatype", 0);
     if (datatype > 0) {
@@ -180,11 +182,11 @@ static void recognition_P_item_new_plateRec(struct Recognition_item * const pRec
     const void *parent;
     {
         parent0 = pConfig;
-        FsObjectList * list = fs_Config_node_template__IO(pConfig, &parent0, pConfig,0, pConfigManager->ro.__ipList_local, 0, "vsys");
+        FsObjectList * list = fs_Config_node_template__IO(pConfig, &parent0, pConfig, 0, pConfigManager->ro.__ipList_local, 0, "vsys");
         if (list) {
             parent = list->pNode[list->startIndex];
             fs_ObjectList_delete__OI(list);
-            list = fs_Config_node_template__IO(pConfig, &parent0, parent,0, NULL, 0, "vsysChannel");
+            list = fs_Config_node_template__IO(pConfig, &parent0, parent, 0, NULL, 0, "vsysChannel");
             if (list) {
                 if (index < list->nodeCount) {
                     parent = list->pNode[list->startIndex + index];
@@ -322,7 +324,7 @@ static void recognition_P_item_new(struct Recognition * const pRecognition, /* �
                         }
                         /* 注册命令字 */
                         if (0 == ipv4)configManager_cmd_register(pRecognition->ro._pConfigManager, "recognition_debug", rst->ro._uuid, ipv4, rst, 0
-                                , (int (* const) (const unsigned int *, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))recognition_P_item_cb_debug, NULL, rst, pShareBuffer);
+                                , (int (* const) (const unsigned int *, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))recognition_P_item_cb_debug, NULL, rst, pShareBuffer);
                         if (0 == ipv4 && rst->p.plateRecognition.__list != NULL)
                             configManager_cmd_register(pRecognition->ro._pConfigManager, "plate_recognition", rst->ro._uuid, 0, rst, 0, NULL, (void*) recognition_item_add_plateRecognition_pthreadSafety__IO, rst, pShareBuffer);
                         //                    if (0 == ipv4)configManager_cmd_register(pRecord->ro._pConfigManager, "record_inc", rst->ro._uuid, 0, rst, NULL, (void*) record_item_add_inc_pthreadSafety__OI_2, rst);
@@ -1213,7 +1215,7 @@ static void *recognition_P_T(struct Recognition * const pRecognition) {
 void recognition_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned long long mask, /* 通道数 */const unsigned int channelCount, void * parent) {
     parent = fs_Config_node_node_add(pConfig, parent, "recognitionPlateConfig", "车牌识别配置", "车牌识别配置", 0, 0x7);
     fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, parent), 1, "moduleMask", FsConfig_Condition_orAnd, "32");
-    fs_Config_node_add_property_area(pConfig, parent, "recognitionPlateErea", "area", 0x000000FF);
+    fs_Config_node_add_property_area(pConfig, parent, "识别区", "recognitionPlateErea", NULL, NULL, NULL, "area", 0x000000FF);
     fs_Config_node_add_property_image(pConfig, parent, 1, "uuid", "recordConfig rtspServerURL");
     //    /* 车辆检测阈值  */
     //    void* pNode = fs_Config_node_integer_add(pConfig, parent, "carThreshold", "车辆检测阈值", "车辆检测阈值", FsConfig_nodeShowType_default, 0, 0x7, 1, 32767, 1);

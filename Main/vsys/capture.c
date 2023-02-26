@@ -629,7 +629,7 @@ static unsigned int capture_P_get_channelCount(/* 可为空 */FsConfig * const p
     const void *vsys0 = pConfig;
     const void *vsys;
     {
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0,ipList, 0, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 0, "vsys");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -798,7 +798,7 @@ static unsigned int capture_P_get_channelCount(/* 可为空 */FsConfig * const p
         }
         pRecord->rw._snapbuffertimeout = fs_Config_node_float_get_first(pConfig, vsys0, vsys, "snapbuffertimeout", 0.0, NULL);
 #endif
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0,NULL, 0, "vsysChannel");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0, NULL, 0, "vsysChannel");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -839,14 +839,14 @@ static FsEbml * const capture_P_item_get_streamCtrlStatus__IO(struct Capture_ite
 /* 发送相机流控制,其中streamCtrlStatusClientList已被加锁 */
 static void capture_P_item_send_streamCtrlStatus_locked(struct Capture_item * const pCapture_item, /* 流控制状态,0-控制流停止,1-控制流开始 */unsigned char streamCtrlStatus
         , void* const pConfigManager, /* 获取拉流状态的客户端链表 */ FsStructList * const streamCtrlStatusClientList_
-        , /* 缓存Buffer,可为空 */FsObjectBaseBuffer * const pObjectBaseBuffer) {
+        , /* 缓存Buffer,可为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     if (0 == streamCtrlStatusClientList_->nodeCount)return;
     FsEbml * const pEbml = capture_P_item_get_streamCtrlStatus__IO(pCapture_item, streamCtrlStatus);
-    if (pObjectBaseBuffer) configManager_conncet_refer_send(pConfigManager, streamCtrlStatusClientList_, NULL, NULL, NULL, pEbml, 0x2, pObjectBaseBuffer);
+    if (pObjectBaseBuffer) configManager_conncet_refer_send(pConfigManager, streamCtrlStatusClientList_, NULL, NULL, NULL, pEbml, 0x2, pObjectBaseBuffer, pShareBuffer);
     else {
         FsObjectBaseBuffer baseBuffer;
         fs_ObjectBaseBuffer_init(&baseBuffer, 1);
-        configManager_conncet_refer_send(pConfigManager, streamCtrlStatusClientList_, NULL, NULL, NULL, pEbml, 0x2, &baseBuffer);
+        configManager_conncet_refer_send(pConfigManager, streamCtrlStatusClientList_, NULL, NULL, NULL, pEbml, 0x2, &baseBuffer, pShareBuffer);
         fs_ObjectBaseBuffer_release(&baseBuffer);
     }
     fs_Ebml_delete__OI(pEbml, NULL);
@@ -940,7 +940,7 @@ static void capture_P_item_delete__OI(struct Capture_item * const pCapture_item,
                     pthread_mutex_lock(&pCapture->p.streamCtrlStatusClientList->mutex);
                     if (fs_ObjectList_remove_order(pCapture->p.streamCtrlStartItemListOrder__streamCtrlStatusClientList, pCapture_item) >= 0) {
                         /* 是正在拉流的相机,发送停止指令 */
-                        capture_P_item_send_streamCtrlStatus_locked(pCapture_item, 0, pCapture->ro._pConfigManager, pCapture->p.streamCtrlStatusClientList, pObjectBaseBuffer);
+                        capture_P_item_send_streamCtrlStatus_locked(pCapture_item, 0, pCapture->ro._pConfigManager, pCapture->p.streamCtrlStatusClientList, pObjectBaseBuffer, pShareBuffer);
                     }
                     pthread_mutex_unlock(&pCapture->p.streamCtrlStatusClientList->mutex);
                 }
@@ -1053,7 +1053,7 @@ static void capture_P_item_delete__OI(struct Capture_item * const pCapture_item,
                     pthread_mutex_lock(&pCapture->p.streamCtrlStatusClientList->mutex);
                     if (fs_ObjectList_remove_order(pCapture->p.streamCtrlStartItemListOrder__streamCtrlStatusClientList, pCapture_item) >= 0) {
                         /* 是正在拉流的相机,发送停止指令 */
-                        capture_P_item_send_streamCtrlStatus_locked(pCapture_item, 0, pCapture->ro._pConfigManager, pCapture->p.streamCtrlStatusClientList, pObjectBaseBuffer);
+                        capture_P_item_send_streamCtrlStatus_locked(pCapture_item, 0, pCapture->ro._pConfigManager, pCapture->p.streamCtrlStatusClientList, pObjectBaseBuffer, pShareBuffer);
                     }
                     pthread_mutex_unlock(&pCapture->p.streamCtrlStatusClientList->mutex);
                 }
@@ -1087,8 +1087,10 @@ static void capture_P_item_delete__OI(struct Capture_item * const pCapture_item,
 }
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1 */
-static int camctl_private_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ void* p
+static int camctl_private_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ void* p
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     struct Capture_item* pCapture_item = (struct Capture_item *) p;
 
@@ -1273,8 +1275,10 @@ static int capture_P_cb_connect_error(/* 与请求相关的信息,用于识别�
 }
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128 */
-static int capture_P_cmd_cb_streamCtrlStatus_get(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Capture * const pCapture
+static int capture_P_cmd_cb_streamCtrlStatus_get(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Capture * const pCapture
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     {
 #ifndef __cmd_cb_cal_return_type 
@@ -1294,7 +1298,7 @@ static int capture_P_cmd_cb_streamCtrlStatus_get(/* 与请求相关的信息,用
         while (ui-- > 0) {
             struct Capture_item * const pCapture_item = *ppNode++;
             FsEbml * const pEbml = capture_P_item_get_streamCtrlStatus__IO(pCapture_item, 1);
-            configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml, requestID_3, head & 0x2, requestDataType, pObjectBaseBuffer);
+            configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml, requestID_3, headType, checkMethod, virtualConnection, head & 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer);
             fs_Ebml_delete__OI(pEbml, pShareBuffer);
         }
     }
@@ -1764,12 +1768,12 @@ static FsConfig *capture_P_protocol_imageinfoset() {
         fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "controlMode", FsConfig_Condition_equal, "1");
     }
     {
-        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "gain", "增益", "增益,归一化到0-100,不设置表示沿用原来的值,controlMode为1时有效", FsConfig_nodeShowType_default, 0, 0x7, 0, 99, 1);
+        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "gain", "增益", "增益,归一化到0-100,不设置表示沿用原来的值,controlMode为1时有效", FsConfig_nodeShowType_default, 0, 0x7, 0, 100, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "0", "0");
         fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "controlMode", FsConfig_Condition_equal, "1");
     }
     {
-        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "iris", "光圈", "光圈,归一化到0-100,不设置表示沿用原来的值,controlMode为1时有效", FsConfig_nodeShowType_default, 0, 0x7, 0, 99, 1);
+        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "iris", "光圈", "光圈,归一化到0-100,不设置表示沿用原来的值,controlMode为1时有效", FsConfig_nodeShowType_default, 0, 0x7, 0, 100, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "0", "0");
         fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "controlMode", FsConfig_Condition_equal, "1");
     }
@@ -1779,12 +1783,12 @@ static FsConfig *capture_P_protocol_imageinfoset() {
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 1, "1-手动控制", "1-手动控制");
     }
     {
-        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "whiteBalance_B", "白平衡蓝色", "白平衡蓝色,0-255,不设置表示沿用原来的值,whiteBalanceMode为1时有效", FsConfig_nodeShowType_default, 0, 0x7, 0, 99, 1);
+        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "whiteBalance_B", "白平衡蓝色", "白平衡蓝色,0-255,不设置表示沿用原来的值,whiteBalanceMode为1时有效", FsConfig_nodeShowType_default, 0, 0x7, 0, 255, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 40, "40", "40");
         fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "whiteBalanceMode", FsConfig_Condition_equal, "1");
     }
     {
-        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "whiteBalance_R", "白平衡红色", "白平衡红色,0-255,不设置表示沿用原来的值,whiteBalanceMode为1时有效", FsConfig_nodeShowType_default, 0, 0x7, 0, 99, 1);
+        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "whiteBalance_R", "白平衡红色", "白平衡红色,0-255,不设置表示沿用原来的值,whiteBalanceMode为1时有效", FsConfig_nodeShowType_default, 0, 0x7, 0, 255, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 99, "99", "99");
         fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "whiteBalanceMode", FsConfig_Condition_equal, "1");
     }
@@ -1795,22 +1799,22 @@ static FsConfig *capture_P_protocol_imageinfoset() {
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 1, "1-手动控制", "1-手动控制");
     }
     {
-        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "brightness", "亮度", "亮度,归一化到0-100,不设置表示沿用原来的值", FsConfig_nodeShowType_default, 0, 0x7, 0, 99, 1);
+        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "brightness", "亮度", "亮度,归一化到0-100,不设置表示沿用原来的值", FsConfig_nodeShowType_default, 0, 0x7, 0, 100, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 50, "50", "50");
         fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "imageMode", FsConfig_Condition_equal, "1");
     }
     {
-        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "colorSaturation", "色度", "色度,归一化到0-100,不设置表示沿用原来的值", FsConfig_nodeShowType_default, 0, 0x7, 0, 99, 1);
+        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "colorSaturation", "色度", "色度,归一化到0-100,不设置表示沿用原来的值", FsConfig_nodeShowType_default, 0, 0x7, 0, 100, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 50, "50", "50");
         fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "imageMode", FsConfig_Condition_equal, "1");
     }
     {
-        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "contrast", "对比度", "对比度,归一化到0-100,不设置表示沿用原来的值", FsConfig_nodeShowType_default, 0, 0x7, 0, 99, 1);
+        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "contrast", "对比度", "对比度,归一化到0-100,不设置表示沿用原来的值", FsConfig_nodeShowType_default, 0, 0x7, 0, 100, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 50, "50", "50");
         fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "imageMode", FsConfig_Condition_equal, "1");
     }
     {
-        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "sharpness", "清晰度", "清晰度,归一化到0-100,不设置表示沿用原来的值", FsConfig_nodeShowType_default, 0, 0x7, 0, 99, 1);
+        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "sharpness", "清晰度", "清晰度,归一化到0-100,不设置表示沿用原来的值", FsConfig_nodeShowType_default, 0, 0x7, 0, 100, 1);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 50, "50", "50");
         fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "imageMode", FsConfig_Condition_equal, "1");
     }
@@ -1964,9 +1968,11 @@ static FsConfig *capture_P_protocol_errorInfo() {
 }
 
 
-/* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128,为空表示此命令字不允许远程调用 */
-static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Capture_item * const pCapture_item
+/* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,返回-2表示失败但不发送错误回执(使用者自行实现),需要引用此连接返回-128,为空表示此命令字不允许远程调用 */
+static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Capture_item * const pCapture_item
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
 #undef FsFunctionName
 #define FsFunctionName capture_P_cmd_cb
@@ -2113,20 +2119,14 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -2242,20 +2242,14 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -2371,20 +2365,14 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -2482,20 +2470,14 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -2594,20 +2576,14 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -2706,20 +2682,14 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -2869,20 +2839,14 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -2979,20 +2943,14 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -3075,32 +3033,29 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
-            FsEbml *rst = fs_Ebml_new__IO(FsEbmlEncodeMethod_UTF8, 0);
-            *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "p", FsEbmlNodeType_Integer,
+            FsEbml * const pEbml_rst = fs_Ebml_new__IO(FsEbmlEncodeMethod_UTF8, 0);
+            *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "p", FsEbmlNodeType_Integer,
                     "comment", "P值,最大为23040")->data.buffer = p;
-            *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "t", FsEbmlNodeType_Integer,
+            *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "t", FsEbmlNodeType_Integer,
                     "comment", "T值,最大为23040")->data.buffer = t;
-            *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "z", FsEbmlNodeType_Integer,
+            *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "z", FsEbmlNodeType_Integer,
                     "comment", "Z值,最大为23040")->data.buffer = z;
-            struct FsEbml_node* pEbml_node = fs_Ebml_node_get_first(pEbml, (struct FsEbml_node*) pEbml, "return_type");
-            if (pEbml_node && 0 < pEbml_node->data.lenth) {
-                if (0 == strcmp("ebml", pEbml_node->data.buffer)) requestDataType = 1;
-                else if (0 == strcmp("xml", pEbml_node->data.buffer)) requestDataType = 2;
-                else if (0 == strcmp("json", pEbml_node->data.buffer)) requestDataType = 3;
+#ifndef __cmd_cb_cal_return_type 
+            const char *const return_type = fs_Ebml_node_get_first_string(pEbml, (struct FsEbml_node*) pEbml, "return_type", NULL);
+            if (return_type) {
+                if (0 == strcmp("ebml", return_type)) requestDataType = 1;
+                else if (0 == strcmp("xml", return_type)) requestDataType = 2;
+                else if (0 == strcmp("json", return_type)) requestDataType = 3;
             }
-            configManager_send_pthreadSafety__OI_2_default(pCapture_item->ro._pCapture->ro._pConfigManager, rst, requestID_3, head, requestDataType, pShareBuffer);
+#endif
+            configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml_rst, requestID_3, headType, checkMethod, virtualConnection, head | 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer);
+            fs_Ebml_delete__OI(pEbml_rst, pShareBuffer);
             return 1;
 #endif
         } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(ptzget_lt));
@@ -3301,20 +3256,14 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -3397,66 +3346,63 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
-            FsEbml *rst = fs_Ebml_new__IO(FsEbmlEncodeMethod_UTF8, 0);
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "autoFocus", FsEbmlNodeType_Integer
+            FsEbml * const pEbml_rst = fs_Ebml_new__IO(FsEbmlEncodeMethod_UTF8, 0);
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "autoFocus", FsEbmlNodeType_Integer
                     , "comment", "自动聚焦,0-自动控制,1-手动控制")->data.buffer = imageInfo.autoFocus;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "controlMode", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "controlMode", FsEbmlNodeType_Integer
                     , "comment", "相机快门,增益,光圈的控制模式,0-自动控制,1-手动控制")->data.buffer = imageInfo.controlMode;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "shutter", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "shutter", FsEbmlNodeType_Integer
                     , "comment", "快门,曝光时间,微妙,controlMode为1时有效")->data.buffer = imageInfo.shutter;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "gain", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "gain", FsEbmlNodeType_Integer
                     , "comment", "增益,归一化到0-100,controlMode为1时有效")->data.buffer = imageInfo.gain;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "iris", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "iris", FsEbmlNodeType_Integer
                     , "comment", "光圈,归一化到0-100,controlMode为1时有效")->data.buffer = imageInfo.iris;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "whiteBalanceMode", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "whiteBalanceMode", FsEbmlNodeType_Integer
                     , "comment", "相机白平衡的控制模式,0-自动控制,1-手动控制")->data.buffer = imageInfo.whiteBalanceMode;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "whiteBalance_B", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "whiteBalance_B", FsEbmlNodeType_Integer
                     , "comment", "白平衡蓝色,0-255,whiteBalanceMode为1时有效")->data.buffer = imageInfo.whiteBalance_B;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "whiteBalance_R", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "whiteBalance_R", FsEbmlNodeType_Integer
                     , "comment", "白平衡红色,0-255,whiteBalanceMode为1时有效")->data.buffer = imageInfo.whiteBalance_R;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "imageMode", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "imageMode", FsEbmlNodeType_Integer
                     , "comment", "图像亮度,色度,对比度,清晰度的控制模式,-1-第二种自动控制模式,0-自动控制,1-手动控制")->data.buffer = imageInfo.imageMode;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "brightness", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "brightness", FsEbmlNodeType_Integer
                     , "comment", "亮度,归一化到0-100,imageMode为1时有效")->data.buffer = imageInfo.brightness;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "colorSaturation", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "colorSaturation", FsEbmlNodeType_Integer
                     , "comment", "色度,归一化到0-100,imageMode为1时有效")->data.buffer = imageInfo.colorSaturation;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "contrast", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "contrast", FsEbmlNodeType_Integer
                     , "comment", "对比度,归一化到0-100,imageMode为1时有效")->data.buffer = imageInfo.contrast;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "sharpness", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "sharpness", FsEbmlNodeType_Integer
                     , "comment", "清晰度,归一化到0-100,imageMode为1时有效")->data.buffer = imageInfo.sharpness;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "intensityAdjust", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "intensityAdjust", FsEbmlNodeType_Integer
                     , "comment", "明暗度矫正,归一化到0-100")->data.buffer = imageInfo.intensityAdjust;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "bwValid", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "bwValid", FsEbmlNodeType_Integer
                     , "comment", "黑白热模式是否有效,0-无效,1-有效")->data.buffer = imageInfo.bwValid;
             if (imageInfo.bwValid) {
-                *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "bw", FsEbmlNodeType_Integer
+                *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "bw", FsEbmlNodeType_Integer
                         , "comment", "黑白热模式,0-白热,1-黑热")->data.buffer = imageInfo.bw;
             }
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "cutLeft", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "cutLeft", FsEbmlNodeType_Integer
                     , "comment", "图像拼接的左裁剪像素")->data.buffer = imageInfo.cutLeft;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "cutRight", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "cutRight", FsEbmlNodeType_Integer
                     , "comment", "图像拼接的右裁剪像素")->data.buffer = imageInfo.cutRight;
-            *(long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "cycleMove", FsEbmlNodeType_Integer
+            *(long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "cycleMove", FsEbmlNodeType_Integer
                     , "comment", "转圈,0-表示未旋转,1-表示正在旋转")->data.buffer = imageInfo.cycleMove;
-            struct FsEbml_node* pEbml_node = fs_Ebml_node_get_first(pEbml, (struct FsEbml_node*) pEbml, "return_type");
-            if (pEbml_node && 0 < pEbml_node->data.lenth) {
-                if (0 == strcmp("ebml", pEbml_node->data.buffer)) requestDataType = 1;
-                else if (0 == strcmp("xml", pEbml_node->data.buffer)) requestDataType = 2;
-                else if (0 == strcmp("json", pEbml_node->data.buffer)) requestDataType = 3;
+#ifndef __cmd_cb_cal_return_type 
+            const char *const return_type = fs_Ebml_node_get_first_string(pEbml, (struct FsEbml_node*) pEbml, "return_type", NULL);
+            if (return_type) {
+                if (0 == strcmp("ebml", return_type)) requestDataType = 1;
+                else if (0 == strcmp("xml", return_type)) requestDataType = 2;
+                else if (0 == strcmp("json", return_type)) requestDataType = 3;
             }
-            configManager_send_pthreadSafety__OI_2_default(pCapture_item->ro._pCapture->ro._pConfigManager, rst, requestID_3, head, requestDataType, pShareBuffer);
+#endif
+            configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml_rst, requestID_3, headType, checkMethod, virtualConnection, head | 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer);
+            fs_Ebml_delete__OI(pEbml_rst, pShareBuffer);
             return 1;
 #endif
         } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(imageinfoget_lt));
@@ -3529,24 +3475,18 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                 if (FsEbmlNodeType_is_String(pEbml_node->type)) {
                     if (pCapture_item->ro._ctrl_function->chipCmd_pthreadSafety(pCapture_item->ro.__pCamera_item, pCapture_item->ro.__pCamera_ctrl_item, pCapture_item, priority, 0, pEbml_node->data.buffer, pEbml_node->data.lenth - 1, pObjectBaseBuffer, pShareBuffer) != 1) {
 #ifndef __capture_P_cmd_cb_ctrl_cb_failed 
-                        Capture_itemLog(FsLogType_error, "Ctrl camera failed,data:\n");
-                        fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
-                        pthread_mutex_lock(&pCapture_item->p.__ctrlClientList->mutex);
-                        if (fs_StructList_remove_order_custom(pCapture_item->p.__ctrlClientList, requestID_3, sizeof (unsigned int)*3)>-1)
-                            configManager_connect_release(pCapture_item->ro._pCapture->ro._pConfigManager, requestID_3, 0);
-                        if (0 == pCapture_item->p.__ctrlClientList->nodeCount && pCapture_item->p.ctrlPriority != 0) {
-                            pCapture_item->ro._ctrl_function->cancelKey_pthreadSafety(pCapture_item->ro.__pCamera_item, pCapture_item->ro.__pCamera_ctrl_item, pCapture_item, pObjectBaseBuffer, pShareBuffer);
-                            pCapture_item->p.ctrlPriority = 0;
-                        }
-                        pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                        FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                        fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                        sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                        *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                        memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                        memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                        configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
-                        return -1;
+                Capture_itemLog(FsLogType_error, "Ctrl camera failed,data:\n");
+                fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
+                pthread_mutex_lock(&pCapture_item->p.__ctrlClientList->mutex);
+                if (fs_StructList_remove_order_custom(pCapture_item->p.__ctrlClientList, requestID_3, sizeof (unsigned int)*3)>-1)
+                    configManager_connect_release(pCapture_item->ro._pCapture->ro._pConfigManager, requestID_3, 0);
+                if (0 == pCapture_item->p.__ctrlClientList->nodeCount && pCapture_item->p.ctrlPriority != 0) {
+                    pCapture_item->ro._ctrl_function->cancelKey_pthreadSafety(pCapture_item->ro.__pCamera_item, pCapture_item->ro.__pCamera_ctrl_item, pCapture_item, pObjectBaseBuffer, pShareBuffer);
+                    pCapture_item->p.ctrlPriority = 0;
+                }
+                pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
+                return -1;
 #endif
                     }
                 } else {
@@ -3568,24 +3508,18 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                 if (FsEbmlNodeType_is_Binary(pEbml_node->type)) {
                     if (pCapture_item->ro._ctrl_function->chipCmd_pthreadSafety(pCapture_item->ro.__pCamera_item, pCapture_item->ro.__pCamera_ctrl_item, pCapture_item, priority, 1, pEbml_node->data.buffer, pEbml_node->data.lenth, pObjectBaseBuffer, pShareBuffer) != 1) {
 #ifndef __capture_P_cmd_cb_ctrl_cb_failed 
-                        Capture_itemLog(FsLogType_error, "Ctrl camera failed,data:\n");
-                        fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
-                        pthread_mutex_lock(&pCapture_item->p.__ctrlClientList->mutex);
-                        if (fs_StructList_remove_order_custom(pCapture_item->p.__ctrlClientList, requestID_3, sizeof (unsigned int)*3)>-1)
-                            configManager_connect_release(pCapture_item->ro._pCapture->ro._pConfigManager, requestID_3, 0);
-                        if (0 == pCapture_item->p.__ctrlClientList->nodeCount && pCapture_item->p.ctrlPriority != 0) {
-                            pCapture_item->ro._ctrl_function->cancelKey_pthreadSafety(pCapture_item->ro.__pCamera_item, pCapture_item->ro.__pCamera_ctrl_item, pCapture_item, pObjectBaseBuffer, pShareBuffer);
-                            pCapture_item->p.ctrlPriority = 0;
-                        }
-                        pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                        FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                        fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                        sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                        *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                        memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                        memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                        configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
-                        return -1;
+                Capture_itemLog(FsLogType_error, "Ctrl camera failed,data:\n");
+                fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
+                pthread_mutex_lock(&pCapture_item->p.__ctrlClientList->mutex);
+                if (fs_StructList_remove_order_custom(pCapture_item->p.__ctrlClientList, requestID_3, sizeof (unsigned int)*3)>-1)
+                    configManager_connect_release(pCapture_item->ro._pCapture->ro._pConfigManager, requestID_3, 0);
+                if (0 == pCapture_item->p.__ctrlClientList->nodeCount && pCapture_item->p.ctrlPriority != 0) {
+                    pCapture_item->ro._ctrl_function->cancelKey_pthreadSafety(pCapture_item->ro.__pCamera_item, pCapture_item->ro.__pCamera_ctrl_item, pCapture_item, pObjectBaseBuffer, pShareBuffer);
+                    pCapture_item->p.ctrlPriority = 0;
+                }
+                pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
+                return -1;
 #endif
                     }
                 } else if (FsEbmlNodeType_is_String(pEbml_node->type)) {
@@ -3625,24 +3559,18 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                             FsLocal_ShareBuffer_call_after();
                             /* 释放共享buffer */ FsLocal_ShareBuffer_release(pShareBuffer, 0);
 #ifndef __capture_P_cmd_cb_ctrl_cb_failed 
-                            Capture_itemLog(FsLogType_error, "Ctrl camera failed,data:\n");
-                            fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
-                            pthread_mutex_lock(&pCapture_item->p.__ctrlClientList->mutex);
-                            if (fs_StructList_remove_order_custom(pCapture_item->p.__ctrlClientList, requestID_3, sizeof (unsigned int)*3)>-1)
-                                configManager_connect_release(pCapture_item->ro._pCapture->ro._pConfigManager, requestID_3, 0);
-                            if (0 == pCapture_item->p.__ctrlClientList->nodeCount && pCapture_item->p.ctrlPriority != 0) {
-                                pCapture_item->ro._ctrl_function->cancelKey_pthreadSafety(pCapture_item->ro.__pCamera_item, pCapture_item->ro.__pCamera_ctrl_item, pCapture_item, pObjectBaseBuffer, pShareBuffer);
-                                pCapture_item->p.ctrlPriority = 0;
-                            }
-                            pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                            FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                            fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                            sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                            *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                            memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                            memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                            configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
-                            return -1;
+                Capture_itemLog(FsLogType_error, "Ctrl camera failed,data:\n");
+                fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
+                pthread_mutex_lock(&pCapture_item->p.__ctrlClientList->mutex);
+                if (fs_StructList_remove_order_custom(pCapture_item->p.__ctrlClientList, requestID_3, sizeof (unsigned int)*3)>-1)
+                    configManager_connect_release(pCapture_item->ro._pCapture->ro._pConfigManager, requestID_3, 0);
+                if (0 == pCapture_item->p.__ctrlClientList->nodeCount && pCapture_item->p.ctrlPriority != 0) {
+                    pCapture_item->ro._ctrl_function->cancelKey_pthreadSafety(pCapture_item->ro.__pCamera_item, pCapture_item->ro.__pCamera_ctrl_item, pCapture_item, pObjectBaseBuffer, pShareBuffer);
+                    pCapture_item->p.ctrlPriority = 0;
+                }
+                pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
+                return -1;
 #endif
                         } else {
                             FsLocal_ShareBuffer_call_after();
@@ -3682,7 +3610,7 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -3764,20 +3692,14 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                     pCapture_item->p.ctrlPriority = 0;
                 }
                 pthread_mutex_unlock(&pCapture_item->p.__ctrlClientList->mutex);
-                FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3);
-                fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Cb failed.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
-                sendData->len = 8 + sizeof ("Cb failed.\n") - 1;
-                *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
-                memcpy(sendData->data + 8, "Cb failed.\n", sizeof ("Cb failed.\n") - 1);
-                memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
-                configManager_send_pthreadSafety__OI_2(pCapture_item->ro._pCapture->ro._pConfigManager, sendData);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Cb failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
                 return -1;
 #endif
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
 #ifndef __capture_P_cmd_cb_ctrl_cb_ok 
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             if (0 == priority) {
                 if (pCapture_item->p.ctrlPriority != 0) {
                     pCapture_item->p.ctrlPriority = 0;
@@ -3809,7 +3731,7 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
         const int _rv = strcmp(ctrl_type, "maskget");
         if (0 == _rv) {
 #if 1
-            FsEbml * const rst = fs_Ebml_new__IO(FsEbmlEncodeMethod_UTF8, 0);
+            FsEbml * const pEbml_rst = fs_Ebml_new__IO(FsEbmlEncodeMethod_UTF8, 0);
             {
 #undef Fs_ShareBuffer_var    
 #undef Fs_ShareBuffer_var_check
@@ -3839,38 +3761,40 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
                         , protocol_name_in_in, 32, device_type_out_in, device_type_in_in, 32, device_sn_out_in, device_sn_in_in, 32, device_version_out_in, device_version_in_in, 32
                         , &mask_out, &mask_in, pObjectBaseBuffer, &FsLocal_ShareBuffer);
                 FsLocal_ShareBuffer_call_after();
-                *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "mask", FsEbmlNodeType_Integer
+                *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "mask", FsEbmlNodeType_Integer
                         , "comment", "掩码,按位排布,0-任意转,1-左右转,2-上下转,3-45度斜角转,4-变倍,5-聚焦,6-预置位,7-3d定位,8-gotoPTZ和getPTZ,9-图像参数设置与获取,10-直接向机芯发送命令,11-快门重置")->data.buffer = mask;
-                *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "mask_out", FsEbmlNodeType_Integer
+                *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "mask_out", FsEbmlNodeType_Integer
                         , "comment", "外部接口的掩码,值类型同mask字段")->data.buffer = mask_out;
-                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "protocol_name_out", FsEbmlNodeType_String
+                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "protocol_name_out", FsEbmlNodeType_String
                         , "comment", "外部接口的协议类型"), protocol_name_out);
-                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "device_type_out", FsEbmlNodeType_String
+                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "device_type_out", FsEbmlNodeType_String
                         , "comment", "外部接口的设备型号"), device_type_out_in);
-                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "device_sn_out", FsEbmlNodeType_String
+                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "device_sn_out", FsEbmlNodeType_String
                         , "comment", "外部接口的设备序列号"), device_sn_out_in);
-                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "device_version_out", FsEbmlNodeType_String
+                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "device_version_out", FsEbmlNodeType_String
                         , "comment", "外部接口的设备版本号"), device_version_out_in);
-                *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "mask_in", FsEbmlNodeType_Integer
+                *(unsigned long long *) fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "mask_in", FsEbmlNodeType_Integer
                         , "comment", "内部接口的掩码,值类型同mask字段")->data.buffer = mask_in;
-                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "protocol_name_in", FsEbmlNodeType_String
+                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "protocol_name_in", FsEbmlNodeType_String
                         , "comment", "内部接口的协议类型"), protocol_name_in_in);
-                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "device_type_in", FsEbmlNodeType_String
+                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "device_type_in", FsEbmlNodeType_String
                         , "comment", "内部接口的设备型号"), device_type_in_in);
-                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "device_sn_in", FsEbmlNodeType_String
+                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "device_sn_in", FsEbmlNodeType_String
                         , "comment", "内部接口的设备序列号"), device_sn_in_in);
-                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(rst, (struct FsEbml_node*) rst, "device_version_in", FsEbmlNodeType_String
+                fs_Ebml_node_data_set_string(fs_Ebml_node_addChild_with_a_property(pEbml_rst, (struct FsEbml_node*) pEbml_rst, "device_version_in", FsEbmlNodeType_String
                         , "comment", "内部接口的设备版本号"), device_version_in_in);
                 /* 释放共享buffer */ FsLocal_ShareBuffer_release(pShareBuffer, 0);
             }
-
-            struct FsEbml_node * return_type = fs_Ebml_node_get_first(pEbml, (struct FsEbml_node*) pEbml, "return_type");
-            if (return_type && 0 < return_type->data.lenth) {
-                if (0 == strcmp("ebml", return_type->data.buffer)) requestDataType = 1;
-                else if (0 == strcmp("xml", return_type->data.buffer)) requestDataType = 2;
-                else if (0 == strcmp("json", return_type->data.buffer)) requestDataType = 3;
+#ifndef __cmd_cb_cal_return_type 
+            const char *const return_type = fs_Ebml_node_get_first_string(pEbml, (struct FsEbml_node*) pEbml, "return_type", NULL);
+            if (return_type) {
+                if (0 == strcmp("ebml", return_type)) requestDataType = 1;
+                else if (0 == strcmp("xml", return_type)) requestDataType = 2;
+                else if (0 == strcmp("json", return_type)) requestDataType = 3;
             }
-            configManager_send_pthreadSafety__OI_2_default(pCapture_item->ro._pCapture->ro._pConfigManager, rst, requestID_3, head, requestDataType, pShareBuffer);
+#endif
+            configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml_rst, requestID_3, headType, checkMethod, virtualConnection, head | 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer);
+            fs_Ebml_delete__OI(pEbml_rst, pShareBuffer);
             return 1;
 #endif
         } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(maskget_lt));
@@ -3903,7 +3827,7 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
             }
             ////////////////////////////////////////////////////////////////////////
             /* 发回执数据 */
-            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
             return 1;
 #endif
         } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(release_lt));
@@ -3912,9 +3836,11 @@ static int capture_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪
 #endif    
 }
 
-/* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128,为空表示此命令字不允许远程调用 */
-static int capture_P_cmd_cb_errorInfo(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Capture_item * const pCapture_item
+/* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,返回-2表示失败但不发送错误回执(使用者自行实现),需要引用此连接返回-128,为空表示此命令字不允许远程调用 */
+static int capture_P_cmd_cb_errorInfo(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Capture_item * const pCapture_item
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     /* 获取错误数据的客户端 */
     if (NULL == pCapture_item->p.__errorInfoClientList) pCapture_item->p.__errorInfoClientList = fs_StructList_new__IO(6, sizeof (int)*6);
@@ -3960,7 +3886,7 @@ static void capture_P_item_cb_streamControl(/* 掩码名 */ const char maskName[
                 fflush(stdout);
                 FsLogExit();
             }
-            capture_P_item_send_streamCtrlStatus_locked(pCapture_item, status, pCapture->ro._pConfigManager, pCapture->p.streamCtrlStatusClientList, NULL);
+            capture_P_item_send_streamCtrlStatus_locked(pCapture_item, status, pCapture->ro._pConfigManager, pCapture->p.streamCtrlStatusClientList, NULL, NULL);
         } else {
             /* 流结束 */
             if (0 == isConnectCb) {
@@ -3970,7 +3896,7 @@ static void capture_P_item_cb_streamControl(/* 掩码名 */ const char maskName[
                     fflush(stdout);
                     FsLogExit();
                 }
-                capture_P_item_send_streamCtrlStatus_locked(pCapture_item, status, pCapture->ro._pConfigManager, pCapture->p.streamCtrlStatusClientList, NULL);
+                capture_P_item_send_streamCtrlStatus_locked(pCapture_item, status, pCapture->ro._pConfigManager, pCapture->p.streamCtrlStatusClientList, NULL, NULL);
             } else {
 #ifdef FsDebug
                 if (fs_ObjectList_check_exist_order(pCapture->p.streamCtrlStartItemListOrder__streamCtrlStatusClientList, pCapture_item) >= 0) {
@@ -3997,7 +3923,7 @@ static int capture_P_item_transfer_cb_error_distribution(struct Capture_item * c
                 , "comment", "故障数据"), dataLen, data);
         pthread_mutex_lock(&pCapture_item->p.__errorInfoClientList->mutex);
         configManager_conncet_refer_send(pCapture_item->ro._pCapture->ro._pConfigManager, pCapture_item->p.__errorInfoClientList
-                , NULL, NULL, NULL, pEbmlSend, 0x2, pObjectBaseBuffer);
+                , NULL, NULL, NULL, pEbmlSend, 0x2, pObjectBaseBuffer, pShareBuffer);
         pthread_mutex_unlock(&pCapture_item->p.__errorInfoClientList->mutex);
         fs_Ebml_delete__OI(pEbmlSend, pShareBuffer);
     }
@@ -4040,7 +3966,7 @@ static void capture_P_item_new(struct Capture * const pCapture, /* 通道号,从
                     {
                         const char *const hostname = fs_Config_node_string_get_first(pConfig, vsys0, vsys, "hostname", NULL);
                         const char *const pd = strchr(hostname, ':');
-                        ipv4 = fs_ipv4_network_get(pd ? pd - hostname : strlen(hostname), hostname);
+                        ipv4 = fs_ipv4_network_get(pd ? pd - hostname : (unsigned int) strlen(hostname), hostname);
                     }
                 } else ipv4 = 0;
                 do {
@@ -4460,9 +4386,9 @@ static void capture_P_item_new(struct Capture * const pCapture, /* 通道号,从
                         ////////////////////////////////////////////////////////////////////////////
                         /* 注册命令字 */
                         configManager_cmd_register(pCapture->ro._pConfigManager, "cameractrl", rst->ro._uuid, ipv4, rst, 0 == ipv4 ? 1 : 0
-                                , 0 == ipv4 ? (int (*)(const unsigned int*, unsigned int, FsEbml*, char, void*, FsObjectBaseBuffer*, char**))capture_P_cmd_cb : NULL, 0 == ipv4 ? rst : NULL, rst, pShareBuffer);
+                                , 0 == ipv4 ? (int (*)(const unsigned int*, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml*, char, void*, FsObjectBaseBuffer*, char**))capture_P_cmd_cb : NULL, 0 == ipv4 ? rst : NULL, rst, pShareBuffer);
                         configManager_cmd_register(pCapture->ro._pConfigManager, "errorInfo", rst->ro._uuid, ipv4, rst, 0 == ipv4 ? 1 : 0
-                                , 0 == ipv4 ? (int (*)(const unsigned int*, unsigned int, FsEbml*, char, void*, FsObjectBaseBuffer*, char**))capture_P_cmd_cb_errorInfo : NULL, 0 == ipv4 ? rst : NULL, rst, pShareBuffer);
+                                , 0 == ipv4 ? (int (*)(const unsigned int*, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml*, char, void*, FsObjectBaseBuffer*, char**))capture_P_cmd_cb_errorInfo : NULL, 0 == ipv4 ? rst : NULL, rst, pShareBuffer);
 
                         ////////////////////////////////////////////////////////////////////////////
                         /* 绑定命令字 */
@@ -4559,7 +4485,7 @@ static void *capture_P_T(struct Capture * const pCapture) {
 #define __capture_P_T_clean2_1 {configManager_connect_error_logoff(pConfigManager, (int(*)(const unsigned int*, void*, char**))capture_P_cb_connect_error, pCapture);}
     /* 注册获取线程信息的的命令字,cmd+uuid+ipv4必须是唯一值 */
     configManager_cmd_register_and_protocol_publish(pConfigManager, "streamCtrlStatus_get", "capture", 0, pCapture, 0
-            , (int (* const) (const unsigned int *, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))capture_P_cmd_cb_streamCtrlStatus_get, NULL, pCapture
+            , (int (* const) (const unsigned int *, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))capture_P_cmd_cb_streamCtrlStatus_get, NULL, pCapture
             ////////////////////////////////////////////////////////////////
             , "streamCtrlStatus_get", "流控制状态获取", ConfigManager_Module5_protocol_classIndex0, capture_P_protocol_streamCtrlStatus_get, &shareBuffer);
 #define __capture_P_T_clean2_2 {configManager_cmd_logoff_and_protocol_cancel(pConfigManager, "streamCtrlStatus_get", "capture", 0, pCapture,"streamCtrlStatus_get",&shareBuffer);}

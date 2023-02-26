@@ -109,138 +109,145 @@ extern "C" {
      * 成功返回添加的节点的指针;
      * 失败返回NULL.
      */
-    #ifdef OJAVA
-#else
+
     struct FsJson_node * fs_Json_node_addChild1(FsJson * const pJson, /* 不能为空,在根节下查找请把pJson强制转换为FsJson_node传入 */struct FsJson_node * const pJson_node
             , /* 节点名长度 */const unsigned int nodeNameLen, /* 节点名,不能为空 */const char nodeName[]);
-#endif
+
     /*
      * 向pJson中的节点pJson_node添加一个子节点;
      * 成功返回添加的节点的指针;
      * 失败返回NULL.
      */
-    #ifdef OJAVA
-#else
+
     struct FsJson_node* fs_Json_node_addChild(FsJson * const pJson, /* 不能为空,在根节下查找请把pJson强制转换为FsJson_node传入 */struct FsJson_node * const pJson_node
             , /* 节点名,不能为空 */const char nodeName[]);
-#endif
+
     /* 向pNode节点添加值 */
-    #ifdef OJAVA
-#else
+
     void fs_Json_node_add_value(/* 必须为有效值 */const void* pNode, /* value的长度 */const unsigned long valueLen, /* 必须为有效值 */const char value[]);
-#endif
+
     /* 向pXml_node节点添加值,并删除value的空间 */
-    #ifdef OJAVA
-#else
+
     void fs_Json_node_add_value__OI_3(/* 必须为有效值,支持根节点 */struct FsJson_node * const pJson_node, /* value的长度 */const unsigned long valueLen, /* 必须为有效值,且是动态分配的空间,以\0结束 */ char value[]);
-#endif
+
     /* 设置pNode节点的值,会删除子节点 */
-    #ifdef OJAVA
-#else
+
     void fs_Json_node_set_value(FsJson * const pJson, /* 必须为有效值 */ void* const pNode, const unsigned long valueLen, /* 可为空 */const char value[]
             , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
-#endif
+
     /* 设置pNode节点的值,会删除子节点 */
-    #ifdef OJAVA
-#else
+
     void fs_Json_node_set_value__OI_4(FsJson * const pJson, /* 必须为有效值 */ void* const pNode, const unsigned long valueLen, /* 节点值,可为空,不为空时必须以\0结尾 */ char value[]
             , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
-#endif
+
     /*
      * 删除pJson_node节点及子节点;
      * 传入的pJson_node必须为有效值.
      */
-    #ifdef OJAVA
-#else
+
     void fs_Json_node_delete(FsJson * const pJson, struct FsJson_node * const pJson_node);
-#endif
+
     /*
      * 删除pJson_node下名为name的所有节点及子节点,pJson_node必须已解析,没解析的内容不会被查找.
      */
-    #ifdef OJAVA
-#else
+
     void fs_Json_node_delete_by_name(FsJson * const pJson, /* 要查找的的节点,在根节点下查找请把pJson强制转换为FsJson_node传入 */ struct FsJson_node * pJson_node, /* 要删除的节点名 */const char name[]
             , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
-#endif
+
     /*
      * 删除pJson_node下名为name的一个节点及子节点,随机移除,pJson_node必须已解析,没解析的内容不会被查找.
      */
-    #ifdef OJAVA
-#else
+
     void fs_Json_node_delete_by_name_first(FsJson * const pJson, /* 要查找的的节点,在根节点下查找请把pJson强制转换为FsJson_node传入 */ struct FsJson_node * pJson_node, /* 要删除的节点名 */const char name[]
             , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
-#endif
+
     /* 调整*ppJson_node节点空间的大小 */
-    #ifdef OJAVA
-#else
+
     void fs_Json_node_name_resize(FsJson * const pJson, /* 必须为有效值 */ struct FsJson_node * * const ppJson_node
             , /* 名字长度,可为0,不包含\0的长度 */ const unsigned int nameLen, /* 在父节点中的编号,-1表示未确定 */int inParentIndex);
-#endif
+
     /*
      * 把pJson转换成FsStringBuilder;
      * 返回字符串.
      */
-    #ifdef OJAVA
-#else
+
     FsStringBuilder * fs_Json_to_StringBuilder__IO(const FsJson * const pJson
             , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
             , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
-#endif
+
     /*
      * 把pJson转换成字符串;
      * 返回FsString指针.
      */
-    #ifdef OJAVA
-#else
+
     FsString * fs_Json_to_String__IO(const FsJson * const pJson, /* 实际数据开始位置距离返回结果的buffer头的字节数 */const unsigned int prefixCount
             , /* 实际数据结束位置距离返回结果的buffer尾的字节数 */ const unsigned int suffixCount
             , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
             , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
-#endif
+
     /*
      * 把pJson转换成字符串;
      * 返回字符串.
      */
-    #ifdef OJAVA
-#else
+
     char *fs_Json_to_string__IO(const FsJson * const pJson
             , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
             , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
-#endif
+
     /*
      * 把pJson转换成字符串;
      * 返回FsObjectBase对象.
      */
-    #ifdef OJAVA
-#else
+
     FsObjectBase * fs_Json_to_ObjectBase__IO(const FsJson * const pJson, /* 指data的偏移位置,不小于sizeof(FsObjectBase) */ const unsigned int dataOffset
             , /* 实际数据结束位置距离返回结果的data尾的字节数 */const unsigned int suffixCount
             , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
             , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
-#endif
+
+    /*
+     * 把pJson转换成字符串;
+     * 返回FsObjectBase对象.
+     */
+
+    FsObjectBase * fs_Json_to_ObjectBase_with_buffer__IO(const FsJson * const pJson
+            , /* 原缓存,不为空,在(*pObjectBaseBuffer)为空时,会把当前返回的对象的_unownedTag置1并设置到(*pObjectBaseBuffer)中,在(*pObjectBaseBuffer)->referCount为0时返回的数据会使用缓存 */
+            FsObjectBase* * const pObjectBaseBuffer, /* 指data的偏移位置,不小于sizeof(FsObjectBase) */ const unsigned int dataOffset
+            , /* 实际数据结束位置距离返回结果的data尾的字节数 */const unsigned int suffixCount
+            , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
+            , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
+
+    /*
+     * 把pJson转换成字符串;
+     * 返回FsObjectBase对象.
+     */
+
+    FsObjectBase * fs_Json_to_ObjectBase_from_buffer__IO(const FsJson * const pJson, /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer
+            , /* 指data的偏移位置,不小于sizeof(FsObjectBase) */ const unsigned int dataOffset
+            , /* 实际数据结束位置距离返回结果的data尾的字节数 */const unsigned int suffixCount
+            , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
+            , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
+
     /*
      * 把pJson保存到文件filename中;
      * 如果成功返回1;
      * 如果写文件失败返回-2.
      */
-    #ifdef OJAVA
-#else
+
     int fs_Json_out(const FsJson * const pJson, FILE * const fd
             , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
             , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
-#endif
+
     /*
      * 把pJson保存到文件filename中;
      * 如果成功返回1;
      * 如果打开文件失败返回-1;
      * 如果写文件失败返回-2.
      */
-    #ifdef OJAVA
-#else
+
     int fs_Json_save_to_file(const FsJson * const pJson, /* 文件名,不能为空 */const char filename[]
             , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
             , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
-#endif
+
     /* 
      * 获取pJson中第一个为nodeName节点的节点;
      * 支持多节点查找,用空格分开,如a b表示查找第一个a节点下的第一个b节点的值;
@@ -248,9 +255,12 @@ extern "C" {
      * 成功返回节点的内存地址;
      * 失败返回NULL.
      */
-    #ifdef OJAVA
 
-#endif
+    struct FsJson_node * fs_Json_node_get_first(const FsJson * const pJson, /* 在哪个节点下查找,在根节下查找请把pJson强制转换为FsJson_node传入 */ const struct FsJson_node * const parentNode
+            , /* 节点名,支持多节点查找,用空格分开,如a b表示查找第一个a节点下的第一个b节点的值 */const char nodeName[]
+            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
+
+
     /* 
      * 获取pJson中所为nodeName节点的值;
      * 支持多节点查找,用空格分开,如a b表示查找第一个a节点下的第一个b节点的值;
@@ -258,12 +268,11 @@ extern "C" {
      * 成功返回FsObjectList指针;
      * 失败返回NULL.
      */
-    #ifdef OJAVA
-#else
+
     FsObjectList * fs_Json_node_get_all__IO(const FsJson * const pJson, /* 在哪个节点下查找,在根节下查找请把pJson强制转换为FsJson_node传入 */ const struct FsJson_node * const parentNode
             , /* 节点名,支持多节点查找,用空格分开,如a b表示查找第一个a节点下的第一个b节点的值 */const char nodeName[]
             , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
-#endif
+
     /* 
      * 获取pJson中所为nodeName节点的值;
      * 支持多节点查找,用空格分开,如a b表示查找第一个a节点下的第一个b节点的值;
@@ -271,12 +280,11 @@ extern "C" {
      * 成功返回节点值组成的FsArray指针;
      * 失败返回NULL.
      */
-    #ifdef OJAVA
-#else
+
     FsArray * fs_Json_node_get_allData__IO(const FsJson * const pJson, /* 在哪个节点下查找,在根节下查找请把pJson强制转换为FsJson_node传入 */ const struct FsJson_node * const parentNode
             , /* 节点名,支持多节点查找,用空格分开,如a b表示查找第一个a节点下的第一个b节点的值 */const char nodeName[]
             , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
-#endif
+
 
 
 #ifdef __cplusplus

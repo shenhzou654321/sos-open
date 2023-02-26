@@ -127,7 +127,7 @@ extern "C" {
             /* 传出的数据帧链表 */
             FsObjectList *__framelistOut;
             /* 与之相关的客户端链表 */
-            FsStructList *__clientList;
+            FsStructList *__clientList_i8;
         } ro;
 
         struct {
@@ -142,7 +142,7 @@ extern "C" {
             FsObjectList * __pConventionalDetectList_;
             /* 跟踪中的所有目标 */
             FsObjectList *__objectList_;
-            /* 区域线条链表(x1,y1)(x2,y2),每个数字占2字节 */
+            /* 区域线条链表(x1,y1)(x2,y2),每个数字占2字节+color(4字节,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔) */
             FsStructList *__areaLineList_;
             /* 屏蔽区域线条链表(x1,y1)(x2,y2),每个数字占2字节 */
             FsStructList *__excludeAreaLineList_;
@@ -152,11 +152,9 @@ extern "C" {
             unsigned short target_x_extern;
             /* 目标y方向扩展大小 */
             unsigned short target_y_extern;
-            /* 区域颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */
-            unsigned int areaColor;
-            /* 目标颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */
+            /* 目标颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔,255个间隔时不叠加 */
             unsigned int targetColor;
-            /* 屏蔽区域颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */
+            /* 屏蔽区域颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔,255个间隔时不叠加 */
             unsigned int excludeAreaColor;
             /* 联动可见光通道标识 */
             char *ptz_uuid;
@@ -166,6 +164,24 @@ extern "C" {
             struct PtzObject_item *pPtzObject_item;
             /* 报警联动的函数指针,不为空表示有效 */
             Ptz_item_linkPtz_pthreadSafety ptz_item_linkPtz;
+            /* 是否启用距离标定 */
+            int target_distance_enable;
+            /* 水平线起点坐标 */
+            int start_x, start_y;
+            /* 水平线终点坐标 */
+            int end_x, end_y;
+            /* 设备离水平面高度 */
+            double device_height;
+            /* 设备垂直视场角 */
+            double device_field_angle;
+             /* 设备安装经度 */
+            float device_longitude;
+            /* 设备安装纬度 */
+            float device_latitude;
+            /* 设备名 */
+            char *device_name;
+            /* 区域及对应名称链表 */
+            FsObjectList *__areaNameList;
         } p;
     };
 

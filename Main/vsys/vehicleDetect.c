@@ -84,8 +84,10 @@ static int vehicleDetect_P_item_cb_connect_error(/* 与请求相关的信息,用
 }
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128 */
-static int vehicleDetect_P_item_cb_debug(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型 */ char requestDataType, /* 调用函数的指针 */ struct VehicleDetect_item * const pVehicleDetect_item
+static int vehicleDetect_P_item_cb_debug( /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+            , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct VehicleDetect_item * const pVehicleDetect_item
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     const unsigned int datatype = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "datatype", 0);
     if (1 == datatype) {
@@ -195,9 +197,9 @@ static void vehicleDetect_P_item_new_vehicleDetect(struct VehicleDetect_item * c
     const void *vehicleDetectConfig0 = pConfig;
     const void *vehicleDetectConfig;
     {
-        vehicleDetectConfig = fs_Config_node_template_get_orderFirst(pConfig, &vehicleDetectConfig0, pConfig,0, pConfigManager->ro.__ipList_local, 0, "vsys", 0);
+        vehicleDetectConfig = fs_Config_node_template_get_orderFirst(pConfig, &vehicleDetectConfig0, pConfig, 0, pConfigManager->ro.__ipList_local, 0, "vsys", 0);
         if (vehicleDetectConfig) {
-            vehicleDetectConfig = fs_Config_node_template_get(pConfig, &vehicleDetectConfig0, vehicleDetectConfig,0, NULL, 0, "vsysChannel", index);
+            vehicleDetectConfig = fs_Config_node_template_get(pConfig, &vehicleDetectConfig0, vehicleDetectConfig, 0, NULL, 0, "vsysChannel", index);
             if (vehicleDetectConfig) {
                 vehicleDetectConfig = fs_Config_node_get_first(pConfig, &vehicleDetectConfig0, vehicleDetectConfig, "vehicleDetectConfig");
             }
@@ -243,15 +245,15 @@ static void vehicleDetect_P_item_new(struct VehicleDetect * const pVehicleDetect
     FsConfig *pConfig = ((ConfigManager*) pVehicleDetect->ro._pConfigManager)->ro.__pConfig;
     if (NULL == pConfig)return;
     const void *vsys0 = pConfig;
-    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig,0, ipList, 0 == channel, "vsys");
+    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, 0, ipList, 0 == channel, "vsys");
     if (clusterList) {
         void **ppNodeCluster = clusterList->pNode + clusterList->startIndex;
         unsigned int uj = clusterList->nodeCount;
         do {
             const void *vsysChannel0 = vsys0;
             const void* const vsys = *ppNodeCluster++;
-            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys,0, NULL, 0, "vsysChannel")
-                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, 0,NULL, 0, "vsysChannel", channel - 1);
+            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel")
+                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel", channel - 1);
             if (list) {
                 void ** ppNode;
                 unsigned int ui, ipv4;
@@ -343,7 +345,7 @@ static void vehicleDetect_P_item_new(struct VehicleDetect * const pVehicleDetect
                                 , (int (*)(const unsigned int *, void *, char * * const))vehicleDetect_P_item_cb_connect_error, rst);
                         /* 注册命令字 */
                         if (0 == ipv4) configManager_cmd_register(pVehicleDetect->ro._pConfigManager, "vehicleDetect_debug", rst->ro._uuid, ipv4, rst, 0
-                                , (int (* const) (const unsigned int *, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))vehicleDetect_P_item_cb_debug, NULL, rst, pShareBuffer);
+                                , (int (* const) (const unsigned int *,unsigned char, unsigned char, unsigned int, unsigned int,  FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))vehicleDetect_P_item_cb_debug, NULL, rst, pShareBuffer);
                         //                    if (0 == ipv4)configManager_cmd_register(pRecord->ro._pConfigManager, "record_inc", rst->ro._uuid, 0, rst, NULL, (void*) record_item_add_inc_pthreadSafety__OI_2, rst);
                         //                    configManager_cmd_register(pRecord->ro._pConfigManager, "videolist_get", rst->ro._uuid, ipv4, rst, 0 == ipv4 ? record_private_cmd_cb : NULL, NULL, rst);
                         //                    configManager_cmd_register(pRecord->ro._pConfigManager, "videotimeinfo_get", rst->ro._uuid, ipv4, rst, 0 == ipv4 ? record_private_cmd_cb : NULL, NULL, rst);
@@ -621,7 +623,7 @@ static unsigned int vehicleDetect_P_get_channelCount(/* 可为空 */FsConfig * c
     const void *vsys0 = pConfig;
     const void *vsys;
     {
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0,ipList, 0, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 0, "vsys");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -790,7 +792,7 @@ static unsigned int vehicleDetect_P_get_channelCount(/* 可为空 */FsConfig * c
         }
         pRecord->rw._snapbuffertimeout = fs_Config_node_float_get_first(pConfig, vsys0, vsys, "snapbuffertimeout", 0.0, NULL);
 #endif
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0,NULL, 0, "vsysChannel");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0, NULL, 0, "vsysChannel");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -1447,7 +1449,7 @@ static void *vehicleDetect_P_T(struct VehicleDetect * const pVehicleDetect) {
 void vehicleDetect_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned long long mask, /* 通道数 */const unsigned int channelCount, void * parent) {
     parent = fs_Config_node_node_add(pConfig, parent, "vehicleDetectConfig", "车辆检测配置", "车辆检测配置", 0, 0x7);
     fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, parent), 1, "moduleMask", FsConfig_Condition_orAnd, "32");
-    fs_Config_node_add_property_area(pConfig, parent, "vehicleDetectErea", "area", 0x000000FF);
+    fs_Config_node_add_property_area(pConfig, parent, "检测区", "vehicleDetectErea", "area", NULL, NULL, NULL, 0x000000FF);
     fs_Config_node_add_property_image(pConfig, parent, 1, "uuid", "recordConfig rtspServerURL");
     //    /* 车辆检测阈值  */
     //    void* pNode = fs_Config_node_integer_add(pConfig, parent, "carThreshold", "车辆检测阈值", "车辆检测阈值",  FsConfig_nodeShowType_default,0, 0x7, 1, 32767, 1);

@@ -354,7 +354,7 @@ static unsigned int domelinkage_private_get_channelCount(/* 可为空 */FsConfig
     const void *vsys0 = pConfig;
     const void *vsys;
     {
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0,ipList, 0, "vsys");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, pConfig, 0, ipList, 0, "vsys");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -523,7 +523,7 @@ static unsigned int domelinkage_private_get_channelCount(/* 可为空 */FsConfig
         }
         pRecord->rw._snapbuffertimeout = fs_Config_node_float_get_first(pConfig, vsys0, vsys, "snapbuffertimeout", 0.0, NULL);
 #endif
-        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0,NULL, 0, "vsysChannel");
+        FsObjectList * const list = fs_Config_node_template__IO(pConfig, &vsys0, vsys, 0, NULL, 0, "vsysChannel");
         if (NULL == list) {
 #ifdef __get_channelCount_vsys_vsysChannel_in_vsys
             *rst_pVsysChannel0 = NULL;
@@ -607,8 +607,10 @@ static void domelinkage_private_item_delete__OI(struct Domelinkage_item * pDomel
 }
 
 /*  在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128  */
-static int linkage_snap_private_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ void* p
+static int linkage_snap_private_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ void* p
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     struct Domelinkage_item * const pDomelinkage_item = (struct Domelinkage_item *) p;
     fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
@@ -749,12 +751,12 @@ void domelinkage_alg_createConfig(FsConfig * const pConfig, void * parent) {
     pNode = fs_Config_node_string_add(pConfig, parent, "trackFrameInterval", "算法处理帧率", "算法处理帧率(2：原帧率1/2，3:原帧率1/3,其他值：原帧率)", 0, 0x7, 1, 5, 1);
     fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_default, "2", "2", "2");
 
-    void *pNode2 = fs_Config_node_integer_add(pConfig, parent, "zoomTimes", "算法处理图像缩小倍数", "算法处理图像缩小倍数",  FsConfig_nodeShowType_default,0, 0x7, 0, 32, 1);
+    void *pNode2 = fs_Config_node_integer_add(pConfig, parent, "zoomTimes", "算法处理图像缩小倍数", "算法处理图像缩小倍数", FsConfig_nodeShowType_default, 0, 0x7, 0, 32, 1);
     fs_Config_node_integer_add_value(pConfig, pNode2, FsConfig_nodeValue_default, 16, "缩小16倍", "缩小16倍");
     fs_Config_node_integer_add_value(pConfig, pNode2, FsConfig_nodeValue_optional, 4, "缩小4倍", "缩小4倍");
     fs_Config_node_integer_add_value(pConfig, pNode2, FsConfig_nodeValue_optional, 1, "原图尺寸", "原图尺寸");
 
-    void *pNode1 = fs_Config_node_integer_add(pConfig, parent, "linkage_saveVideo", "是否保存通过录像", "是否保存通过录像(选1表示保存,选0表示不保存)",  FsConfig_nodeShowType_default,0, 0x7, 0, 32, 1);
+    void *pNode1 = fs_Config_node_integer_add(pConfig, parent, "linkage_saveVideo", "是否保存通过录像", "是否保存通过录像(选1表示保存,选0表示不保存)", FsConfig_nodeShowType_default, 0, 0x7, 0, 32, 1);
     fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_default, 0, "不保存", "不保存");
     fs_Config_node_integer_add_value(pConfig, pNode1, FsConfig_nodeValue_optional, 1, "保存", "保存");
 
@@ -1523,15 +1525,15 @@ static void domelinkage_private_item_new(struct Domelinkage *pDomelinkage, /* �
     FsConfig * const pConfig = ((ConfigManager*) pDomelinkage->ro._pConfigManager)->ro.__pConfig;
     if (NULL == pConfig)return;
     const void *vsys0 = pConfig;
-    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, 0,ipList, 0 == channel, "vsys");
+    FsObjectList * const clusterList = fs_Config_node_template_orderFirst__IO(pConfig, &vsys0, pConfig, 0, ipList, 0 == channel, "vsys");
     if (clusterList) {
         const void **ppNodeCluster = (const void **) clusterList->pNode + clusterList->startIndex;
         unsigned int uj = clusterList->nodeCount;
         do {
             const void *vsysChannel0 = vsys0;
             const void* const vsys = *ppNodeCluster++;
-            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, 0,NULL, 0, "vsysChannel")
-                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys,0, NULL, 0, "vsysChannel", channel - 1);
+            FsObjectList * const list = 0 == channel ? fs_Config_node_template_orderFirst__IO(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel")
+                    : (FsObjectList *) fs_Config_node_template_get_orderFirst(pConfig, &vsysChannel0, vsys, 0, NULL, 0, "vsysChannel", channel - 1);
             if (list) {
                 void ** ppNode;
                 unsigned int ui, ipv4;
@@ -1558,7 +1560,7 @@ static void domelinkage_private_item_new(struct Domelinkage *pDomelinkage, /* �
                         //                        }
                     } else {
                         sumNode = vsysChannel = list;
-                        if (*ppDomelinkage_item != NULL && (*ppDomelinkage_item)->ro._sum == fs_Config_get_sum((FsEbml*)pConfig, (struct FsEbml_node*) sumNode))break;
+                        if (*ppDomelinkage_item != NULL && (*ppDomelinkage_item)->ro._sum == fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node*) sumNode))break;
                     }
                     ////////////////////////////////////////////////////////////////////////////
                     if (0 == channel) {
@@ -1595,7 +1597,7 @@ static void domelinkage_private_item_new(struct Domelinkage *pDomelinkage, /* �
                         }
                         if (channel > 0) {
                             /* 整个通道依赖的所有数据的校验和 */
-                            rst->ro._sum = fs_Config_get_sum((FsEbml*)pConfig, (struct FsEbml_node*) sumNode);
+                            rst->ro._sum = fs_Config_get_sum((FsEbml*) pConfig, (struct FsEbml_node*) sumNode);
                             /* 当有数据输入时写的字节,使用Fs_GroupSqrtOut_value_set宏写此字节 */
                             Fs_GroupSqrtOut_set(rst->rw._pGroupSqrtIn, pGroupSqrt->groupSqrt_member, pGroupSqrt->groupSqrt_group
                                     , pGroupSqrt->groupValue, channel - 1);
@@ -1736,7 +1738,7 @@ void order_swap(int * a, int * b) {
 int domelinkage_chosePreset(struct Domelinkage_item * pDomelinkage_item, int w, int h) {
 
     //没有找到关联的枪机uuid
-    if (pDomelinkage_item->rw.v_linkage_curr_gunIndex ==(unsigned int) -1)
+    if (pDomelinkage_item->rw.v_linkage_curr_gunIndex == (unsigned int) - 1)
         return -1;
 
     //球机标定参数个数为0
@@ -1824,7 +1826,7 @@ static int CheckPos(float set_p, float set_t, float set_z, float curr_p, float c
 void domelinkage_goback_PrePTZ(struct Domelinkage_item * pDomelinkage_item) {
 
     //没有找到关联的枪机uuid
-    if (pDomelinkage_item->rw.v_linkage_curr_gunIndex == (unsigned int)-1)
+    if (pDomelinkage_item->rw.v_linkage_curr_gunIndex == (unsigned int) - 1)
         return;
 
     //球机标定参数个数为0
@@ -1956,7 +1958,7 @@ void domelinkage_walker_focusRect(struct Domelinkage_item * pDomelinkage_item, i
         //大船
         if (objtype == 1) {
 
-            if (pDomelinkage_item->rw.v_linkage_times ==(unsigned int) -1) { //第一次联动
+            if (pDomelinkage_item->rw.v_linkage_times == (unsigned int) - 1) { //第一次联动
 
                 pDomelinkage_item->rw.v_linkage_times = 0;
 

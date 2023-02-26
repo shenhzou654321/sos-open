@@ -179,14 +179,14 @@ extern "C" {
     typedef struct {
         /* 继承FsEbml的所有特性 */
         FsEbml ebml;
-        /* 用到的定时器下一次改变的时间,开机时间,外部可改变此值 */
-        double timerUptime;
+        /* 用到的定时器下一次改变的时间,GMT时间,外部可改变此值,修改此值需要使用ebml中的锁,建议算法为:缓存上一次配置切换的时间,时间到了需要进行切换(连续判断两次),如系统时间比缓存时间小也应该切换 */
+        double timerGMT;
         /* 路由对象,调用者应定时对其更新 */
         FsRouter *pRouter;
     } FsConfig;
 #define FsConfigResult_string FsArray
-#define FsConfigResult_integer FsArray
-#define FsConfigResult_float FsArray
+#define FsConfigResult_integer FsArray // 数据指针取 (long long*) (((char*) pInteger) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8))
+#define FsConfigResult_float FsArray // 数据指针取 (double*) (((char*) pFloat) + Memery_AlignmentI(sizeof (FsConfigResult_integer), 8))
 
     /*
      * 创建一个FsConfig实例;
@@ -368,6 +368,10 @@ extern "C" {
 
     struct FsEbml_node* fs_Config_node_get_pNode0_by_child0(FsEbml * const pEbml, const void *const pNode, const void *const child0);
 
+    /* 获取pNode节点的描述节点 */
+
+    const struct FsEbml_node* fs_Config_node_get_pNode0(const FsEbml * const pEbml, const struct FsEbml_node * const pEbml_node);
+
     /* 获取pNode节点类型,成功返回类型指针,失败返回NULL */
 
     struct FsEbml_node* fs_Config_node_get_type(const FsConfig * const pConfig, /* 描述节点,可把pConfig传入 */const void * pNode0, /* 查找的节点名,用空格隔开,除最后一级节点,不能为空 */const char nodeName[]);
@@ -410,10 +414,13 @@ extern "C" {
 
     /* 为节点添加区域属性,支持模板template节点和节点node类型节点,返回可以增加属性条件的节点 */
 
-    void * fs_Config_node_add_property_area(FsConfig * const pConfig, void *const pNode,
-            /* 位置节点,节点必须在内部,为相对于本节点的节点,为空表示使用本节点 */ const char positionNode[],
-            /* 区域,以图像左上角为坐标原点,单位为像素点,节点必须在内部,为相对于本节点的节点 */const char area[],
-            /* 区域的颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */ const unsigned int areaColor);
+    void * fs_Config_node_add_property_area(FsConfig * const pConfig, void *const pNode, /* 菜单名,可为空 */const char menuName[]
+            , /* 位置节点1,节点必须在内部,为相对于本节点的节点,为空表示使用本节点 */ const char positionNode1[]
+            , /* 位置节点2,节点必须在positionNode1内部,为相对于本节点的节点,为空表示没有positionNode2 */ const char positionNode2[]
+            , /* 位置节点3,节点必须在positionNode1内部,为相对于本节点的节点,为空表示没有positionNode3 */ const char positionNode3[]
+            , /* 位置节点4,节点必须在positionNode1内部,为相对于本节点的节点,为空表示没有positionNode4 */ const char positionNode4[]
+            , /* 区域,以图像左上角为坐标原点,单位为像素点,节点必须在内部,为相对于本节点的节点 */const char area[]
+            , /* 区域的颜色,三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */ const unsigned int areaColor);
 
     /* 为节点添加图像截取属性,支持模板template节点和节点node类型节点,返回可以增加属性条件的节点 */
 
@@ -551,8 +558,8 @@ extern "C" {
 
     /* 设置string的节点值,成功返回1,失败返回-1 */
 
-    int fs_Config_node_string_set(FsConfig * const pConfig, /* pNode对应的描述节点,NULL表示需要内部查找 */ struct FsEbml_node * pNode0, /* 设置值的节点 */ struct FsEbml_node * const pNode
-            , /* 设置值的类型,0-更新,1-增加,-1-删除 */const signed char setType, /* 在setType为0时,修改第几个的值 */ unsigned int updateIndex
+    int fs_Config_node_string_set(FsConfig * const pConfig, /* pNode对应的描述节点,NULL表示需要内部查找 */ const struct FsEbml_node * pNode0, /* 设置值的节点 */ struct FsEbml_node * const pNode
+            , /* 设置值的类型,0-更新,1-增加,-1-删除 */const signed char setType, /* 在setType为0表示修改第几个的值,在setType为-1时,如此值为-1表示用value查找删除节点 */ const int updateOrDeleteIndex
             , /* 设置的值 */ const char value[], /* 出错时的回调信息,为空不回调 */void (*const cb_error) (/* 错误信息 */const char errordata[], void *externP), /* 出错回调时的外部参数 */ void *const cb_errorP);
 
     /* 获取pNode0节点的注释,返回数据在共享buffer中的偏移量 */
@@ -637,32 +644,11 @@ extern "C" {
             , /* 比例尺,一个像素点代表的长度,X方向 */ const double zoomX, /* 比例尺,一个像素点代表的长度,Y方向 */ const double zoomY
             , /* 区域参考原点的x坐标 */ int x0, /* 区域参考原点的y坐标 */int y0);
 
-    /* 绘制区域到单通道的图像上 */
-
-    void fs_Config_node_string_area_draw_ch1(/* 区域 */FsConfigResult_area * const pArea,
-            /* 图像的数据指针 */ unsigned char buffer[], /* 宽度 */unsigned int width, /* 高度 */unsigned int height, /* 储存宽度 */ const unsigned int xStep,
-            /* 三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */unsigned int color,
-            /* 颜色填充方式:0-copy,1-and,2-or,3-nor */unsigned char type);
-
-    /* 绘制区域到三通道的图像上 */
-
-    void fs_Config_node_string_area_draw_ch3(/* 区域 */FsConfigResult_area * const pArea,
-            /* 图像的数据指针 */ unsigned char buffer[], /* 宽度 */unsigned int width, /* 高度 */unsigned int height, /* 储存宽度 */ const unsigned int xStep,
-            /* 三通道颜色,最高一字节为0表示实线,为1表示间隔一个点的虚线,2表示间隔两个点的虚线,以此类推,最多255个间隔 */unsigned int color,
-            /* 颜色填充方式:0-copy,1-and,2-or,3-nor */unsigned char type);
-
     /* 填充区域到单通道的图像上 */
 
     void fs_Config_node_string_area_fill_ch1(/* 区域 */FsConfigResult_area * const pArea
             , /* 图像的数据指针 */ unsigned char buffer[], /* 宽度 */unsigned int width, /* 高度 */unsigned int height
             , /* 储存宽度 */ const unsigned int xStep, /* 颜色 */unsigned char color, /* 颜色填充方式:0-copy,1-and,2-or,3-nor */unsigned char type
-            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
-
-    /* 填充区域到三通道的图像上 */
-
-    void fs_Config_node_string_area_fill_ch3(/* 区域 */FsConfigResult_area * const pArea
-            , /* 图像的数据指针 */ unsigned char buffer[], /* 宽度 */unsigned int width, /* 高度 */unsigned int height
-            , /* 储存宽度 */ const unsigned int xStep, /* 颜色 */unsigned int color, /* 颜色填充方式:0-copy,1-and,2-or,3-nor */unsigned char type
             , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
 
     /* 添加一个整数节点,返回添加的节点,此类型读到的值是long long型 */
@@ -679,8 +665,8 @@ extern "C" {
 
     /* 设置integer的节点值,成功返回1,失败返回-1 */
 
-    int fs_Config_node_integer_set(FsConfig * const pConfig, /* pNode对应的描述节点,NULL表示需要内部查找 */ struct FsEbml_node * pNode0, /* 设置值的节点 */ struct FsEbml_node * const pNode
-            , /* 设置值的类型,0-更新,1-增加,-1-删除 */const signed char setType, /* 在setType为0时,修改第几个的值 */ unsigned int updateIndex
+    int fs_Config_node_integer_set(FsConfig * const pConfig, /* pNode对应的描述节点,NULL表示需要内部查找 */const struct FsEbml_node * pNode0, /* 设置值的节点 */ struct FsEbml_node * const pNode
+            , /* 设置值的类型,0-更新,1-增加,-1-删除 */const signed char setType, /* 在setType为0表示修改第几个的值,在setType为-1时,如此值为-1表示用value查找删除节点 */ const int updateOrDeleteIndex
             , /* 设置的值 */ const long long value, /* 出错时的回调信息,为空不回调 */void (*const cb_error) (/* 错误信息 */const char errordata[], void *externP), /* 出错回调时的外部参数 */ void *const cb_errorP);
 
     /* 获取pNode0节点的注释,返回数据在共享buffer中的偏移量 */
@@ -723,8 +709,8 @@ extern "C" {
 
     /* 设置float的节点值,成功返回1,失败返回-1 */
 
-    int fs_Config_node_float_set(FsConfig * const pConfig, /* pNode对应的描述节点,NULL表示需要内部查找 */ struct FsEbml_node * pNode0, /* 设置值的节点 */ struct FsEbml_node * const pNode
-            , /* 设置值的类型,0-更新,1-增加,-1-删除 */const signed char setType, /* 在setType为0时,修改第几个的值 */ unsigned int updateIndex
+    int fs_Config_node_float_set(FsConfig * const pConfig, /* pNode对应的描述节点,NULL表示需要内部查找 */ const struct FsEbml_node * pNode0, /* 设置值的节点 */ struct FsEbml_node * const pNode
+            , /* 设置值的类型,0-更新,1-增加,-1-删除 */const signed char setType, /* 在setType为0表示修改第几个的值,在setType为-1时,如此值为-1表示用value查找删除节点 */ const int updateOrDeleteIndex
             , /* 设置的值 */ const double value, /* 出错时的回调信息,为空不回调 */void (*const cb_error) (/* 错误信息 */const char errordata[], void *externP), /* 出错回调时的外部参数 */ void *const cb_errorP);
 
     /* 获取pNode0节点的注释,返回数据在共享buffer中的偏移量 */
@@ -756,8 +742,8 @@ extern "C" {
 
     /* 设置binary的节点值,成功返回1,失败返回-1 */
 
-    int fs_Config_node_binary_set(FsConfig * const pConfig, /* pNode对应的描述节点,NULL表示需要内部查找 */ struct FsEbml_node * pNode0, /* 设置值的节点 */ struct FsEbml_node * const pNode
-            , /* 设置值的类型,0-更新,1-增加,-1-删除 */const signed char setType, /* 在setType为0时,修改第几个的值 */ unsigned int updateIndex
+    int fs_Config_node_binary_set(FsConfig * const pConfig, /* pNode对应的描述节点,NULL表示需要内部查找 */const struct FsEbml_node * pNode0, /* 设置值的节点 */ struct FsEbml_node * const pNode
+            , /* 设置值的类型,0-更新,1-增加,-1-删除 */const signed char setType, /* 在setType为0表示修改第几个的值,在setType为-1时,如此值为-1表示用value查找删除节点 */ const int updateOrDeleteIndex
             , /* 设置的值 */ const char value[], /* 值的长度 */const unsigned int valueLen, /* 出错时的回调信息,为空不回调 */void (*const cb_error) (/* 错误信息 */const char errordata[], void *externP), /* 出错回调时的外部参数 */ void *const cb_errorP);
 
     /* 获取pNode0节点的注释,返回数据在共享buffer中的偏移量 */
@@ -795,7 +781,11 @@ extern "C" {
 
     /* 获取pNode的上下文存于nodeParentList_中 */
 
-    void fs_Config_condition_nodeParentList_get(FsObjectList * const nodeParentList_, const FsEbml * const pEbml, /* 根节点,可为pEbml */ const struct FsEbml_node* templateNode, const struct FsEbml_node *pNode, /* templateNode到pNode的距离 */const unsigned int distance);
+    void fs_Config_condition_nodeParentList_get(FsObjectList * const nodeParentList_, /* 根节点,可为pEbml */ const struct FsEbml_node* templateNode, const struct FsEbml_node *pNode, /* templateNode到pNode的距离 */const unsigned int distance);
+
+    /* 获取pNode的上下文存于nodeParentList_中,从pEbml开始 */
+
+    void fs_Config_condition_nodeParentList_get_root(FsObjectList * const nodeParentList_, const FsEbml * const pEbml, /* 根节点,可为pEbml */ const struct FsEbml_node * const templateNode, const struct FsEbml_node * const pNode, /* templateNode到pNode的距离 */const unsigned int distance);
 
     /* 检查节点在当前值的环境下是否有效,也可用于属性条件判断,有效且与condition有关返回3,有效且与condition无关返回1,无效且与condition有关返回2,无效且与condition无关返回0 */
 
@@ -827,7 +817,8 @@ extern "C" {
      */
 
     FsStringList * fs_Config_distributed_host_get__IO(const FsConfig * const pConfig, /* parentNode对应的描述节点,NULL表示需要内部查找 */const void * const parentNode0
-            , /* 父节点,没有请把pConfig传入 */const void *const parentNode);
+            , /* 父节点,没有请把pConfig传入 */const void *const parentNode
+            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
 
     /* 用用户数据导入配置,userConfig必须是已完整解析的对象,userConfig必须是已完整解析的对象,不会失败,使用fs_Config_import_onlyData和fs_Config_merge_onlyData操作过的节点不能使用此函数,0-表示没有导入节点,1-表示导入了节点 */
 
@@ -870,7 +861,7 @@ extern "C" {
 
     /* 只导出自定义配置 */
 
-    FsEbml *fs_Config_export_simple__IO(const FsConfig * const pConfig, /* pNode对应的描述节点,为NULL表示需要内部查找 */const void * pNode0, /* 导出的节点,全部导出,请把pConfig传入 */const void *const pNode);
+    FsEbml * fs_Config_export_simple__IO(const FsConfig * const pConfig, /* pNode对应的描述节点,为NULL表示需要内部查找 */const void * pNode0, /* 导出的节点,全部导出,请把pConfig传入 */const void *const pNode);
 
     /* 只导出自定义配置,把pNode的数据导出放dstNode下,含注释 */
 
@@ -947,7 +938,7 @@ extern "C" {
 
     /* 获取split的memberList,成功返回链表,失败返回NULL */
 
-    FsObjectList* fs_Config_property_split_get_memberList__IO(FsConfig * const pConfig
+    FsObjectList * fs_Config_property_split_get_memberList__IO(FsConfig * const pConfig
             , struct FsEbml_node * const pNode, /* 参数在哪个节点下,如为空,函数内部重新查找 */struct FsEbml_node * parent_parameter, struct FsEbml_node * const pos_node);
 
     /* 获取member_symmetry和节点的指针,对称方式获取成功返回1,失败返回-1 */

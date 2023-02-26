@@ -720,10 +720,10 @@ extern "C" {
             /* 上上一次发送invite的时间 */
             double lastLastSendInviteTime;
 #endif
-            // 在isForSip不为0时后续变量为外部可自定义的空间,内部不使用(内部储存为 unsigned int data[5] = {requestID_3[0], requestID_3[1], requestID_3[2], head, (unsigned int) requestDataType})
+            // 在isForSip不为0时后续变量为外部可自定义的空间,内部不使用(内部储存为 unsigned int data[6] = {ConfigManager_refer_connect_node_make6(requestID_3, headType, checkMethod, virtualConnection, requestDataType, head)})
 #define GB28181Client_item_get_forSip_custom_memory(___pGB28181Client_item) (((char*)___pGB28181Client_item)+Memery_AlignmentI(FsPointer_to_integer(&(( struct GB28181Client_item *)0)->p.psTime),8))
             /* 分配的代理ID号,不能为0,1-表示未分配 */
-#define GB28181Client_item_forSip_proxyID(___pGB28181Client_item) ((unsigned int*)GB28181Client_item_get_forSip_custom_memory(___pGB28181Client_item))[5]
+#define GB28181Client_item_forSip_proxyID(___pGB28181Client_item) ((unsigned int*)GB28181Client_item_get_forSip_custom_memory(___pGB28181Client_item))[6]
             /* 收数据时从ps中解析到的时间(小于0.0无效) */
             double psTime;
             /* 把rtp的变化时间累加 */

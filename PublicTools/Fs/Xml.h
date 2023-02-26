@@ -336,6 +336,25 @@ extern "C" {
             , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
             , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
     /*
+     * 把pXml转换成字符串;
+     * 返回FsObjectBase对象.
+     */
+    FsObjectBase *fs_Xml_to_ObjectBase_with_buffer__IO(const FsXml * const pXml
+            , /* 原缓存,不为空,在(*pObjectBaseBuffer)为空时,会把当前返回的对象的_unownedTag置1并设置到(*pObjectBaseBuffer)中,在(*pObjectBaseBuffer)->referCount为0时返回的数据会使用缓存 */
+            FsObjectBase* * const pObjectBaseBuffer, /* 指data的偏移位置,不小于sizeof(FsObjectBase) */ const unsigned int dataOffset
+            , /* 实际数据结束位置距离返回结果的data尾的字节数 */const unsigned int suffixCount
+            , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
+            , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
+    /*
+     * 把pXml转换成字符串;
+     * 返回FsObjectBase对象.
+     */
+    FsObjectBase *fs_Xml_to_ObjectBase_from_buffer__IO(const FsXml * const pXml, /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer
+            , /* 指data的偏移位置,不小于sizeof(FsObjectBase) */ const unsigned int dataOffset
+            , /* 实际数据结束位置距离返回结果的data尾的字节数 */const unsigned int suffixCount
+            , /* prefix长度 */ const unsigned int prefixLen, /* 前缀,如"/n /r/n",可为空 */ const char prefix[]
+            , /* suffix长度 */ const unsigned int suffixLen, /* 后缀,如"/n",可为空 */ const char suffix[], /* 缩进增加量 */const unsigned char indent_add);
+    /*
      * 把pXml转换成字符串,不带属性;
      * 返回字符串.
      */

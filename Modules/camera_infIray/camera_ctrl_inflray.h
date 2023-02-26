@@ -17,6 +17,7 @@
 extern "C" {
 #endif
 #define Camera_ctrl_inflray_Debug
+    #define Camera_ctrl_inflray_skip_error
 
     /* 
      * INFLRAY控制(双光谱云台)

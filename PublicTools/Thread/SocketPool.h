@@ -370,7 +370,7 @@ extern "C" {
      *     第9个字节到第10个字节:为数据长度的扩充长度(2字节,小端模式),值为5个到8个字节值a与本字段值b按公式(a&0x7FFFFFFF)|(b << 31) >计算得到;
      *     第11个字节到第12个字节:表示校验和(2字节),计算方法受校验方法的编号不同而不同:
      *     第13个字节到第15个字节:表示虚拟连接号(3字节,小端模式),0-表示默认的虚拟连接;
-     *     第16个字节高3bit:表示校正位,在头按校验方式编码后,本字段设置合适的值后把第16字节同第1字节异或后作为第一字节的传输值,避免第一字节出现一些特殊字符(如H,h,r,R等)
+     *     第16个字节高3bit:表示校正位,在头按校验方式编码后,本字段设置合适的值后把第16字节同第1字节异或后作为第一字节的传输值,避免第一字节出现一些特殊字符(如H,h,r,R等),不为0,为0表示16字节头是解码状态
      *     第16个字节低5bit:表示16字节头的校验方法,按如下定义(校验的目的:在连接层过滤掉一些非法连接):
      *         分两类预设值[0-15]与自定义[16-31](两类本身没有区别,在使用时一般是0到多个预设值加0到一个自定义值)
      *         其中0表示为解码状态
@@ -647,13 +647,18 @@ extern "C" {
     /* 发送错误信息 */
 
 #ifdef FsDebug
-
-    void __socketPool_item_send_errorData_standard(struct SocketPool_item * pSocketPool_item, /* 出错相关信息的头,前四个字节 */const unsigned int head,
-            /* 错误信息,格式参见fs_String_print__IO函数说明 */const char * __restrict __format, ...);
+    void __socketPool_item_send_errorData_standard(struct SocketPool_item * const pSocketPool_item, /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ const unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31 */ const unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */const unsigned int virtualConnection
+            , /* 收到数据的前4字节,发送数据固定为 (head & 0xFFFFFFF0U) | 0x06 */const unsigned int head
+            , /* 错误信息,格式参见fs_String_print__IO函数说明 */const char * __restrict __format, ...);
 #define socketPool_item_send_errorData_standard(...) __socketPool_item_send_errorData_standard(__VA_ARGS__,~((int)0))
 #else
-    void socketPool_item_send_errorData_standard(struct SocketPool_item * pSocketPool_item, /* 出错相关信息的头,前四个字节 */const unsigned int head,
-            /* 错误信息,格式参见fs_String_print__IO函数说明 */const char * __restrict __format, ...);
+    void socketPool_item_send_errorData_standard(struct SocketPool_item * const pSocketPool_item, /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ const unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31 */ const unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */const unsigned int virtualConnection
+            , /* 收到数据的前4字节,发送数据固定为 (head & 0xFFFFFFF0U) | 0x06 */const unsigned int head
+            , /* 错误信息,格式参见fs_String_print__IO函数说明 */const char * __restrict __format, ...);
 #endif
 
     /* 清空pSocketPool_item的发送链表,无法清空正在发的数据 */

@@ -294,6 +294,40 @@ static void vsys_P_createConfig(FsConfig * const pConfig, /* 掩码 */const unsi
             fs_Config_node_float_add(pConfig, pNode1, "direction", "方向(0-360)", "方向,单位角度,逆时针方向为正[-360-360]", 0, 0x7, -360, 360, 1);
             fs_Config_node_string_add(pConfig, pNode1, "area", "区域", "区域,以中心点为0点的坐标点,单位米 (0,0)(1,1)(2,3)", 0, 0x7, 1, 1024, 1);
         }
+        // 创建相机距离标定
+        {
+            void *const pNode1 = fs_Config_node_node_add(pConfig, pNode, "distance", "相机距离标定", "相机位置距离标定", 0, 0x7);
+            fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode1), 1, "moduleMask", FsConfig_Condition_orAnd, "64");
+            {
+                void* const pNode = fs_Config_node_integer_add(pConfig, pNode1, "distance_enable", "是否启用", "是否启用", FsConfig_nodeShowType_default, 0, 0x7, 0, 1, 1);
+                fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "0-禁用", "0-禁用");
+                fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 1, "1-启用", "1-启用");
+            }
+            {
+                void* const pNode = fs_Config_node_integer_add(pConfig, pNode1, "start_x", "水平线起点坐标X", "水平线起点坐标X", FsConfig_nodeShowType_default, 0, 0x7, 0, 128000, 1);
+                fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "distance_enable", FsConfig_Condition_equal, "1");
+            }
+            {
+                void* const pNode = fs_Config_node_integer_add(pConfig, pNode1, "start_y", "水平线起点坐标Y", "水平线起点坐标Y", FsConfig_nodeShowType_default, 0, 0x7, 0, 128000, 1);
+                fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "distance_enable", FsConfig_Condition_equal, "1");
+            }
+            {
+                void* const pNode = fs_Config_node_integer_add(pConfig, pNode1, "end_x", "水平线终点坐标X", "水平线终点坐标Y", FsConfig_nodeShowType_default, 0, 0x7, 0, 128000, 1);
+                fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "distance_enable", FsConfig_Condition_equal, "1");
+            }
+            {
+                void* const pNode = fs_Config_node_integer_add(pConfig, pNode1, "end_y", "水平线终点坐标Y", "水平线终点坐标Y", FsConfig_nodeShowType_default, 0, 0x7, 0, 128000, 1);
+                fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "distance_enable", FsConfig_Condition_equal, "1");
+            }
+            {
+                void* const pNode = fs_Config_node_float_add(pConfig, pNode1, "device_height", "设备安装高度(米)", "设备安装高度(米)", 0, 0x7, 0.0, 100.0, 1);
+                fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "distance_enable", FsConfig_Condition_equal, "1");
+            }
+            {
+                void* const pNode = fs_Config_node_float_add(pConfig, pNode1, "device_field_angle", "设备垂直视场角(度)", "设备垂直视场角(度)", 0, 0x7, 6.4, 12.8, 1);
+                fs_Config_condition_add_static(pConfig, fs_Config_condition_group_add(pConfig, pNode), 1, "distance_enable", FsConfig_Condition_equal, "1");
+            }
+        }
         // 创建相机配置
         capture_createConfig(pConfig, mask, channelCount, pNode);
         // 创建解码配置
@@ -1275,8 +1309,14 @@ static void vsys_P_update_gb28181(/* 可为空 */FsConfig * const pConfig, GB281
                         unsigned int sip_ipv4;
                         {
                             const FsString * const pString = fs_Config_node_string_get_first_String(pConfig, sip0, sip, "sip_ipv4", NULL);
-                            sip_ipv4 = fs_ipv4_network_get(pString->lenth - 1, pString->buffer);
-                            if (FS_INVALID_IPV4 == sip_ipv4) FsPrintf(1, "Get \"%s\" failed,i=%u,list->nodeCount=%lu.\n", pString->buffer, i, list->nodeCount), fflush(stdout);
+                            if (pString) {
+                                sip_ipv4 = fs_ipv4_network_get(pString->lenth - 1, pString->buffer);
+                                if (FS_INVALID_IPV4 == sip_ipv4) {
+                                    FsLog(FsLogType_matchError, FsPrintfIndex, "Get \"%s\" failed,i=%u,list->nodeCount=%lu.\n", pString->buffer, i, list->nodeCount);
+                                    fflush(stdout);
+                                    sip_ipv4 = 0;
+                                }
+                            } else sip_ipv4 = 0;
                         }
                         const unsigned short sip_ipv4Port = fs_Config_node_integer_get_first(pConfig, sip0, sip, "sip_ipv4Port", 0, NULL);
                         const char *const sip_id = fs_Config_node_string_get_first(pConfig, sip0, sip, "sip_id", NULL);
@@ -1568,13 +1608,12 @@ static void vsys_P_channelStatus_all_send(struct Vsys * const pVsys
     if (pVsys->p.channelStatusData_json_all)fs_ObjectBasePthreadSafety_delete__OI(pVsys->p.channelStatusData_json_all), pVsys->p.channelStatusData_json_all = NULL;
     if (0 == ++pVsys->p.channelStatusIndex_all)pVsys->p.channelStatusIndex_all++;
     if (0 == pVsys->p.channelStatusDataClientList->nodeCount) {
-
         /* 没有客户端 */
         return;
     }
     FsEbml * const pEbml = vsys_P_channelStatus_all_get__IO(pVsys, pShareBuffer);
-    configManager_conncet_refer_send(pVsys->ro._pConfigManager, pVsys->p.channelStatusDataClientList_all,
-            &pVsys->p.channelStatusData_ebml_all, &pVsys->p.channelStatusData_xml_all, &pVsys->p.channelStatusData_json_all, pEbml, 0x2, pObjectBaseBuffer);
+    configManager_conncet_refer_send(pVsys->ro._pConfigManager, pVsys->p.channelStatusDataClientList_all
+            , &pVsys->p.channelStatusData_ebml_all, &pVsys->p.channelStatusData_xml_all, &pVsys->p.channelStatusData_json_all, pEbml, 0x2, pObjectBaseBuffer, pShareBuffer);
     fs_Ebml_delete__OI(pEbml, pShareBuffer);
 }
 
@@ -1597,8 +1636,10 @@ static int vsys_P_cb_connect_error(/* 与请求相关的信息,用于识别是�
 }
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128 */
-static int vsys_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Vsys * const pVsys
+static int vsys_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Vsys * const pVsys
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
     unsigned char getAll = 0;
@@ -1618,8 +1659,8 @@ static int vsys_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个
         pthread_mutex_lock(&pVsys->p.channelStatusDataClientList->mutex);
         if (pVsys->p.channelStatusData) {
             configManager_conncet_refer_sendData(&pVsys->p.channelStatusData_ebml, &pVsys->p.channelStatusData_xml, &pVsys->p.channelStatusData_json
-                    , pVsys->p.channelStatusData, requestID_3, head | 0x2, requestDataType, pObjectBaseBuffer);
-            unsigned int data[6] = {requestID_3[0], requestID_3[1], requestID_3[2], head, (unsigned int) requestDataType, 0};
+                    , pVsys->p.channelStatusData, requestID_3, headType, checkMethod, virtualConnection, head | 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer);
+            unsigned int data[6] = {ConfigManager_refer_connect_node_make6_array(requestID_3, headType, checkMethod, virtualConnection, requestDataType, head)};
             if (fs_StructList_insert_order(pVsys->p.channelStatusDataClientList, data) < 0) {
                 pthread_mutex_unlock(&pVsys->p.channelStatusDataClientList->mutex);
                 return 1;
@@ -1638,8 +1679,8 @@ static int vsys_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个
         /* 集群版本 */
         pthread_mutex_lock(&pVsys->p.channelStatusDataClientList_all->mutex);
         if (configManager_conncet_refer_sendData2(&pVsys->p.channelStatusData_ebml_all, &pVsys->p.channelStatusData_xml_all, &pVsys->p.channelStatusData_json_all
-                , (FsEbml * (*)(void*))vsys_P_channelStatus_all_get__IO, pVsys, requestID_3, head, requestDataType, pShareBuffer) == 1) {
-            unsigned int data[6] = {requestID_3[0], requestID_3[1], requestID_3[2], head, (unsigned int) requestDataType, 0};
+                , (FsEbml * (*)(void*))vsys_P_channelStatus_all_get__IO, pVsys, requestID_3, headType, checkMethod, virtualConnection, head | 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer) == 1) {
+            unsigned int data[6] = {ConfigManager_refer_connect_node_make6_array(requestID_3, headType, checkMethod, virtualConnection, requestDataType, head)};
             if (fs_StructList_insert_order(pVsys->p.channelStatusDataClientList_all, data) < 0) {
                 pthread_mutex_unlock(&pVsys->p.channelStatusDataClientList_all->mutex);
                 return 1;
@@ -1680,8 +1721,10 @@ static FsConfig *vsys_P_protocol_channelStatus_get() {
     return pConfig;
 }
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128 */
-static int vsys_P_cmd_cb_vsysInfo(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Vsys * const pVsys
+static int vsys_P_cmd_cb_vsysInfo(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Vsys * const pVsys
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     //fs_Ebml_out_debug(pEbml, stdout), printf("\n");
     {
@@ -1694,7 +1737,7 @@ static int vsys_P_cmd_cb_vsysInfo(/* 与请求相关的信息,用于识别是发
         }
 #endif
     }
-    struct ConfigManager_connectNode_useOnce * const pConnectNode = configManager_connectNode_useOnce_new__IO(requestID_3, head, requestDataType
+    struct ConfigManager_connectNode_useOnce * const pConnectNode = configManager_connectNode_useOnce_new__IO(requestID_3, headType, checkMethod, virtualConnection, head, requestDataType
             , 0, fs_Ebml_node_get_mask(pEbml, (struct FsEbml_node*) pEbml, "type"));
     pthread_mutex_lock(&pVsys->p.channelStatusDataClientList->mutex);
     pConnectNode->next = (struct ConfigManager_connectNode_useOnce *) pVsys->p.pConnectNode__channelStatusDataClientList;
@@ -1729,7 +1772,9 @@ static FsConfig * vsys_P_protocol_vsysInfo_get() {
 }
 
 /* 在回执匹配掩码时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128,为空表示此命令字不允许远程调用 */
-static int vsys_P_cb_return_channelStatus(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[]
+static int vsys_P_cb_return_channelStatus(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
         , /* 收到的数据 */FsObjectBasePthreadSafety *pObjectBasePthreadSafety, /* 调用函数的指针 */ struct Vsys * const pVsys
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     if ((0x3U | ConfigManager_Cluster_protocol_channelStatus_get) != *(unsigned int *) pObjectBasePthreadSafety->data) {
@@ -1773,8 +1818,10 @@ static int vsys_P_cb_return_channelStatus(/* 与请求相关的信息,用于识�
 #ifdef Vsys_stat_out_enable
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128 */
-static int vsys_P_cmd_cb_stats(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Vsys * const pVsys
+static int vsys_P_cmd_cb_stats(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Vsys * const pVsys
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     //fs_Ebml_out_debug(pEbml, stdout), printf("\n");
     {
@@ -1804,7 +1851,7 @@ static int vsys_P_cmd_cb_stats(/* 与请求相关的信息,用于识别是发给
             }
         }
         pthread_mutex_unlock(&pVsys->p.mutex_ppObjectStats);
-        configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml1, requestID_3, head | 0x2, requestDataType, pObjectBaseBuffer);
+        configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml1, requestID_3, headType, checkMethod, virtualConnection, head | 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer);
         fs_Ebml_delete__OI(pEbml1, pShareBuffer);
     }
     return 1;
@@ -1833,8 +1880,10 @@ static FsConfig *vsys_P_protocol_stats_get() {
 #endif
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128 */
-static int vsys_P_cmd_cb_router(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针,[0]--集群路由,[1]--本地ip映射 */ FsRouter * * const ppRouter
+static int vsys_P_cmd_cb_router(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针,[0]--集群路由,[1]--本地ip映射 */ FsRouter * * const ppRouter
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     //fs_Ebml_out_debug(pEbml, stdout), printf("\n");
     {
@@ -1876,7 +1925,7 @@ static int vsys_P_cmd_cb_router(/* 与请求相关的信息,用于识别是发�
             }
             fs_ObjectList_delete__OI(list);
         }
-        configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml1, requestID_3, head | 0x2, requestDataType, pObjectBaseBuffer);
+        configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml1, requestID_3, headType, checkMethod, virtualConnection, head | 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer);
         fs_Ebml_delete__OI(pEbml1, pShareBuffer);
     }
     return 1;
@@ -1935,7 +1984,7 @@ static int vsys_P_cluster_connect_cb(/* 期望连接的其他主机的本地ip *
             , 0x5F, 0x66, 0x6F, 0x72, 0x5F, 0x75, 0x75, 0x69, 0x64, 0x00, 0x05, 0x01, 0x0B, 0x76, 0x73, 0x79
             , 0x73, 0x00, 0x72, 0x65, 0x74, 0x75, 0x72, 0x6E, 0x5F, 0x74, 0x79, 0x70, 0x65, 0x00, 0x05, 0x01
             , 0x0B, 0x65, 0x62, 0x6D, 0x6C, 0x00, 0x51};
-        configManager_conncet_refer_send_buffer(sizeof (sendData), (const char*) sendData, requestID_3, 0x01U | ConfigManager_Cluster_protocol_channelStatus_get, pObjectBaseBuffer);
+        configManager_conncet_refer_send_buffer(sizeof (sendData), (const char*) sendData, requestID_3, 1, 0, 0, 0x01U | ConfigManager_Cluster_protocol_channelStatus_get, pObjectBaseBuffer);
         return -128;
     } else {
         /* 连接断开 */
@@ -2185,13 +2234,13 @@ static void *vsys_P_T(struct Vsys * const pVsys) {
 #define __vsys_P_T_clean2_1 {configManager_connect_error_logoff(pConfigManager, (int (*)(const unsigned int*, void*, char**))vsys_P_cb_connect_error, pVsys);}
     // 注册命令字
     configManager_cmd_register_and_protocol_publish(pConfigManager, "channelStatus_get", "vsys", 0, pVsys, 0
-            , (int(*)(const unsigned int*, unsigned int, FsEbml*, char, void*, FsObjectBaseBuffer * const, FsShareBuffer*)) vsys_P_cmd_cb, NULL, pVsys
+            , (int(*)(const unsigned int*, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml*, char, void*, FsObjectBaseBuffer * const, FsShareBuffer*)) vsys_P_cmd_cb, NULL, pVsys
             ////////////////////////////////////////////////////////////////////
             , "channelStatus_get", "通道状态获取", 255, vsys_P_protocol_channelStatus_get, &shareBuffer);
 #define __vsys_P_T_clean2_2 {configManager_cmd_logoff_and_protocol_cancel(pConfigManager, "channelStatus_get", "vsys", 0, pVsys,"channelStatus_get",&shareBuffer);}
     /* 注册获取线程信息的的命令字,cmd+uuid+ipv4必须是唯一值 */
     configManager_cmd_register_and_protocol_publish(pConfigManager, "vsysInfo_get", "vsys", 0, pVsys, 0
-            , (int (* const) (const unsigned int *, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))vsys_P_cmd_cb_vsysInfo, NULL, pVsys
+            , (int (* const) (const unsigned int *, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))vsys_P_cmd_cb_vsysInfo, NULL, pVsys
             ////////////////////////////////////////////////////////////////
             , "vsysInfo_get", "vsys信息获取", ConfigManager_Module5_protocol_classIndex0, vsys_P_protocol_vsysInfo_get, &shareBuffer);
 #define __vsys_P_T_clean2_3 {configManager_cmd_logoff_and_protocol_cancel(pConfigManager, "vsysInfo_get", "vsys", 0, pVsys,"vsysInfo_get",&shareBuffer);}
@@ -2205,7 +2254,7 @@ static void *vsys_P_T(struct Vsys * const pVsys) {
     /* 解码跟踪对象的个数,使用mutex_ppObjectStats的互斥锁 */
     pVsys->p.statsCount = channelCount;
     configManager_cmd_register_and_protocol_publish(pConfigManager, "vsys_stats", "vsys", 0, pVsys, 0
-            , (int(*)(const unsigned int*, unsigned int, FsEbml*, char, void*, FsObjectBaseBuffer * const, FsShareBuffer*))vsys_P_cmd_cb_stats, NULL, pVsys
+            , (int(*)(const unsigned int*, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml*, char, void*, FsObjectBaseBuffer * const, FsShareBuffer*))vsys_P_cmd_cb_stats, NULL, pVsys
             ////////////////////////////////////////////////////////////////////
             , "vsys_stats", "解码信息获取", 255, vsys_P_protocol_stats_get, &shareBuffer);
 #define __vsys_P_T_clean2_4 {configManager_cmd_logoff_and_protocol_cancel(pConfigManager, "vsys_stats", "vsys", 0, pVsys,"vsys_stats",&shareBuffer);}
@@ -2215,7 +2264,7 @@ static void *vsys_P_T(struct Vsys * const pVsys) {
 #endif
     /* 注册对其他主机相机状态数据处理函数 */
     configManager_return_register(pConfigManager, ConfigManager_Cluster_protocol_channelStatus_get, pVsys
-            , (int (*)(const unsigned int*, FsObjectBasePthreadSafety*, void*, FsObjectBaseBuffer*, char**))vsys_P_cb_return_channelStatus, pVsys);
+            , (int (*)(const unsigned int*, unsigned char, unsigned char, unsigned int, unsigned int, FsObjectBasePthreadSafety*, void*, FsObjectBaseBuffer*, char**))vsys_P_cb_return_channelStatus, pVsys);
 #define __vsys_P_T_clean2_5 {configManager_return_logoff(pConfigManager, ConfigManager_Cluster_protocol_channelStatus_get, pVsys);}
     // 注册获取集群服务器连接的回掉函数
     configManager_cluster_connect(pConfigManager, 0, pVsys, (int (*)(unsigned int, const unsigned int*, unsigned char, void*, FsObjectBaseBuffer*, char**))vsys_P_cluster_connect_cb, pVsys);
@@ -2226,7 +2275,7 @@ static void *vsys_P_T(struct Vsys * const pVsys) {
     // 本地ip映射 
 #define __vsys_P_T_clean1_17
     configManager_cmd_register_and_protocol_publish(pConfigManager, "vsys_router_get", "vsys", 0, pVsys, 0
-            , (int(*)(const unsigned int*, unsigned int, FsEbml*, char, void*, FsObjectBaseBuffer * const, FsShareBuffer*))vsys_P_cmd_cb_router, NULL, pRouter_cluster
+            , (int(*)(const unsigned int*, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml*, char, void*, FsObjectBaseBuffer * const, FsShareBuffer*))vsys_P_cmd_cb_router, NULL, pRouter_cluster
             , "vsys_router_get", "路由信息获取", 255, vsys_P_protocol_router_get, &shareBuffer);
 #define __vsys_P_T_clean2_7 {configManager_cmd_logoff_and_protocol_cancel(pConfigManager, "vsys_router_get", "vsys", 0, pVsys,"vsys_router_get",&shareBuffer);}
 #define __vsys_P_T_clean2_count 7
@@ -2342,8 +2391,11 @@ static void *vsys_P_T(struct Vsys * const pVsys) {
                         , "comment", "本轮检测中探测到不在线的相机数量")->data.buffer = offlineChannelCount_new;
                 *(unsigned long long*) fs_Ebml_node_addChild_with_a_property(pEbml, (struct FsEbml_node*) pEbml, "offlineChannelCount", FsEbmlNodeType_Integer
                         , "comment", "不在线的相机数量")->data.buffer = offlineChannelCount;
-
-                configManager_send_pthreadSafety__OI_2_default(pConfigManager, pEbml, pConnectNode->requestID, pConnectNode->head, pConnectNode->return_type, &shareBuffer);
+                configManager_send_pthreadSafety__OI_2_default(pConfigManager, pEbml
+                        , ConfigManager_refer_connect_node_get_requestID_3(pConnectNode->requestData), ConfigManager_refer_connect_node_get_headType(pConnectNode->requestData)
+                        , ConfigManager_refer_connect_node_get_checkMethod(pConnectNode->requestData), ConfigManager_refer_connect_node_get_virtualConnection(pConnectNode->requestData)
+                        , ConfigManager_refer_connect_node_get_head(pConnectNode->requestData) | 0x2, ConfigManager_refer_connect_node_get_requestDataType(pConnectNode->requestData)
+                        , &baseBuffer, &shareBuffer);
             }
             fsFree(pConnectNode);
 #endif
@@ -2938,7 +2990,7 @@ static void *vsys_P_T(struct Vsys * const pVsys) {
                             if (pVsys->p.channelStatusData_xml)fs_ObjectBasePthreadSafety_delete__OI(pVsys->p.channelStatusData_xml), pVsys->p.channelStatusData_xml = NULL;
                             if (pVsys->p.channelStatusData_json)fs_ObjectBasePthreadSafety_delete__OI(pVsys->p.channelStatusData_json), pVsys->p.channelStatusData_json = NULL;
                             configManager_conncet_refer_send(pConfigManager, pVsys->p.channelStatusDataClientList,
-                                    &pVsys->p.channelStatusData_ebml, &pVsys->p.channelStatusData_xml, &pVsys->p.channelStatusData_json, pVsys->p.channelStatusData, 0x2, &baseBuffer);
+                                    &pVsys->p.channelStatusData_ebml, &pVsys->p.channelStatusData_xml, &pVsys->p.channelStatusData_json, pVsys->p.channelStatusData, 0x2, &baseBuffer, &shareBuffer);
                             pthread_mutex_unlock(&pVsys->p.channelStatusDataClientList->mutex);
                             /* 更新并发送集群通道信息 */
                             pthread_mutex_lock(&pVsys->p.channelStatusDataClientList_all->mutex);
@@ -2986,7 +3038,7 @@ static void *vsys_P_T(struct Vsys * const pVsys) {
                     if (pVsys->p.channelStatusData_xml)fs_ObjectBasePthreadSafety_delete__OI(pVsys->p.channelStatusData_xml), pVsys->p.channelStatusData_xml = NULL;
                     if (pVsys->p.channelStatusData_json)fs_ObjectBasePthreadSafety_delete__OI(pVsys->p.channelStatusData_json), pVsys->p.channelStatusData_json = NULL;
                     configManager_conncet_refer_send(pConfigManager, pVsys->p.channelStatusDataClientList
-                            , &pVsys->p.channelStatusData_ebml, &pVsys->p.channelStatusData_xml, &pVsys->p.channelStatusData_json, pVsys->p.channelStatusData, 0x2, &baseBuffer);
+                            , &pVsys->p.channelStatusData_ebml, &pVsys->p.channelStatusData_xml, &pVsys->p.channelStatusData_json, pVsys->p.channelStatusData, 0x2, &baseBuffer, &shareBuffer);
                     pthread_mutex_unlock(&pVsys->p.channelStatusDataClientList->mutex);
                     /* 更新并发送集群通道信息 */
                     pthread_mutex_lock(&pVsys->p.channelStatusDataClientList_all->mutex);

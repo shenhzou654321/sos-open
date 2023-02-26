@@ -535,8 +535,8 @@ extern "C" {
      *     %S:输出FsString类型数据,用指针传入;          
      */
 #endif
-    FsString *fs_String_vprint__IO(/* 实际数据开始位置距离返回结果的buffer头的字节数 */ const unsigned long prefixCount,
-            /* 实际数据结束位置距离返回结果的buffer尾的字节数 */ const unsigned long suffixCount, const char * __restrict __format, __gnuc_va_list ap);
+    FsString *fs_String_vprint__IO(/* 实际数据开始位置距离返回结果的buffer头的字节数 */ const unsigned long prefixCount
+            , /* 实际数据结束位置距离返回结果的buffer尾的字节数 */ const unsigned long suffixCount, const char * __restrict __format, __gnuc_va_list ap);
 
 #ifdef FsDebug
 

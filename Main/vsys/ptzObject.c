@@ -83,24 +83,51 @@ void ptz_item_linkPtz_pthreadSafety(struct PtzObject_item * const pPtzObject_ite
 }
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128 */
-static int ptzObject_P_item_cb_debug(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型 */ char requestDataType, /* 调用函数的指针 */ struct PtzObject_item * const pPtzObject_item
+static int ptzObject_P_item_cb_debug(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct PtzObject_item * const pPtzObject_item
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    int iTime = tv.tv_sec - pPtzObject_item->p.curLinkTime > pPtzObject_item->p.linkIntervalSeconds;
+    FsPrintf(1, "next link time = %d\n", iTime);
+    if (tv.tv_sec - pPtzObject_item->p.curLinkTime > pPtzObject_item->p.linkIntervalSeconds) {
+        const int target_x = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "target_x", 0);
+        const int target_y = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "target_y", 0);
+        const int frameWidth = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "frame_width", 0);
+        const int frameHeight = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "frame_height", 0);
 
-    const unsigned int target_x = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "target_x", 0);
-    const unsigned int target_y = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "target_y", 0);
-    const unsigned int frameWidth = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "frame_width", 0);
-    const unsigned int frameHeight = fs_Ebml_node_get_first_Integer(pEbml, (struct FsEbml_node*) pEbml, "frame_height", 0);
-
-    if (target_x < 0 || target_y < 0 || frameWidth < 0 || frameHeight < 0) {
-        FsLog(FsLogType_error, FsPrintfIndex, "Invalid value.\n");
+        if ((target_x < 0) || (target_y < 0) || (frameWidth < 0) || (frameHeight < 0)) {
+            FsLog(FsLogType_error, FsPrintfIndex, "Invalid value.\n");
+            FsLogTag(10);
+            fflush(stdout);
+            //configManager_conncet_refer_send_buffer(FsStringLenData("Invalid value."), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Invalid value.\n") - 1) + sizeof (unsigned int)*3);
+            fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Invalid value.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
+            sendData->len = 8 + sizeof ("Invalid value.\n") - 1;
+            *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
+            memcpy(sendData->data + 8, "Invalid value.\n", sizeof ("Invalid value.\n") - 1);
+            memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
+            configManager_send_pthreadSafety__OI_2(pPtzObject_item->ro._pPtzObject->ro._pConfigManager, sendData);
+            return -2;
+        } else {
+            ptz_item_linkPtz_pthreadSafety(pPtzObject_item, target_x, target_y, frameWidth, frameHeight);
+            configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
+            return 1;
+        }
+    } else {
+        FsLog(FsLogType_error, FsPrintfIndex, "Operate too frequently.\n");
         FsLogTag(10);
         fflush(stdout);
-        return -1;
-    } else {
-        ptz_item_linkPtz_pthreadSafety(pPtzObject_item, target_x, target_y, frameWidth, frameHeight);
-        configManager_conncet_refer_send_buffer(FsStringLenData("ok"), requestID_3, (head & 0xFFFFFFF0U) | 0x2U, pObjectBaseBuffer);
-        return 1;
+        FsObjectBase * const sendData = (FsObjectBase*) fsMalloc(sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Operate too frequently.\n") - 1) + sizeof (unsigned int)*3);
+        fs_ObjectBase_init(sendData, sizeof (FsObjectBase) + 8 + Memery_Alignment(sizeof ("Operate too frequently.\n") - 1) + sizeof (unsigned int)*3, sizeof (FsObjectBase));
+        sendData->len = 8 + sizeof ("Operate too frequently.\n") - 1;
+        *((unsigned int *) sendData->data) = (head & 0xFFFFFFF0U) | 0x6U, *((unsigned int *) (sendData->data + 4)) = sendData->len - 8;
+        memcpy(sendData->data + 8, "Operate too frequently.\n", sizeof ("Operate too frequently.\n") - 1);
+        memcpy(sendData->data + Memery_Alignment(sendData->len), requestID_3, sizeof (unsigned int)*3);
+        configManager_send_pthreadSafety__OI_2(pPtzObject_item->ro._pPtzObject->ro._pConfigManager, sendData);
+        return -2;
     }
 }
 
@@ -227,6 +254,15 @@ static FsConfig *ptzObject_P_protocol_debug() {
         void *const pNode = fs_Config_node_string_add(pConfig, pConfig, "command_for_uuid", "资源的uuid", "资源的uuid,表示使用此接口操作的资源编号", 0, 0x7, 0, 16, 1);
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_default, "1", "1", "1");
     }
+    //    {
+    //        void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "priority", "控制优先级", "优先级,0-默认,不缓存调用者信息,1-比分析优先级低的定义,2-255:保留,256-29999:比分析优先级低的定义,\n"
+    //                "30000-34999:视频分析专用的优先级,35000-64999:比分析优先级高的定义,65000-65534:保留;非0优先级中,\n"
+    //                "    偶数表示可合并的优先级,即如有多个拥有相同偶数优先级的客户端访问同一相机,这些所有客户端的指令会按照新指令覆盖旧指令方式生效;\n"
+    //                "    奇数表示独占优先级,即如有多个拥有相同奇数优先级的客户端访问同一相机,只有第一个客户端的指令会生效,其他客户端的指令会被拒绝", FsConfig_nodeShowType_default, 0, 0x7, 0, 65534, 1);
+    //        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "0", "0");
+    //        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 256, "256", "256");
+    //        fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_optional, 257, "257", "257");
+    //    }
     {
         void *const pNode = fs_Config_node_integer_add(pConfig, pConfig, "target_x", "报警点坐标X", "报警点坐标X", FsConfig_nodeShowType_default, 0, 0x7, 0, 44800, 0);
         fs_Config_node_integer_add_value(pConfig, pNode, FsConfig_nodeValue_default, 0, "0", "0");
@@ -390,7 +426,7 @@ static void ptzObject_P_item_new(struct PtzObject * const pPtzObject, /* 通道�
                         if (0 == ipv4) configManager_connect_error_register(pPtzObject->ro._pConfigManager
                                 , (int (*)(const unsigned int *, void *, char * * const))ptzObject_P_item_cb_connect_error, rst);
                         /* 注册命令字 */
-                        configManager_cmd_register(pPtzObject->ro._pConfigManager, "ptz_link", rst->ro._uuid, ipv4, rst, 0, 0 == ipv4 ? (int (* const) (const unsigned int *, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))ptzObject_P_item_cb_debug : NULL
+                        configManager_cmd_register(pPtzObject->ro._pConfigManager, "ptz_link", rst->ro._uuid, ipv4, rst, 0, 0 == ipv4 ? (int (* const) (const unsigned int *, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))ptzObject_P_item_cb_debug : NULL
                                 , 0 == ipv4 ? (void*) ptz_item_linkPtz_pthreadSafety : NULL, rst, pShareBuffer);
                         /* 绑定命令字 保存视频录像*/
                         configManager_cmd_connect(pPtzObject->ro._pConfigManager, "cameractrl", rst->ro._uuid, rst, ptzObject_P_cmd_connect_cb, rst);
@@ -784,180 +820,176 @@ static void *ptzObject_P_T(struct PtzObject * const pPtzObject) {
             struct PtzObject_item * * const ppNode_itemList = (struct PtzObject_item **) itemList_->pNode + itemList_->startIndex;
             //FsPrintf(1, "channelCount=%u/%lu,%p,%hhu,groupSqrt_group=%u,groupSqrt_member=%u\n", channelCount,itemList_->nodeCount,groupSqrt.groupValue,groupSqrt.groupValue[0],groupSqrt.groupSqrt_group,groupSqrt.groupSqrt_member);
             for (; ui < channelCount; ui++) {
-                //#ifndef __groupSqrt_do_item 
-                //                if (ui % groupSqrt.groupSqrt_member == 0) {
-                //                    if (groupSqrt.groupValue[ui / groupSqrt.groupSqrt_member])groupSqrt.groupValue[ui / groupSqrt.groupSqrt_member] = 0;
-                //                    else {
-                //                        /* 跳过当前组 */
-                //                        ui += groupSqrt.groupSqrt_member - 1;
-                //                        continue;
-                //                    }
-                //                }
-                //#endif
+#ifndef __groupSqrt_do_item 
+                if (ui % groupSqrt.groupSqrt_member == 0) {
+                    if (groupSqrt.groupValue[ui / groupSqrt.groupSqrt_member])groupSqrt.groupValue[ui / groupSqrt.groupSqrt_member] = 0;
+                    else {
+                        /* 跳过当前组 */
+                        ui += groupSqrt.groupSqrt_member - 1;
+                        continue;
+                    }
+                }
+#endif
                 struct PtzObject_item * const pPtzObject_item = ppNode_itemList[ui];
                 if (NULL == pPtzObject_item)continue;
                 //FsPrintf(1, "pPtzObject_item->ro.__linkPtzList->nodeCount=%lu\n", pPtzObject_item->ro.__linkPtzList->nodeCount);
                 ////////////////////////////////////////////////////////////////
                 //////////////////////// 状态机 开始 ////////////////////////////
 
-                if (pPtzObject_item->ro.__linkPtzList->nodeCount > 0) {
-                    //FsPrintf(1, "pPtzObject_item->ro.__linkPtzList->nodeCount=%lu\n", pPtzObject_item->ro.__linkPtzList->nodeCount);
-                    // 执行联动
-                    pthread_mutex_lock(&pPtzObject_item->ro.__linkPtzList->mutex);
-                    ptzObject_P_item_do_link(pPtzObject_item, &baseBuffer, &shareBuffer);
-                    pthread_mutex_unlock(&pPtzObject_item->ro.__linkPtzList->mutex);
-                }
-
-                //#define __ptzObject_P_T_state_check_end (1U<<0) // 检查缓存是否足够,不够退出循环
-                //#define __inflrayObject_P_T_state_check_module_init (1U<<1) // 检查模块初始化
-                //#define __inflrayObject_P_T_state_check_do (1U<<2) // 执行联动
-                //#define __inflrayObject_P_T_state_out_frame (1U<<3) // 输出数据帧
-                //#define __inflrayObject_P_T_state_end_break (1U<<4) // 退出循环
-                //#define __inflrayObject_P_T_state_reset (1U<<5) // 重置
-                //#ifndef __inflrayObject_P_T_state
-                //                unsigned int state;
-                //                //state = FsMacrosFunction(state_check_end);
-                //                FsMacrosSetState_OR_GotoFunctionTag(state, state_check_end);
-                //                for (;;) {
-                //                    //void *pConventionalDetect;
-                //                    FsObjectImageFrame * pFrame;
-                //                    /* 检查缓存是否足够 */
-                //                    if (state & FsMacrosFunction(state_check_end)) {
-                //                        state ^= FsMacrosFunction(state_check_end);
-                //                        FsMacrosFunctionTag(state_check_end) :;
-                //                        //FsPrintf(1, "TTTTTTTTTTTTTTT state_check_end\n");
-                //                        ////////////////////////////////////////////////
-                //                        if (((int) pPtzObject_item->ro.__framelistIn->nodeCount) >= frameBufferCount) {
-                //                            /* 检查数据 */
-                //                            //FsPrintf(1, "TTTTTTTTTTTTTTT state_check_end\n");
-                //                            pthread_mutex_lock(&pPtzObject_item->ro.__framelistIn->mutex);
-                //                            pFrame = (FsObjectImageFrame*) pPtzObject_item->ro.__framelistIn->pNode[ pPtzObject_item->ro.__framelistIn->startIndex + frameBufferCount - 1];
-                //                            pthread_mutex_unlock(&pPtzObject_item->ro.__framelistIn->mutex);
-                //                            // FsPrintf(1, "TTTTTTTTTTTTTTT state_check_end,classIndex=%u/%u,index=%u\n", pInflrayObject_item->ro.classIndex, pFrame->classIndex, pFrame->index);
-                //                            if (pPtzObject_item->ro.classIndex != pFrame->classIndex) {
-                //                                pPtzObject_item->ro.classIndex = pFrame->classIndex;
-                //                                /* 重置 */
-                //                                FsMacrosSetStates_OR_GotoFunctionTag(state, state_reset, FsMacrosFunction(state_check_end));
-                //                            } else {
-                //                                /* 检查模块有无初始化 */
-                //                                // FsPrintf(1, "TTTTTTTTTTTTTTT state_check_end,index=%u\n", pFrame->index);
-                //                                FsMacrosSetStates_OR_GotoFunctionTag(state, state_check_module_init, FsMacrosFunction(state_check_do) | FsMacrosFunction(state_out_frame)
-                //                                        | FsMacrosFunction(state_check_end));
-                //                            }
-                //                        } else FsMacrosSetState_OR_GotoFunctionTag(state, state_end_break);
-                //                        if (0 == state)break;
-                //                    }
-                //                    /* 检查模块初始化 */
-                //                    if (state & FsMacrosFunction(state_check_module_init)) {
-                //                        state ^= FsMacrosFunction(state_check_module_init);
-                //                        FsMacrosFunctionTag(state_check_module_init) :;
-                //                        ////////////////////////////////////////////////////////////                   
-                //                        if (0 == pPtzObject_item.p.hasInit) {                            
-                //                            pthread_mutex_lock(&pPtzObject_item->ro.__framelistIn->mutex);
-                //                            int i = 0;
-                //                            for (; i < frameBufferCount; i++) {
-                //                                pFrame = (FsObjectImageFrame*) pPtzObject_item->ro.__framelistIn->pNode[ pPtzObject_item->ro.__framelistIn->startIndex + i];
-                //                                if (pPtzObject_item->ro.classIndex != pFrame->classIndex)break;
-                //                            }
-                //                            pthread_mutex_unlock(&pPtzObject_item->ro.__framelistIn->mutex);
-                //                            if (i != frameBufferCount) {
-                //                                /* 重置 */
-                //                                FsMacrosSetState_OR_GotoFunctionTag(state, state_reset);
-                //                            } else {
-                //                                pthread_mutex_lock(&pPtzObject_item->ro.__framelistIn->mutex);
-                //                                pFrame = (FsObjectImageFrame*) pPtzObject_item->ro.__framelistIn->pNode[ pPtzObject_item->ro.__framelistIn->startIndex + frameBufferCount - 1];
-                //                                pthread_mutex_unlock(&pPtzObject_item->ro.__framelistIn->mutex);
-                //                                //  FsPrintf(1, "TTTTTTTTTTTTTTTinflrayObject_P_item_new_conventionalDetect__IO,index=%u\n", pFrame->index);
-                //                                ptzObject_P_item_new_conventionalDetect__IO(pPtzObject_item, ui, pFrame->width[0], pFrame->height[0], pFrame->width[0], pFrame->height[0], &shareBuffer);
-                //                                //pConventionalDetect = pPtzObject_item->p.__pConventionalDetect = ptzObject_P_item_new_conventionalDetect__IO(pPtzObject_item, ui, pFrame->width[0], pFrame->height[0], pFrame->width[0], pFrame->height[0], &shareBuffer);
-                //                                //if (NULL == pConventionalDetect) {
-                //                                //    /* 重置 */
-                //                                //    FsMacrosSetState_OR_GotoFunctionTag(state, state_reset);
-                //                                //}
-                //                                pPtzObject_item.p.hasInit = 1;
-                //                            }
-                //                        }
-                //                        if (0 == state)break;
-                //                    }
-                //                    /* 执行联动 */
-                //                    if (state & FsMacrosFunction(state_check_do)) {
-                //                        state ^= FsMacrosFunction(state_check_do);
-                //                        //FsMacrosFunctionTag(state_check_do) :;
-                //                        ////////////////////////////////////////////////////////////
-                //                        /* 统计检测帧间隔 */
-                //                        int frameInterval = 1;
-                //                        //********************************************************//
-                //                        /* 检测模块 */
-                //                        // if (frameIterval < pCarDetect->p._frameInterval)frameIterval = pCarDetect->p._frameInterval;
-                //                        if (frameBufferCount < frameInterval) {
-                //                            frameBufferCount = frameInterval;
-                //                            FsMacrosSetStates_OR_GotoFunctionTag(state, state_reset, FsMacrosFunction(state_check_end));
-                //                        } else {
-                //                            if (0 == (pFrame->index % frameInterval) && ptzObject_P_item_do_detect(pPtzObject_item, pFrame, &objIndex, &baseBuffer, &shareBuffer) != 1) {
-                //                                FsLog(FsLogType_error, FsPrintfIndex, "%u/%lu:do_detect failed.\n", ui, itemList_->nodeCount);
-                //                            }
-                //                            //                            if (0 == (pFrame->index % frameInterval)) {
-                //                            //                                FsObjectImageYUV420P * const pYUV420P = (FsObjectImageYUV420P *) image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
-                //                            //                                if (pYUV420P != NULL) {
-                //                            //                                  //  FsPrintf(1, "TTTTTTTTTTTTTTT,index=%u\n", pFrame->index);
-                //                            //                                    detectAlgorithmLib_ConventionalDetect_detect(pConventionalDetect, pYUV420P->data, pFrame->width[0]);
-                //                            //                                    fs_Object_delete_pthreadSafety__OI(pYUV420P);
-                //                            //                                    /* 发送调试数据到客户端 */
-                //                            //                                    // targetCheck_P_item_send_carDetect_debug(pTargetCheck_item, pFrame, &baseBuffer);
-                //                            //                                } else {
-                //                            //                                    FsLog(FsLogType_error, FsPrintfIndex, "%u/%lu:YUV420P (=%p) is NULL.\n", ui, itemList_->nodeCount, pYUV420P);
-                //                            //                                    fflush(stdout);
-                //                            //                                }
-                //                            //                            }
-                //                        }
-                //                        //********************************************************//
-                //                        if (0 == state)break;
-                //                    }
-                //                    /* 输出数据帧 */
-                //                    if (state & FsMacrosFunction(state_out_frame)) {
-                //                        state ^= FsMacrosFunction(state_out_frame);
-                //                        //FsMacrosFunctionTag(state_out_frame) :;
-                //                        ////////////////////////////////////////////////////////////
-                //#ifndef __inflrayObject_P_T_outFrame 
-                //                        FsObjectImageFrame * const pFrame = (FsObjectImageFrame*) fs_ObjectList_remove_head_pthreadSafety(pPtzObject_item->ro.__framelistIn);
-                //                        pFrame->stats->decodeMask_set |= ImageFrame_YUV420P_0;
-                //                        fs_ObjectList_insert_tail_pthreadSafety(pPtzObject_item->ro.__framelistOut, pFrame);
-                //                        Fs_GroupSqrtOut_value_set(pInflrayObject_item->rw._pGroupSqrtOut, &pInflrayObject_item->ro._pInflrayObject->ro._pGroupSqrtOut->groupSqrt_mutex);
-                //#endif
-                //                        if (FsMacrosFunction(state_check_end) == state) FsMacrosSetState_OR_GotoFunctionTag(state, state_check_end);
-                //                        if (0 == state)break;
-                //                    }
-                //                    ////////////////////////////////////////////////////////////////
-                //                    /* 退出循环 */
-                //                    if (state & FsMacrosFunction(state_end_break)) {
-                //                        state ^= FsMacrosFunction(state_end_break);
-                //                        FsMacrosFunctionTag(state_end_break) :;
-                //                        break;
-                //                        if (0 == state)break;
-                //                    }
-                //                    /* 重置 */
-                //                    if (state & FsMacrosFunction(state_reset)) {
-                //                        state ^= FsMacrosFunction(state_reset);
-                //                        FsMacrosFunctionTag(state_reset) :;
-                //                        /* 清空缓存 */
-                //                        int rv = pPtzObject_item->ro.__framelistIn->nodeCount;
-                //                        if (rv > frameBufferCount)rv = frameBufferCount;
-                //                        while (rv-- > 0) {
-                //#ifndef __inflrayObject_P_T_outFrame 
-                //                            FsObjectImageFrame * const pFrame = (FsObjectImageFrame*) fs_ObjectList_remove_head_pthreadSafety(pPtzObject_item->ro.__framelistIn);
-                //                            pFrame->stats->decodeMask_set |= ImageFrame_YUV420P_0;
-                //                            fs_ObjectList_insert_tail_pthreadSafety(pPtzObject_item->ro.__framelistOut, pFrame);
-                //                            Fs_GroupSqrtOut_value_set(pInflrayObject_item->rw._pGroupSqrtOut, &pInflrayObject_item->ro._pInflrayObject->ro._pGroupSqrtOut->groupSqrt_mutex);
-                //#endif
-                //                        }
-                //                        if (1 == pPtzObject_item->p.hasInit) {
-                //                            pPtzObject_item->p.hasInit = 0;
-                //                        }
-                //                        if (FsMacrosFunction(state_check_end) == state) FsMacrosSetState_OR_GotoFunctionTag(state, state_check_end);
-                //                        if (0 == state)break;
-                //                    }
+                //                if (pPtzObject_item->ro.__linkPtzList->nodeCount > 0) {
+                //                    //FsPrintf(1, "pPtzObject_item->ro.__linkPtzList->nodeCount=%lu\n", pPtzObject_item->ro.__linkPtzList->nodeCount);
+                //                    // 执行联动
+                //                    pthread_mutex_lock(&pPtzObject_item->ro.__linkPtzList->mutex);
+                //                    ptzObject_P_item_do_link(pPtzObject_item, &baseBuffer, &shareBuffer);
+                //                    pthread_mutex_unlock(&pPtzObject_item->ro.__linkPtzList->mutex);
                 //                }
-                //#endif
+
+#define __ptzObject_P_T_state_check_end (1U<<0) // 检查缓存是否足够,不够退出循环
+#define __ptzObject_P_T_state_check_module_init (1U<<1) // 检查模块初始化
+#define __ptzObject_P_T_state_check_do (1U<<2) // 执行联动
+#define __ptzObject_P_T_state_out_frame (1U<<3) // 输出数据帧
+#define __ptzObject_P_T_state_end_break (1U<<4) // 退出循环
+#define __ptzObject_P_T_state_reset (1U<<5) // 重置
+#ifndef __ptzObject_P_T_state
+                unsigned int state;
+                //state = FsMacrosFunction(state_check_end);
+                FsMacrosSetState_OR_GotoFunctionTag(state, state_check_end);
+                for (;;) {
+                    //void *pConventionalDetect;
+                    FsObjectImageFrame * pFrame;
+                    /* 检查缓存是否足够 */
+                    if (state & FsMacrosFunction(state_check_end)) {
+                        state ^= FsMacrosFunction(state_check_end);
+                        FsMacrosFunctionTag(state_check_end) :;
+                        //FsPrintf(1, "TTTTTTTTTTTTTTT state_check_end\n");
+                        ////////////////////////////////////////////////
+                        if (((int) pPtzObject_item->ro.__framelistIn->nodeCount) >= frameBufferCount) {
+                            /* 检查数据 */
+                            //FsPrintf(1, "TTTTTTTTTTTTTTT state_check_end\n");
+                            pthread_mutex_lock(&pPtzObject_item->ro.__framelistIn->mutex);
+                            pFrame = (FsObjectImageFrame*) pPtzObject_item->ro.__framelistIn->pNode[ pPtzObject_item->ro.__framelistIn->startIndex + frameBufferCount - 1];
+                            pthread_mutex_unlock(&pPtzObject_item->ro.__framelistIn->mutex);
+                            // FsPrintf(1, "TTTTTTTTTTTTTTT state_check_end,classIndex=%u/%u,index=%u\n", pInflrayObject_item->ro.classIndex, pFrame->classIndex, pFrame->index);
+                            if (pPtzObject_item->ro.classIndex != pFrame->classIndex) {
+                                pPtzObject_item->ro.classIndex = pFrame->classIndex;
+                                /* 重置 */
+                                FsMacrosSetStates_OR_GotoFunctionTag(state, state_reset, FsMacrosFunction(state_check_end));
+                            } else {
+                                /* 检查模块有无初始化 */
+                                // FsPrintf(1, "TTTTTTTTTTTTTTT state_check_end,index=%u\n", pFrame->index);
+                                FsMacrosSetStates_OR_GotoFunctionTag(state, state_check_module_init, FsMacrosFunction(state_check_do) | FsMacrosFunction(state_out_frame)
+                                        | FsMacrosFunction(state_check_end));
+                            }
+                        } else FsMacrosSetState_OR_GotoFunctionTag(state, state_end_break);
+                        if (0 == state)break;
+                    }
+                    /* 检查模块初始化 */
+                    if (state & FsMacrosFunction(state_check_module_init)) {
+                        state ^= FsMacrosFunction(state_check_module_init);
+                        FsMacrosFunctionTag(state_check_module_init) :;
+                        ////////////////////////////////////////////////////////////                   
+                        //                        if (0 == pPtzObject_item.p.hasInit) {                            
+                        pthread_mutex_lock(&pPtzObject_item->ro.__framelistIn->mutex);
+                        int i = 0;
+                        for (; i < frameBufferCount; i++) {
+                            pFrame = (FsObjectImageFrame*) pPtzObject_item->ro.__framelistIn->pNode[ pPtzObject_item->ro.__framelistIn->startIndex + i];
+                            if (pPtzObject_item->ro.classIndex != pFrame->classIndex)break;
+                        }
+                        pthread_mutex_unlock(&pPtzObject_item->ro.__framelistIn->mutex);
+                        if (i != frameBufferCount) {
+                            /* 重置 */
+                            FsMacrosSetState_OR_GotoFunctionTag(state, state_reset);
+                        } else {
+                            pthread_mutex_lock(&pPtzObject_item->ro.__framelistIn->mutex);
+                            pFrame = (FsObjectImageFrame*) pPtzObject_item->ro.__framelistIn->pNode[ pPtzObject_item->ro.__framelistIn->startIndex + frameBufferCount - 1];
+                            pthread_mutex_unlock(&pPtzObject_item->ro.__framelistIn->mutex);
+                            //FsPrintf(1, "TTTTTTTTTTTTTTTptzObject_P_item,index=%u\n", pFrame->index);
+                        }
+                        if (0 == state)break;
+                    }
+                    /* 执行联动 */
+                    if (state & FsMacrosFunction(state_check_do)) {
+                        state ^= FsMacrosFunction(state_check_do);
+                        //FsMacrosFunctionTag(state_check_do) :;
+                        ////////////////////////////////////////////////////////////
+                        if (pPtzObject_item->ro.__linkPtzList->nodeCount > 0) {
+                            FsPrintf(1, "pPtzObject_item->ro.__linkPtzList->nodeCount=%lu\n", pPtzObject_item->ro.__linkPtzList->nodeCount);
+                            // 执行联动
+                            pthread_mutex_lock(&pPtzObject_item->ro.__linkPtzList->mutex);
+                            ptzObject_P_item_do_link(pPtzObject_item, &baseBuffer, &shareBuffer);
+                            pthread_mutex_unlock(&pPtzObject_item->ro.__linkPtzList->mutex);
+                        }
+                        //                        /* 统计检测帧间隔 */
+                        //                        int frameInterval = 1;
+                        //                        //********************************************************//
+                        //                        /* 检测模块 */
+                        //                        // if (frameIterval < pCarDetect->p._frameInterval)frameIterval = pCarDetect->p._frameInterval;
+                        //                        if (frameBufferCount < frameInterval) {
+                        //                            frameBufferCount = frameInterval;
+                        //                            FsMacrosSetStates_OR_GotoFunctionTag(state, state_reset, FsMacrosFunction(state_check_end));
+                        //                        } else {
+                        //                            if (0 == (pFrame->index % frameInterval) && ptzObject_P_item_do_detect(pPtzObject_item, pFrame, &objIndex, &baseBuffer, &shareBuffer) != 1) {
+                        //                                FsLog(FsLogType_error, FsPrintfIndex, "%u/%lu:do_detect failed.\n", ui, itemList_->nodeCount);
+                        //                            }
+                        //                            //                            if (0 == (pFrame->index % frameInterval)) {
+                        //                            //                                FsObjectImageYUV420P * const pYUV420P = (FsObjectImageYUV420P *) image_frame_get_pthreadSafety__IO(pFrame, ImageFrame_YUV420P_0);
+                        //                            //                                if (pYUV420P != NULL) {
+                        //                            //                                  //  FsPrintf(1, "TTTTTTTTTTTTTTT,index=%u\n", pFrame->index);
+                        //                            //                                    detectAlgorithmLib_ConventionalDetect_detect(pConventionalDetect, pYUV420P->data, pFrame->width[0]);
+                        //                            //                                    fs_Object_delete_pthreadSafety__OI(pYUV420P);
+                        //                            //                                    /* 发送调试数据到客户端 */
+                        //                            //                                    // targetCheck_P_item_send_carDetect_debug(pTargetCheck_item, pFrame, &baseBuffer);
+                        //                            //                                } else {
+                        //                            //                                    FsLog(FsLogType_error, FsPrintfIndex, "%u/%lu:YUV420P (=%p) is NULL.\n", ui, itemList_->nodeCount, pYUV420P);
+                        //                            //                                    fflush(stdout);
+                        //                            //                                }
+                        //                            //                            }
+                        //                        }
+                        //********************************************************//
+                        if (0 == state)break;
+                    }
+                    /* 输出数据帧 */
+                    if (state & FsMacrosFunction(state_out_frame)) {
+                        state ^= FsMacrosFunction(state_out_frame);
+                        //FsMacrosFunctionTag(state_out_frame) :;
+                        ////////////////////////////////////////////////////////////
+#ifndef __ptzObject_P_T_outFrame 
+                        FsObjectImageFrame * const pFrame = (FsObjectImageFrame*) fs_ObjectList_remove_head_pthreadSafety(pPtzObject_item->ro.__framelistIn);
+                        pFrame->stats->decodeMask_set |= ImageFrame_YUV420P_0;
+                        fs_ObjectList_insert_tail_pthreadSafety(pPtzObject_item->ro.__framelistOut, pFrame);
+                        Fs_GroupSqrtOut_value_set(pPtzObject_item->rw._pGroupSqrtOut, &pPtzObject_item->ro._pPtzObject->ro._pGroupSqrtOut->groupSqrt_mutex);
+#endif
+                        if (FsMacrosFunction(state_check_end) == state) FsMacrosSetState_OR_GotoFunctionTag(state, state_check_end);
+                        if (0 == state)break;
+                    }
+                    ////////////////////////////////////////////////////////////////
+                    /* 退出循环 */
+                    if (state & FsMacrosFunction(state_end_break)) {
+                        state ^= FsMacrosFunction(state_end_break);
+                        FsMacrosFunctionTag(state_end_break) :;
+                        break;
+                        if (0 == state)break;
+                    }
+                    /* 重置 */
+                    if (state & FsMacrosFunction(state_reset)) {
+                        state ^= FsMacrosFunction(state_reset);
+                        FsMacrosFunctionTag(state_reset) :;
+                        /* 清空缓存 */
+                        int rv = pPtzObject_item->ro.__framelistIn->nodeCount;
+                        if (rv > frameBufferCount)rv = frameBufferCount;
+                        while (rv-- > 0) {
+#ifndef __ptzObject_P_T_outFrame 
+                            FsObjectImageFrame * const pFrame = (FsObjectImageFrame*) fs_ObjectList_remove_head_pthreadSafety(pPtzObject_item->ro.__framelistIn);
+                            pFrame->stats->decodeMask_set |= ImageFrame_YUV420P_0;
+                            fs_ObjectList_insert_tail_pthreadSafety(pPtzObject_item->ro.__framelistOut, pFrame);
+                            Fs_GroupSqrtOut_value_set(pPtzObject_item->rw._pGroupSqrtOut, &pPtzObject_item->ro._pPtzObject->ro._pGroupSqrtOut->groupSqrt_mutex);
+#endif
+                        }
+                        if (FsMacrosFunction(state_check_end) == state) FsMacrosSetState_OR_GotoFunctionTag(state, state_check_end);
+                        if (0 == state)break;
+                    }
+                }
+#endif
                 //////////////////////// 状态机 结束 ///////////////////////////
                 ////////////////////////////////////////////////////////////////         
             }
@@ -1350,12 +1382,13 @@ unsigned int ptzObject_item_frame_out_pthreadSafety__IO_4(struct PtzObject * con
     //    }
 #endif
     if (/* pRecognition_item */ FsMacrosValue3(p, __item_frame_out_pthreadSafety__IO_4_Server, _item)->ro.__framelistOut->nodeCount > 0) {
+        //FsPrintf(1, "ptzObject_item_frame_out_pthreadSafety__IO_4\n");
         pthread_mutex_lock(&/* pRecognition_item */ FsMacrosValue3(p, __item_frame_out_pthreadSafety__IO_4_Server, _item)->ro.__framelistOut->mutex);
         index = /* pRecognition_item */ FsMacrosValue3(p, __item_frame_out_pthreadSafety__IO_4_Server, _item)->ro.__framelistOut->nodeCount;
         if (index > frameCount)index = frameCount;
         FsObjectImageFrame **ppNode = (FsObjectImageFrame**) /* pRecognition_item */ FsMacrosValue3(p, __item_frame_out_pthreadSafety__IO_4_Server, _item)->ro.__framelistOut->pNode + /* pRecognition_item */ FsMacrosValue3(p, __item_frame_out_pthreadSafety__IO_4_Server, _item)->ro.__framelistOut->startIndex;
         for (frameCount = index; frameCount > 0; frameCount--) {
-            FsPrintf(1, "index=%d,stats->decodeMask_set=%llx/%llx/%lx\n", (*ppNode)->index, (*ppNode)->stats->decodeMask_set, (*ppNode)->stats->decodeMask, ImageFrame_YUV420P_0);
+            //FsPrintf(1, "index=%d,stats->decodeMask_set=%llx/%llx/%lx\n", (*ppNode)->index, (*ppNode)->stats->decodeMask_set, (*ppNode)->stats->decodeMask, ImageFrame_YUV420P_0);
             *ppFrame++ = *ppNode++;
         }
         fs_ObjectList_remove_head_n(/* pRecognition_item */ FsMacrosValue3(p, __item_frame_out_pthreadSafety__IO_4_Server, _item)->ro.__framelistOut, index);

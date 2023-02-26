@@ -1104,7 +1104,7 @@ static int record_P_VideoDemand_update(struct Record_P_VideoDemand * const pVide
         }
         FsPrintf(1, "name:\"%s\"\n", pVideoDemand->thisFileName);
         fs_StringList_out(pVideoDemand->fileNameList, stdout, NULL, "\n");
-        strcpy(pVideoDemand->thisFileName + pVideoDemand->dirLen, pVideoDemand->fileNameList->list.pNode[pVideoDemand->fileNameList->list.startIndex]);
+        strcpy(pVideoDemand->thisFileName + pVideoDemand->dirLen, (const char*) pVideoDemand->fileNameList->list.pNode[pVideoDemand->fileNameList->list.startIndex]);
 #ifdef FsDebug
         FsPrintf2(1, "Use file:\"%s\".\n", pVideoDemand->thisFileName);
 #endif
@@ -1129,7 +1129,7 @@ static int record_P_VideoDemand_update(struct Record_P_VideoDemand * const pVide
             /* 读取下一个文件 */
             if (pVideoDemand->fileNameList->list.nodeCount > 1) {
                 fsFree(fs_StringList_remove_head__IO(pVideoDemand->fileNameList));
-                strcpy(pVideoDemand->thisFileName + pVideoDemand->dirLen, pVideoDemand->fileNameList->list.pNode[pVideoDemand->fileNameList->list.startIndex]);
+                strcpy(pVideoDemand->thisFileName + pVideoDemand->dirLen, (const char*) pVideoDemand->fileNameList->list.pNode[pVideoDemand->fileNameList->list.startIndex]);
 #ifdef FsDebug
                 FsPrintf2(1, "Use file:\"%s\".\n", pVideoDemand->thisFileName);
 #endif
@@ -1367,7 +1367,7 @@ static struct Record_P_VideoDemand * record_P_VideoDemand_new__IO(struct Record_
     struct Record_P_VideoDemand * rst;
     if (Record_item_is_remoteVideoStorage(pRecord_item->ro._recordVideoMode)) {
         len = sizeof ( ((struct Record_P_VideoDemand *) 0)->externStorage[0]);
-        FsLocal_ShareBuffer_resize(dirLen + sizeof ("remote/v"Fs_date_year_string_max"090910/0cb/1234123_0x1122334455667788_0/"));
+        FsLocal_ShareBuffer_resize(dirLen + sizeof ("remote/v" Fs_date_year_string_max "090910/0cb/1234123_0x1122334455667788_0/"));
         struct timeval tv;
         gettimeofday(&tv, NULL);
         struct tm ti;
@@ -1377,7 +1377,7 @@ static struct Record_P_VideoDemand * record_P_VideoDemand_new__IO(struct Record_
         int pos = sprintf((FsLocal_ShareBuffer + FsLocal_ShareBufferPos), "%sremote/v%d%02d%02d%02d/", dir_cin, 1900 + ti.tm_year, ti.tm_mon + 1, ti.tm_mday, ti.tm_hour);
         (FsLocal_ShareBuffer + FsLocal_ShareBufferPos)[pos++] = ti.tm_min / 2 <= 9 ? ti.tm_min / 2 + '0' : ti.tm_min / 2 - 10 + 'a';
         remoteDirLen = pos + sizeof ("cb") - 1 + sprintf((FsLocal_ShareBuffer + FsLocal_ShareBufferPos) + pos + sizeof ("cb") - 1, "/%02d%02d%03ld_", ti.tm_min, ti.tm_sec, tv.tv_usec / 1000);
-        len += remoteDirLen + sizeof ("0x1122334455667788_1234567890/") - 1 + sizeof (Fs_date_year_string_max"1009/15/video"Fs_date_year_string_max"1009150400.mkv") + 1 + remoteDirLen + sizeof ("0x1122334455667788_01234567890/") - 1 + sizeof ("__tag");
+        len += remoteDirLen + sizeof ("0x1122334455667788_1234567890/") - 1 + sizeof (Fs_date_year_string_max "1009/15/video" Fs_date_year_string_max "1009150400.mkv") + 1 + remoteDirLen + sizeof ("0x1122334455667788_01234567890/") - 1 + sizeof ("__tag");
         rst = (struct Record_P_VideoDemand*) fsMalloc(sizeof (struct Record_P_VideoDemand) +len);
         remoteDirLen += sprintf((FsLocal_ShareBuffer + FsLocal_ShareBufferPos) + remoteDirLen, "%p_/", rst);
         {
@@ -1416,7 +1416,7 @@ static struct Record_P_VideoDemand * record_P_VideoDemand_new__IO(struct Record_
     /* 当前文件名 */
     if (Record_item_is_remoteVideoStorage(pRecord_item->ro._recordVideoMode)) {
         pd = ((char*) (rst + 1)) + sizeof ( ((struct Record_P_VideoDemand *) 0)->externStorage[0]);
-        rst->thisFileName = pd, memcpy(pd, (FsLocal_ShareBuffer + FsLocal_ShareBufferPos), remoteDirLen), pd[remoteDirLen] = 0, pd += remoteDirLen + sizeof ("1234567890") - 1 + sizeof (Fs_date_year_string_max"1009/15/video"Fs_date_year_string_max"1009150400.mkv") + 1;
+        rst->thisFileName = pd, memcpy(pd, (FsLocal_ShareBuffer + FsLocal_ShareBufferPos), remoteDirLen), pd[remoteDirLen] = 0, pd += remoteDirLen + sizeof ("1234567890") - 1 + sizeof (Fs_date_year_string_max "1009/15/video" Fs_date_year_string_max "1009150400.mkv") + 1;
     } else {
         pd = (char*) (rst + 1);
         rst->thisFileName = (char*) (rst + 1), memcpy(rst->thisFileName, dir_cin, dirLen);
@@ -3192,8 +3192,10 @@ static FsConfig * record_P_protocol_video_part() {
 }
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1 */
-int record_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ void* p
+int record_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ void* p
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
 #undef FsFunctionName
 #define FsFunctionName record_P_cmd_cb
@@ -3414,7 +3416,7 @@ int record_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客�
                 else if (0 == strcmp("xml", return_type->data.buffer)) requestDataType = 2;
                 else if (0 == strcmp("json", return_type->data.buffer)) requestDataType = 3;
             }
-            configManager_conncet_refer_sendData(NULL, NULL, NULL, rst, requestID_3, head | 0x2, requestDataType, pObjectBaseBuffer);
+            configManager_conncet_refer_sendData(NULL, NULL, NULL, rst, requestID_3, headType, checkMethod, virtualConnection, head | 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer);
             fs_Ebml_delete__OI(rst, pShareBuffer);
             return 1;
         } else {
@@ -3445,7 +3447,7 @@ int record_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客�
 #endif
                 }
                 configManager_conncet_refer_sendData(&pRecord->p.videoInfoData_ebml__videoInfoDataClientList, &pRecord->p.videoInfoData_xml__videoInfoDataClientList, &pRecord->p.videoInfoData_json__videoInfoDataClientList
-                        , pRecord->p.videoInfoData__videoInfoDataClientList, requestID_3, head | 0x2, requestDataType, pObjectBaseBuffer);
+                        , pRecord->p.videoInfoData__videoInfoDataClientList, requestID_3, headType, checkMethod, virtualConnection, head | 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer);
                 unsigned int data[6] = {requestID_3[0], requestID_3[1], requestID_3[2], head, (unsigned int) requestDataType, 0};
                 if (fs_StructList_insert_order(pRecord->ro.__videoInfoDataClientList, data) < 0) {
                     pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
@@ -3472,7 +3474,7 @@ int record_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客�
                     else if (0 == strcmp("json", pEbml_node->data.buffer)) requestDataType = 3;
                 }
             }
-            configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml_send, requestID_3, head | 0x2, requestDataType, pObjectBaseBuffer);
+            configManager_conncet_refer_sendData(NULL, NULL, NULL, pEbml_send, requestID_3, headType, checkMethod, virtualConnection, head | 0x2, requestDataType, pObjectBaseBuffer, pShareBuffer);
             fs_Ebml_delete__OI(pEbml_send, pShareBuffer);
             return 1;
         }
@@ -3485,8 +3487,10 @@ int record_P_cmd_cb(/* 与请求相关的信息,用于识别是发给哪个客�
 }
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1 */
-int record_P_cmd_snapshort_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Record_item * const pRecord_item
+int record_P_cmd_snapshort_cb(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Record_item * const pRecord_item
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     /* 通道快照获取 */
     fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
@@ -3565,7 +3569,7 @@ int record_P_cmd_snapshort_cb(/* 与请求相关的信息,用于识别是发给�
                         pFrame->classIndex, pFrame->index, pFrame->dataValidType, pFrame->ipsrc, pFrame->frameRate, pFrame->capture_uptime, pFrame->capture_gmtTime);
                 fs_Object_delete_pthreadSafety__OI(pFrame);
                 fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
-                configManager_conncet_refer_send_buffer(FsStringLenData("Prapare jpg failed.\n"), requestID_3, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Prapare jpg failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
             }
         }
         else //if (pEbml_node && 4 == pEbml_node->data.lenth && memcmp("bmp", pEbml_node->data.buffer, 3) == 0) 
@@ -3585,7 +3589,7 @@ int record_P_cmd_snapshort_cb(/* 与请求相关的信息,用于识别是发给�
                 FsPrintf(FsPrintfIndex, "Get bmp snapshort failed,classIndex=%hu,index=%u,dataValidType=%#llx,ipsrc=%#x,frameRate=%f,capture_uptime=%lf,capture_gmtTime=%lf,data:\n.\n",
                         pFrame->classIndex, pFrame->index, pFrame->dataValidType, pFrame->ipsrc, pFrame->frameRate, pFrame->capture_uptime, pFrame->capture_gmtTime);
                 fs_Ebml_out_debug(pEbml, stdout, pShareBuffer), printf("\n");
-                configManager_conncet_refer_send_buffer(FsStringLenData("Prapare bmp failed.\n"), requestID_3, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
+                configManager_conncet_refer_send_buffer(FsStringLenData("Prapare bmp failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
             }
             pthread_mutex_unlock(&((FsObject*) pFrame)->mutex);
             if (pDib) {
@@ -3657,7 +3661,7 @@ int record_P_cmd_snapshort_cb(/* 与请求相关的信息,用于识别是发给�
     } else {
 
         /* 快照不存在 */
-        configManager_conncet_refer_send_buffer(FsStringLenData("Get snapshort frame failed.\n"), requestID_3, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
+        configManager_conncet_refer_send_buffer(FsStringLenData("Get snapshort frame failed.\n"), requestID_3, headType, checkMethod, virtualConnection, (head & 0xFFFFFFF0U) | 0x6U, pObjectBaseBuffer);
     }
     return 1;
 }
@@ -3688,8 +3692,10 @@ static FsConfig * record_P_protocol_snapshort_get() {
 }
 
 /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128 */
-static int record_P_cmd_cb_recordInfo(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
-        , /* 收到的数据 */FsEbml *pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Record * const pRecord
+static int record_P_cmd_cb_recordInfo(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+        , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+        , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
+        , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ struct Record * const pRecord
         , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer) {
     //fs_Ebml_out_debug(pEbml, stdout), printf("\n");
     {
@@ -3702,7 +3708,7 @@ static int record_P_cmd_cb_recordInfo(/* 与请求相关的信息,用于识别�
         }
 #endif
     }
-    struct ConfigManager_connectNode_useOnce * const pConnectNode = configManager_connectNode_useOnce_new__IO(requestID_3, head, requestDataType
+    struct ConfigManager_connectNode_useOnce * const pConnectNode = configManager_connectNode_useOnce_new__IO(requestID_3, headType, checkMethod, virtualConnection, head, requestDataType
             , 0, fs_Ebml_node_get_mask(pEbml, (struct FsEbml_node*) pEbml, "type"));
     pthread_mutex_lock(&pRecord->ro.__videoInfoDataClientList->mutex);
     pConnectNode->next = (struct ConfigManager_connectNode_useOnce *) pRecord->p.pConnectNode__videoInfoDataClientList;
@@ -4485,7 +4491,7 @@ static void record_P_item_new(struct Record * const pRecord, /* 通道号,从1�
                         configManager_cmd_register(pRecord->ro._pConfigManager, "videolist_get", rst->ro._uuid, ipv4, rst, 0, 0 == ipv4 ? record_P_cmd_cb : NULL, NULL, rst, pShareBuffer);
                         configManager_cmd_register(pRecord->ro._pConfigManager, "videotimeinfo_get", rst->ro._uuid, ipv4, rst, 0, 0 == ipv4 ? record_P_cmd_cb : NULL, NULL, rst, pShareBuffer);
                         configManager_cmd_register(pRecord->ro._pConfigManager, "snapshort_get", rst->ro._uuid, ipv4, rst, 0, 0 == ipv4 ?
-                                (int (* const) (const unsigned int *, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))record_P_cmd_snapshort_cb : NULL, NULL, rst, pShareBuffer);
+                                (int (* const) (const unsigned int *, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))record_P_cmd_snapshort_cb : NULL, NULL, rst, pShareBuffer);
                         ////////////////////////////////////////////////////////////////////////////
                         /* 绑定命令字 */
                         if (0 == ipv4) configManager_cmd_connect(pRecord->ro._pConfigManager, "cameractrl", rst->ro._uuid, rst, (void (*)(const char*, const char*, void*, void*, void*))record_P_cmd_connect_cb, rst);
@@ -8660,7 +8666,7 @@ static void *record_P_T(struct Record * const pRecord) {
     if (0 == startIndex) {
         /* 注册获取线程信息的的命令字,cmd+uuid+ipv4必须是唯一值 */
         configManager_cmd_register_and_protocol_publish(pConfigManager, "recordInfo_get", "record", 0, pRecord, 0
-                , (int (* const) (const unsigned int *, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))record_P_cmd_cb_recordInfo, NULL, pRecord
+                , (int (* const) (const unsigned int *, unsigned char, unsigned char, unsigned int, unsigned int, FsEbml * const, char, void * const, FsObjectBaseBuffer * const, char * * const))record_P_cmd_cb_recordInfo, NULL, pRecord
                 ////////////////////////////////////////////////////////////////
                 , "recordInfo_get", "record信息获取", ConfigManager_Module5_protocol_classIndex0, record_P_protocol_recordInfo_get, &shareBuffer);
 #define __record_P_T_clean2_1 {if (0 == startIndex){configManager_cmd_logoff_and_protocol_cancel(pConfigManager, "recordInfo_get", "record", 0, pRecord,"recordInfo_get",&shareBuffer);\
@@ -8916,7 +8922,11 @@ static void *record_P_T(struct Record * const pRecord) {
                                 pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
                             }
                         }
-                        configManager_send_pthreadSafety__OI_2_default(pConfigManager, pEbml, pConnectNode->requestID, pConnectNode->head, pConnectNode->return_type, &shareBuffer);
+                        configManager_send_pthreadSafety__OI_2_default(pConfigManager, pEbml
+                                , ConfigManager_refer_connect_node_get_requestID_3(pConnectNode->requestData), ConfigManager_refer_connect_node_get_headType(pConnectNode->requestData)
+                                , ConfigManager_refer_connect_node_get_checkMethod(pConnectNode->requestData), ConfigManager_refer_connect_node_get_virtualConnection(pConnectNode->requestData)
+                                , ConfigManager_refer_connect_node_get_head(pConnectNode->requestData) | 0x2, ConfigManager_refer_connect_node_get_requestDataType(pConnectNode->requestData)
+                                , &baseBuffer, &shareBuffer);
                     }
                     fsFree(pConnectNode);
 #endif
@@ -9302,7 +9312,7 @@ static void *record_P_T(struct Record * const pRecord) {
                     if (pRecord->p.videoInfoData_json__videoInfoDataClientList)fs_ObjectBasePthreadSafety_delete__OI(pRecord->p.videoInfoData_json__videoInfoDataClientList), pRecord->p.videoInfoData_json__videoInfoDataClientList = NULL;
                     configManager_conncet_refer_send(pConfigManager, pRecord->ro.__videoInfoDataClientList
                             , &pRecord->p.videoInfoData_ebml__videoInfoDataClientList, &pRecord->p.videoInfoData_xml__videoInfoDataClientList, &pRecord->p.videoInfoData_json__videoInfoDataClientList, pRecord->p.videoInfoData__videoInfoDataClientList
-                            , 0x2, &baseBuffer);
+                            , 0x2, &baseBuffer, &shareBuffer);
                     pthread_mutex_unlock(&pRecord->ro.__videoInfoDataClientList->mutex);
                 }
                 //            else {

@@ -92,7 +92,10 @@
 #define FsPointer_to_longlong(___p) ((long long)(long)(___p))
 #endif
 
-static inline void* fs_pointer_to_void_pointer(void *const p){return (void*)p;}
+
+static inline void* fs_pointer_to_void_pointer(void *const p) {
+    return (void*) p;
+}
 #define FsFun(___fun,...) ___fun(__VA_ARGS__)
 #define __FsMacrosValueString(___v) #___v
 #define FsMacrosValueString(___v) __FsMacrosValueString(___v)

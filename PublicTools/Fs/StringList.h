@@ -22,7 +22,7 @@ extern "C" {
         /* 数据保存链表 */
         FsObjectList list;
         /* 数据总长度 */
-        unsigned long Lenth;
+        unsigned long lenth;
     } FsStringList;
 
     /*

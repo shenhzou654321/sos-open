@@ -142,6 +142,7 @@ extern "C" {
         /* 数据,可外部设置 */
         char *data;
     } FsObjectImageJpeg;
+
     /*
      * 从内存创建一个ImageJpeg实例;
      * jpegBuffer:jpeg内存指针;
@@ -149,12 +150,15 @@ extern "C" {
      * 成功返回创建的实例指针; 
      * 失败返回NULL.
      */
+
     ImageJpeg* image_jpeg_new_from_string__IO(unsigned char *jpegBuffer, unsigned int jpegBufferLenth);
+
     /*
      * 从内存创建一个ImageJpeg实例;
      * 成功返回创建的实例指针; 
      * 失败返回NULL.
      */
+
     ImageJpeg* image_jpeg_new_from_String__IO__OI(/* jpeg数据 */FsString *pString);
 
     /*
@@ -163,7 +167,9 @@ extern "C" {
      * 失败返回NULL;
      * fileName:文件名不能为空.
      */
+
     ImageJpeg* image_jpeg_new_from_file__IO(const char* fileName);
+
     /*
      * 根据ImageDib创建一个ImageJpeg实例;
      * 成功返回创建的实例指针; 
@@ -174,27 +180,34 @@ extern "C" {
      * dstWidth:目标文件宽度,0:自动选择;
      * dstHeight:目标文件高度,0:自动选择.
      */
-    ImageJpeg* image_jpeg_new_from_dib__IO(const ImageDib* pDib, const unsigned char imageQuality, const char upsideDown,
-            unsigned int dstWidth, unsigned int dstHeight);
+
+    ImageJpeg* image_jpeg_new_from_dib__IO(const ImageDib* pDib, const unsigned char imageQuality, const char upsideDown
+            , unsigned int dstWidth, unsigned int dstHeight);
+
     /* 
      * 从pjpeg中删除ebml保存为新的ImageJpeg对象;
      * 成功返回删除ebml的ImageJpeg对象;
      * 失败返回NULL.
      */
+
     ImageJpeg* image_jpeg_new_from_jpeg_without_ebml__IO(ImageJpeg* pJpeg);
+
 
     /*
      * 删除ppJpeg指向的实例指针指向的对象;
      * 并把ppJpeg指向的实例指针设为0.;
      */
+
     void image_jpeg_delete__OI(ImageJpeg** ppJpeg);
+
     /*
      * 分析pJpeg中的基本JPEG标记,解析jpegTag外的所有标记和jpegTag中不分配空间的部分成员，分析到SOS结束;
      * 全部分析成功返回1,但并不表示JPG数据正确;
      * 已解析过(bitCount不为0)返回2;
      * 失败返回-1.
      */
-    char image_jpeg_analyseTag_base(ImageJpeg* pJpeg);
+
+    int image_jpeg_analyseTag_base(ImageJpeg* pJpeg);
 
     /*
      * 分析pJpeg中的所有JPEG标记,不分析头和尾;
@@ -202,13 +215,16 @@ extern "C" {
      * 已解析过(dataStart不为空)返回2;
      * 失败返回-1.
      */
-    char image_jpeg_analyseTag_all(ImageJpeg* pJpeg);
+
+    int image_jpeg_analyseTag_all(ImageJpeg* pJpeg);
+
     /*
      * 分析pJpeg中的JPEG标记,解析jpegTag外的所有标记和jpegTag中不分配空间的部分成员，分析到SOS结束;
      * 全部分析成功返回1,但并不表示JPG数据正确;
      * 已解析过(bitCount不为0)返回2;
      * 失败返回-1.
      */
+
 #ifdef WINDOWS_ijl
 #define image_jpeg_analyseTag(pJpeg) image_jpeg_analyseTag_base(pJpeg)
 #else
@@ -225,111 +241,68 @@ extern "C" {
      * 如果打开文件失败返回-1;
      * 如果写文件失败返回-2.
      */
-    char image_jpeg_save_to_file(const ImageJpeg* pJpeg, const char *fileName);
+
+    int image_jpeg_save_to_file(const ImageJpeg* pJpeg, const char *fileName);
+
     /*
      * 把pJpeg转换为ImageDib位图;
      * 成功返回ImageDib对象指针;
      * 失败返回NULL.
      */
-    ImageDib* image_jpeg_convert_to_dib__IO(ImageJpeg* pJpeg, /* 上下翻转,只能取1(不翻转)和-1(翻转),一般取-1才能获得想要的结果,现此值无效 */char upsideDown,
-            /* 转换后的输出类型,ImageColorType_RGB = 1,ImageColorType_BGR = 2,ImageColorType_YCbCr = 3,ImageColorType_Gray = 4,现只支持ImageColorType_YCbCr */const ImageColorType dstColorType,
-            /* 目标文件高度,0:表示为decodeHeight+topPadding,不能小于topPadding+decodeHeight */ unsigned short dstHeight,
-            /* 解压后的图片,放置的位置距离图片上边缘的距离 */unsigned short topPadding,
-            /* 解压高度,0表示全解压,不能大于图片的实际高度,小于图片高度可实现部分解压 */unsigned short decodeHeight,
-            /* 图数据的储存宽度,为0时,程序自动计算,非0时,值不能小于最小储存宽度,多余的储存宽度填0,现只支持0 */const unsigned int dstLineBits);
-    /* 
-     * 把图片附加上EBM数据保存到流中;
-     * 成功返回1;
-     * 写文件失败返回-2;
-     * 分析图像数据错误返回-3.
-     */
-    signed char image_jpeg_out_with_ebml(/* jpeg数据 */ImageJpeg * const pJpeg, /* 记录信息 */const FsEbml * const pEbml,
-            /* 密码,为空或长度为0表示不加密 */ const unsigned char password[], /* 保存记录和图片的文件描述符 */FILE * const fd);
-    /* 
-     * 把图片附加上EBML数据保存到文件中;
-     * 成功返回1;
-     * 打开文件失败返回-1;
-     * 写文件失败返回-2;
-     * 分析图像数据错误返回-3.
-     */
-    signed char image_jpeg_save_to_file_with_ebml(/* jpeg数据 */ImageJpeg * const pJpeg, /* 记录信息 */const FsEbml * const pEbml,
-            /* 密码,为空或长度为0表示不加密 */const unsigned char password[], /* 保存记录和图片的文件描述符 */const char filename[]);
-    /* 
-     * 提取JPEG中的EBML数据;
-     * 成功返回提取到的EBML数据指针;
-     * 失败返回NULL.
-     */
-    FsEbml * image_jpeg_get_ebml__IO(ImageJpeg * const pJpeg, /* 密码,为空或长度为0表示不加密 */const unsigned char password[]
-            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
-    /* 
-     * 提取JPEG中的EBML数据;
-     * 成功返回提取到的EBML数据指针;
-     * 失败返回NULL.
-     */
-    FsEbml *image_jpeg_get_ebml_from_file__IO(/* 保存记录和图片的文件名 */const char filename[], /* 密码,为空或长度为0表示不加密 */const unsigned char password[]
-            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
-    /* 
-     * 把图片保存到流中,但不保存EBML数据;
-     * 成功返回1;
-     * 写文件失败返回-2;
-     * 分析图像数据错误返回-3.
-     */
-    char image_jpeg_out_without_ebml(/* jpeg数据 */ImageJpeg *pJpeg, /* 保存记录和图片的文件描述符 */FILE *fd);
-    /* 
-     * 把图片保存到文件中,但不保存EBML数据;
-     * 成功返回1;
-     * 打开文件失败返回-1;
-     * 写文件失败返回-2;
-     * 分析图像数据错误返回-3.
-     */
-    char image_jpeg_save_to_file_without_ebml(/* jpeg数据 */ImageJpeg *pJpeg, /* 保存记录和图片的文件名 */const char filename[]);
-    /* 
-     * 把图片附加上EBM数据保存到文件中;
-     * 成功返回1;
-     * 打开文件失败返回-1;
-     * 写文件失败返回-2;
-     * 分析图像数据错误返回-3.
-     */
-    signed char image_jpeg_save_data__OI_1(FsString * const pString, /* 数据标签,读取时也可校验此值,0-表示不校验 */const unsigned int tag, /* 保存记录和图片的文件名 */const char filename[]);
 
-    /* 
-     * 获取jpeg文件中附加的数据;
-     * 成功返回FsString指针;
-     * 失败返回NULL.
-     */
-    FsString * image_jpeg_get_data__IO(/* 保存记录和图片的文件名 */const char filename[], /* 数据标签,读取时也可校验此值,0-表示不校验 */const unsigned int tag
-            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
+    ImageDib* image_jpeg_convert_to_dib__IO(ImageJpeg* pJpeg, /* 上下翻转,只能取1(不翻转)和-1(翻转),一般取-1才能获得想要的结果,现此值无效 */signed char upsideDown
+            , /* 转换后的输出类型,ImageColorType_RGB = 1,ImageColorType_BGR = 2,ImageColorType_YCbCr = 3,ImageColorType_Gray = 4,现只支持ImageColorType_YCbCr */const ImageColorType dstColorType
+            , /* 目标文件高度,0:表示为decodeHeight+topPadding,不能小于topPadding+decodeHeight */ unsigned short dstHeight
+            , /* 解压后的图片,放置的位置距离图片上边缘的距离 */unsigned short topPadding
+            , /* 解压高度,0表示全解压,不能大于图片的实际高度,小于图片高度可实现部分解压 */unsigned short decodeHeight
+            , /* 图数据的储存宽度,为0时,程序自动计算,非0时,值不能小于最小储存宽度,多余的储存宽度填0,现只支持0 */const unsigned int dstLineBits);
 
     /* 
      * 获取jpg的宽度和高度;
      * 成功返回1;
      * 失败返回-1. 
      */
+
     int image_jpeg_size_get(unsigned int *const width, unsigned int *const height, /* 数据 */const register unsigned char data[], /* 数据长度 */register unsigned int dataLen);
+
     /* 
      * 压缩图像为jpeg图片;
      * 成功返回压缩后的图像数据长度;
      * 缓存空间太小返回-1;
      * 其他错误返回-2.
      */
+
     int image_jpeg_compress(/* 结果的储存buffer */unsigned char rstBuffer[], /* 结果的储存buffer大小 */ unsigned long rstBufferSize
             , /* 原始数据 */ const unsigned char srcBffer[], /* 宽度 */const unsigned int width, /* 高度 */const unsigned int height, /* 储存宽度 */ const unsigned int lineBits
             , /* 图片质量 [0-100],0是最好质量 */const unsigned char imageQuality, /* 上下翻转,只能取1(不翻转)和-1(翻转),一般取-1才能获得想要的结果 */const char upsideDown
             , /* 原始数据类型(彩色RGB:1;彩色BGR:2;彩色YCbCr:3;灰度图:4) */ const unsigned char colorType);
+
     /* 
      * 解压jpg图像;
      * 成功返回1;
      * 失败返回-1.
      */
-    signed char image_jpeg_decompress(/* 结果的储存buffer */unsigned char rstBuffer[], /* 结果的储存buffer大小 */ unsigned int rstBufferSize,
-            /* 结果数据类型(彩色RGB:1;彩色BGR:2;彩色YCbCr:3;灰度图:4) */ const unsigned char dstColorType,
-            /* 原始数据 */ const unsigned char srcBuffer[], /* 原始数据的buffer大小 */ unsigned int srcBufferSize);
+
+    signed char image_jpeg_decompress(/* 结果的储存buffer */unsigned char rstBuffer[], /* 结果的储存buffer大小 */ unsigned int rstBufferSize
+            , /* 结果数据类型(彩色RGB:1;彩色BGR:2;彩色YCbCr:3;灰度图:4) */ const unsigned char dstColorType
+            , /* 原始数据 */ const unsigned char srcBuffer[], /* 原始数据的buffer大小 */ unsigned int srcBufferSize);
+
     /* 对已使用fs_ObjectBase_init初始化的数据使用本函数初始化为FsObjectImageJpeg对象,仅在pObjectBase的引用计数不大于1时可调用 */
-    void image_jpeg_object_init_from_objectBase(void* const pObjectBase, /* 分类号 */ const unsigned short classIndex, /* 帧号,建议只使用3个字节 */ const unsigned int frameIndex,
-            /* 数据的来源ip */const unsigned int ipsrc, /* 帧率 */ const float frameRate, /* 图像宽度 */const unsigned int width, /* 图像高度 */const unsigned int height,
-            /* 采集时间之开机时间 */ const double capture_uptime, /* 采集时间之gmt时间 */ const double capture_gmtTime,
-            /* 数据长度 */const unsigned int datalenth, /* 数据,数据的空间必须是属于pObjectBase的部分 */ char *const data);
+
+    void image_jpeg_object_init_from_objectBase(void* const pObjectBase, /* 分类号 */ const unsigned short classIndex, /* 帧号,建议只使用3个字节 */ const unsigned int frameIndex
+            , /* 数据的来源ip */const unsigned int ipsrc, /* 帧率 */ const float frameRate, /* 图像宽度 */const unsigned int width, /* 图像高度 */const unsigned int height
+            , /* 采集时间之开机时间 */ const double capture_uptime, /* 采集时间之gmt时间 */ const double capture_gmtTime
+            , /* 数据长度 */const unsigned int datalenth, /* 数据,数据的空间必须是属于pObjectBase的部分 */ char *const data);
+
+        /* 把FsObjectBasePthreadSafety对象使用本函数初始化为FsObjectImageJpeg对象 */
+
+    void image_jpeg_object_init_from_objectBasePthreadSafety(FsObjectBasePthreadSafety * const pObjectBase, /* 分类号 */ const unsigned short classIndex, /* 帧号,建议只使用3个字节 */ const unsigned int frameIndex
+            , /* 数据的来源ip */const unsigned int ipsrc, /* 帧率 */ const float frameRate, /* 图像宽度 */const unsigned int width, /* 图像高度 */const unsigned int height
+            , /* 采集时间之开机时间 */ const double capture_uptime, /* 采集时间之gmt时间 */ const double capture_gmtTime
+            , /* 数据长度 */const unsigned int datalenth, /* 数据,数据的空间必须是属于pObjectBase的部分 */ char *const data);
+
     /* 创建一个FsObjectImageJpeg对象 */
+
     FsObjectImageJpeg * image_jpeg_object_new__IO(/* h264数据长度 */const unsigned int datalenth);
 
     /* 用数据创建一个FsObjectImageJpeg对象 */
@@ -339,24 +312,26 @@ extern "C" {
             , /* 采集时间之开机时间 */ const double capture_uptime, /* 采集时间之gmt时间 */ const double capture_gmtTime
             , /* jpeg数据长度 */const unsigned int datalenth, /* 数据,长度必须和datalenth相同,为空表示此数据在外部设置 */ const unsigned char data[]);
 
-
+ 
     /* 
      * 把dib压缩后创建FsObjectImageJpeg对象;
      * 成功返回FsObjectImageJpeg指针;
      * 失败返回NULL.
      */
-    FsObjectImageJpeg * image_jpeg_object_new_from_dib__IO(
-            /* 原始数据 */ const unsigned char srcBffer[], /* 宽度 */const unsigned int width, /* 高度 */const unsigned int height, /* 储存宽度 */ const unsigned int lineBits,
-            /* 图片质量 [0-100],0是最好质量 */const unsigned char imageQuality, /* 上下翻转,只能取1(不翻转)和-1(翻转),一般取-1才能获得想要的结果 */const char upsideDown,
-            /* 原始数据类型 */ const ImageColorType colorType,
-            /* 分类号 */ const unsigned short classIndex, /* 帧号,建议只使用3个字节 */ const unsigned int frameIndex,
-            /* 数据的来源ip */const unsigned int ipsrc, /* 帧率 */ const float frameRate,
-            /* 采集时间之开机时间 */ const double capture_uptime, /* 采集时间之gmt时间 */ const double capture_gmtTime);
+
+    FsObjectImageJpeg * image_jpeg_object_new_from_dib__IO(/* 原始数据 */ const unsigned char srcBffer[], /* 宽度 */const unsigned int width, /* 高度 */const unsigned int height, /* 储存宽度 */ const unsigned int lineBits
+            , /* 图片质量 [0-100],0是最好质量 */const unsigned char imageQuality, /* 上下翻转,只能取1(不翻转)和-1(翻转),一般取-1才能获得想要的结果 */const char upsideDown
+            , /* 原始数据类型 */ const ImageColorType colorType
+            , /* 分类号 */ const unsigned short classIndex, /* 帧号,建议只使用3个字节 */ const unsigned int frameIndex
+            , /* 数据的来源ip */const unsigned int ipsrc, /* 帧率 */ const float frameRate
+            , /* 采集时间之开机时间 */ const double capture_uptime, /* 采集时间之gmt时间 */ const double capture_gmtTime);
+
     /* 设置pObjectJpeg的数据 */
-    void image_jpeg_object_set_data(FsObjectImageJpeg * const pObjectJpeg, /* 分类号 */ const unsigned short classIndex, /* 帧号,建议只使用3个字节 */ const unsigned int frameIndex,
-            /* 数据的来源ip */const unsigned int ipsrc, /* 帧率 */ const float frameRate, /* 图像宽度 */const unsigned int width, /* 图像高度 */const unsigned int height,
-            /* 采集时间之开机时间 */ const double capture_uptime, /* 采集时间之gmt时间 */ const double capture_gmtTime,
-            /* 数据,长度必须和pObjectJpeg->datalenth相同,为空表示此数据在外部设置 */ const unsigned char data[]);
+
+    void image_jpeg_object_set_data(FsObjectImageJpeg * const pObjectJpeg, /* 分类号 */ const unsigned short classIndex, /* 帧号,建议只使用3个字节 */ const unsigned int frameIndex
+            , /* 数据的来源ip */const unsigned int ipsrc, /* 帧率 */ const float frameRate, /* 图像宽度 */const unsigned int width, /* 图像高度 */const unsigned int height
+            , /* 采集时间之开机时间 */ const double capture_uptime, /* 采集时间之gmt时间 */ const double capture_gmtTime
+            , /* 数据,长度必须和pObjectJpeg->datalenth相同,为空表示此数据在外部设置 */ const unsigned char data[]);
 
 
 #ifdef FsDebug

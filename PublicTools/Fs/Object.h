@@ -57,7 +57,6 @@ extern "C" {
         FsObject_type_String = 0x8001,
 #define FsObject_type_String FsObject_type_String
     };
-#pragma pack(push,8)
 
     /* 基本的支持引用计数的数据定义,不能改变顺序,继承只须继承前七个变量,对象会在referCount-_unownedCount=0且_unownedTag为0时真正释放空间 */
     typedef struct {
@@ -123,7 +122,6 @@ extern "C" {
         /* 线程同步锁 */
         pthread_mutex_t _mutex;
     } FsObjectBasePthreadSafety;
-#pragma pack(pop)
 
     /* 继承FsObjectBase,且实现双向链表功能,但objectBase的删除方法并不实现链表移除 */
     struct FsObjectBaseListNode {
@@ -286,16 +284,26 @@ extern "C" {
     } FsObjectSingleBuffer;
 
     /* 析构FsObjectBase的派生类 */
+
     void fs_ObjectBase_destruct(void* const pObjectBase, /* FsObjectBase到派生类之间多出的变量的删除方法 */void (*const delete_special_var) (void *pObjectBase));
+
     /* 初始化FsObjectBase或它的继承对象,在引用计数为1时可反复调用,不对数据长度len进行初始化,一般不使用此函数初始化,使用子类的方法初始化此对象 */
+
     void fs_ObjectBase_init(void* const pObjectBase, /* 本结构分配的内存大小 */const unsigned long mallocLenth, /* data变量的偏移量 */const unsigned int dataOffset);
+
     /* 初始化FsObjectBase或它的继承对象,内存使用malloc分配,在引用计数为1时可反复调用 */
+
     void fs_ObjectBase_init_with_data__OI_4(void* const pObjectBase, /* 本结构分配的内存大小 */const unsigned long mallocLenth, /* 数据长度 */const unsigned int dataLenth, /* 数据 */ char data[]);
+
     /* 初始化FsObjectBase或它的继承对象,在引用计数和拥有者和为1时可反复调用,不对数据长度len进行初始化,一般不使用此函数初始化,使用子类的方法初始化此对象 */
+
     void fs_ObjectBase_reSize(void* * const ppObjectBase, /* 本结构分配的内存大小 */const unsigned long mallocLenth, /* data变量的偏移量 */const unsigned int dataOffset);
+
     /* 使用缓存申请一个FsObjectBase对象,不对数据长度len进行初始化 */
+
     FsObjectBase *fs_ObjectBase_new__IO(/* 原缓存,不为空,在(*pObjectBaseBuffer)为空时,会把当前返回的对象的_unowned置1并设置到(*pObjectBaseBuffer)中,在(*pObjectBaseBuffer)->referCount+_unownedCount为1时返回的数据会使用缓存 */
             FsObjectBase* * const pObjectBaseBuffer, /* 本结构期望分配的内存大小 */const unsigned long mallocLenth, /* data变量的偏移量 */const unsigned int dataOffset);
+
     /* 获取pObjectBase的数据长度 */
 
     unsigned long fs_ObjectBase_get_len(void* const pObjectBase);
@@ -305,48 +313,87 @@ extern "C" {
     char* fs_ObjectBase_get_data(void* const pObjectBase);
 
     /* 初始化pObjectBaseBuffer对象 */
+
     void fs_ObjectBaseBuffer_init(FsObjectBaseBuffer * const pObjectBaseBuffer, /* buffer数量,1-255 */ const unsigned char bufferCount);
+
     /* 释放pObjectBaseBuffer内部空间 */
+
     void fs_ObjectBaseBuffer_release(FsObjectBaseBuffer * const pObjectBaseBuffer);
+
     /* 设置buffer数量 */
+
     void fs_ObjectBaseBuffer_bufferCount_set(FsObjectBaseBuffer * const pObjectBaseBuffer, /* buffer数量,1-255 */ const unsigned int bufferCount);
+
     /* 设置lastNode */
+
     void fs_ObjectBaseBuffer_lastNode_set__OI_2(FsObjectBaseBuffer * const pObjectBaseBuffer, /* 设置的节点,可为非元节点 */FsObjectBase * const pObjectBase);
+
     /* 判断pObjectBase后是否有足够的空间,把pObjectBase后的空间缓存到__lastNode中,调用此函数后pObjectBase不能再次调用此函数 */
-    void fs_ObjectBaseBuffer_lastNode_add(FsObjectBaseBuffer * const pObjectBaseBuffer, /* 设置的节点,可为非元节点 */FsObjectBase * const pObjectBase,
-            /* pObjectBase真实占用的内存大小 */const unsigned long mallocLenth_pObjectBase);
+
+    void fs_ObjectBaseBuffer_lastNode_add(FsObjectBaseBuffer * const pObjectBaseBuffer, /* 设置的节点,可为非元节点 */FsObjectBase * const pObjectBase
+            , /* pObjectBase真实占用的内存大小 */const unsigned long mallocLenth_pObjectBase);
+
     /* 从buffer中申请空间 */
-    FsObjectBase* fs_ObjectBaseBuffer_get__IO(FsObjectBaseBuffer * const pObjectBaseBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */const unsigned char forceBase,
-            /* 本结构期望分配的内存大小 */const unsigned long mallocLenth, /* data变量的偏移量 */const unsigned int dataOffset);
+
+    FsObjectBase* fs_ObjectBaseBuffer_get__IO(FsObjectBaseBuffer * const pObjectBaseBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */const unsigned char forceBase
+            , /* 本结构期望分配的内存大小 */const unsigned long mallocLenth, /* data变量的偏移量 */const unsigned int dataOffset);
+
     /* 对pObjectBase重置大小,不管空间够不够都会重新分配内存 */
-    FsObjectBase* fs_ObjectBaseBuffer_resize__IO__OI(FsObjectBase * const pObjectBase, FsObjectBaseBuffer * const pObjectBaseBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */const unsigned char forceBase,
-            /* 本结构期望分配的内存大小 */ unsigned long mallocLenth, /* data变量的偏移量 */const unsigned int dataOffset);
+
+    FsObjectBase* fs_ObjectBaseBuffer_resize__IO__OI(FsObjectBase * const pObjectBase, FsObjectBaseBuffer * const pObjectBaseBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */const unsigned char forceBase
+            , /* 本结构期望分配的内存大小 */ unsigned long mallocLenth, /* data变量的偏移量 */const unsigned int dataOffset);
+
     /* 对pObjectSingle重置大小,仅当空间不够时才重新分配内存 */
+
 #define fs_ObjectBaseBuffer_resize(/* void * */___pObjectBase,/* FsObjectSingleBuffer * const */ ___pObjectBaseBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */ /*const unsigned char*/ ___forceBase\
     ,/* 本结构期望分配的内存大小 *//*const unsigned long */ ___mallocLenth, /* data变量的偏移量 *//* const unsigned int*/ ___dataOffset) do{\
     if (fs_ObjectBase_mallocLenth_get(pObjectBase) < (long)(___mallocLenth))\
         *(FsObjectBase**)&___pObjectBase = fs_ObjectBaseBuffer_resize__IO__OI(___pObjectBase, ___pObjectBaseBuffer, ___forceBase, ___mallocLenth, ___dataOffset);\
 }while(0)
+
     /* 输出pObjectBaseBuffer的信息 */
+
     void fs_ObjectBaseBuffer_debug_out(FsObjectBaseBuffer * const pObjectBaseBuffer, FILE * const fd);
+
     /* 初始化FsObjectBasePthreadSafety或它的继承对象,只能调用一次,不对数据长度len进行初始化,一般不使用此函数初始化,使用子类的方法初始化此对象 */
+
     void fs_ObjectBasePthreadSafety_init(void* const pObjectBasePthreadSafety, /* 本结构分配的内存大小 */const unsigned long mallocLenth, /* data变量的偏移量 */const unsigned int dataOffset);
+
     /* 初始化FsObjectBasePthreadSafety或它的继承对象,在引用计数为1时可反复调用,不对数据长度len进行初始化,一般不使用此函数初始化,使用子类的方法初始化此对象 */
+
     void fs_ObjectBasePthreadSafety_reSize(void* * const ppObjectBasePthreadSafety, /* 本结构分配的内存大小 */const unsigned long mallocLenth, /* data变量的偏移量 */const unsigned int dataOffset);
+
     /* 对已使用fs_ObjectBase_init初始化的数据使用本函数初始化为FsObjectBasePthreadSafety对象,在引用计数为1时可使用 */
+
     void fs_ObjectBasePthreadSafety_init_from_objectBase(void* const pObjectBase);
+
     /* 删除FsObjectBasePthreadSafety或它的继承对象,会把referCount减1,在referCount-_unownedCount=0且_unownedTag为0时真正释放空间 */
+
     void fs_ObjectBasePthreadSafety_delete__OI(void* const pObjectBasePthreadSafety);
+
     /* 为FsObjectBasePthreadSafety及子类添加引用 */
+
     void fs_ObjectBasePthreadSafety_addRefer(void* const pObjectBasePthreadSafety);
+
     /* 为FsObjectBasePthreadSafety及子类添加引用 */
+
     void fs_ObjectBasePthreadSafety_addRefer_custom(void* const pObjectBasePthreadSafety, /* 引用的次数 */const unsigned int referCount);
+
     /* 初始化FsObject或它的继承对象,只能调用一次,不对referList,deleteList进行初始化 */
+
     void fs_Object_init(void* const pObject, /* 数据类型,用FsObject_type开头的宏 */const enum FsObject_type type, /* 本结构分配的内存大小 */const unsigned long mallocLenth
             , /* data变量的偏移量 */const unsigned int dataOffset, /* data长度 */const unsigned int dataLen);
+
     /* 对已使用fs_ObjectBase_init初始化的数据使用本函数初始化为FsObject对象,仅在pObjectBase的引用计数为1时可调用 */
+
     void fs_Object_init_from_objectBase(void* const pObjectBase, /* 数据类型,用FsObject_type开头的宏 */const enum FsObject_type type);
+
+    /* 把FsObjectBasePthreadSafety对象使用本函数初始化为FsObject对象 */
+
+    void fs_Object_init_from_objectBasePthreadSafety(FsObjectBasePthreadSafety * const pObjectBase, /* 数据类型,用FsObject_type开头的宏 */const enum FsObject_type type);
+
     /* 删除FsObject或它的继承对象,会把referCount减1,在referCount-_unownedCount=0且_unownedTag为0时真正释放空间 */
+
     void fs_Object_delete__OI(void* const pObject);
 
     /* 删除FsObject或它的继承对象,会把referCount减1,在referCount-_unownedCount=0且_unownedTag为0时真正释放空间 */
@@ -355,63 +402,101 @@ extern "C" {
 
 
     /* 删除FsObject或它的继承对象,会把referCount减1,仅当referCount为0时删除 */
+
     void fs_Object_delete_for_gtk__OI(unsigned char* a, void* const pObject);
+
     /* 删除FsObject或它的继承对象,会把referCount减1,仅当referCount为0时删除 */
+
     void fs_Object_delete_for_gtk_pthreadSafety__OI(unsigned char* a, void* const pObject);
 
     /* pObject引用+1 */
+
 #ifdef FsObjectDebug
     void fs_Object_addRefer_pthreadSafety(void* pObject, /* 引用的行数,0表示不执行检查 */const unsigned int line);
 #else
 #define fs_Object_addRefer_pthreadSafety(pObject,line) fs_Object_addRefer_pthreadSafety_(pObject)
     void fs_Object_addRefer_pthreadSafety_(void* const pObject);
 #endif
+
     /* pObject引用+referCount */
+
 #ifdef FsObjectDebug
     void fs_Object_addRefer_custom_pthreadSafety(void* const pObject, /* 引用的次数 */ unsigned int referCount, /* 引用的行数,0表示不执行检查 */const unsigned int line);
 #else
 #define fs_Object_addRefer_custom_pthreadSafety(pObject,referCount,line) fs_Object_addRefer_custom_pthreadSafety_(pObject,referCount)
     void fs_Object_addRefer_custom_pthreadSafety_(void* const pObject, /* 引用的次数 */const unsigned int referCount);
 #endif
+
     /* 申请一个FsObjectSingle对象 */
+
     FsObjectSingle* fs_ObjectSingle_new__IO(/* 本结构期望分配的内存大小,不能小于FsObjectSingle的大小 */const unsigned int mallocLenth);
+
     /* 调整*ppObjectSingle的内存大小,仅当referCount为1且是元数据时才允许被调整 */
+
     void fs_ObjectSingle_resize(void** ppObjectSingle, /* 本结构期望分配的内存大小,不能小于FsObjectSingle的大小 */const unsigned int mallocLenth);
+
     /* 删除pObjectSingle或它的继承对象,会把referCount减1,在referCount为0时真正释放空间 */
+
     void fs_ObjectSingle_delete__OI(void* pObjectSingle);
+
     /* 强制pObjectSingle为一个只被引用一次的元数据 */
+
     FsObjectSingle* fs_ObjectSingle_force_unique__IO__OI(void* const pObjectSingle);
+
     /* 强制pObjectSingleList中的每一个成员为一个只被引用一次的元数据 */
+
     void fs_ObjectSingle_force_unique(FsObjectList * const pObjectSingleList_);
+
     /* 为pObjectSingle及子类添加引用 */
+
 #define fs_ObjectSingle_addRefer(/* void* const */ pObjectSingle) ((FsObjectSingle*) (pObjectSingle))->referCount++
     void* fs_ObjectSingle_addRefer__IO(void* const pObjectSingle);
+
     /* 为pObjectSingle及子类添加引用 */
+
 #define fs_ObjectSingle_addRefer_custom(/* void* const */ pObjectSingle, /* 引用的次数 *//*const unsigned int */ __referCount) ((FsObjectSingle*) (pObjectSingle))->referCount += __referCount
+
     /* 初始化pObjectSingleBuffer对象 */
+
     void fs_ObjectSingleBuffer_init(FsObjectSingleBuffer * const pSingleBuffer, /* buffer数量,1-255 */ const unsigned char bufferCount);
+
     /* 释放pObjectSingleBuffer内部空间 */
+
     void fs_ObjectSingleBuffer_release(FsObjectSingleBuffer * const pSingleBuffer);
+
     /* 设置buffer数量 */
+
     void fs_ObjectSingleBuffer_bufferCount_set(FsObjectSingleBuffer * const pSingleBuffer, /* buffer数量,1-255 */ const unsigned int bufferCount);
+
     /* 设置lastNode */
+
     void fs_ObjectSingleBuffer_lastNode_set__OI_2(FsObjectSingleBuffer * const pSingleBuffer, /* 设置的节点,可为非元节点 */FsObjectSingle * const pObjectSingle);
+
     /* 判断pObjectSingle后是否有足够的空间,把pObjectSingle后的空间缓存到__lastNode中,调用此函数后pObjectSingle不能再次调用此函数 */
-    void fs_ObjectSingleBuffer_lastNode_add(FsObjectSingleBuffer * const pSingleBuffer, /* 设置的节点,可为非元节点 */void * const pObjectSingle,
-            /* pObjectSingle真实占用的内存大小 */const unsigned long mallocLenth_pObjectSingle);
+
+    void fs_ObjectSingleBuffer_lastNode_add(FsObjectSingleBuffer * const pSingleBuffer, /* 设置的节点,可为非元节点 */void * const pObjectSingle
+            , /* pObjectSingle真实占用的内存大小 */const unsigned long mallocLenth_pObjectSingle);
+
     /* 从buffer中申请空间 */
-    FsObjectSingle* fs_ObjectSingleBuffer_get__IO(FsObjectSingleBuffer * const pSingleBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */const unsigned char forceBase,
-            /* 本结构期望分配的内存大小,不能小于FsObjectSingle的大小 */const unsigned int mallocLenth);
+
+    FsObjectSingle* fs_ObjectSingleBuffer_get__IO(FsObjectSingleBuffer * const pSingleBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */const unsigned char forceBase
+            , /* 本结构期望分配的内存大小,不能小于FsObjectSingle的大小 */const unsigned int mallocLenth);
+
     /* 对pObjectSingle重置大小,不管空间够不够都会重新分配内存 */
-    FsObjectSingle* fs_ObjectSingleBuffer_resize__IO__OI(FsObjectSingle * const pObjectSingle, FsObjectSingleBuffer * const pSingleBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */const unsigned char forceBase,
-            /* 本结构期望分配的内存大小 */ unsigned int mallocLenth);
+
+    FsObjectSingle* fs_ObjectSingleBuffer_resize__IO__OI(FsObjectSingle * const pObjectSingle, FsObjectSingleBuffer * const pSingleBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */const unsigned char forceBase
+            , /* 本结构期望分配的内存大小 */ unsigned int mallocLenth);
+
     /* 对pObjectSingle重置大小,仅当空间不够时才重新分配内存 */
+
 #define fs_ObjectSingleBuffer_resize(/* void * */pObjectSingle,/* FsObjectSingleBuffer * const */ ___pSingleBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */ /*const unsigned char*/ ___forceBase\
 ,/* 本结构期望分配的内存大小 *//*const unsigned long */ ___mallocLenth) do{\
     if (fs_ObjectSingle_mallocLenth_get(pObjectSingle) < (int)(___mallocLenth))\
         *(FsObjectSingle**)&pObjectSingle= fs_ObjectSingleBuffer_resize__IO__OI((FsObjectSingle*)pObjectSingle, ___pSingleBuffer, ___forceBase, ___mallocLenth);\
 }while(0)
+
     /* 对pObjectSingle重置大小,仅当空间不够时才重新分配内存 */
+
 #define fs_ObjectSingleBuffer_resize2(/* void * */___pObjectSingle,/* pObjectSingle的指针 */___ppObjectSingle,/* FsObjectSingleBuffer * const */ ___pSingleBuffer, /* 是否强制生成的对象为元数据,0-不是,1-必须是元数据 */ /*const unsigned char*/ ___forceBase\
 ,/* 本结构期望分配的内存大小 *//*const unsigned long */ ___mallocLenth) do{\
     if (fs_ObjectSingle_mallocLenth_get(pObjectSingle) < (int)(___mallocLenth))\

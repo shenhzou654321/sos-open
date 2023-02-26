@@ -388,7 +388,7 @@ extern "C" {
         int (*zoom3D_pthreadSafety)(void * const pCamera_item, /* 相对图大小参考值23040 */const unsigned short x1
                 , /* 相对图大小参考值23040 */const unsigned short y1, /* 相对图大小参考值23040 */const unsigned short x2, /* 相对图大小参考值23040 */const unsigned short y2);
         /* 控制,goto PTZ,成功返回1,失败返回-1 */
-        int (*ptz_goto_pthreadSafety)(void * const pCamera_item, /* 相对参考值23040 */const unsigned short P, /* 相对参考值23040 */const unsigned short T, /* 相对参考值23040 */const unsigned short Z);
+        int (*ptz_goto_pthreadSafety)(void * const pCamera_item, /* 相对参考值23040,大于23040表示无效值 */const unsigned short P, /* 相对参考值23040,大于23040表示无效值 */const unsigned short T, /* 相对参考值23040,大于23040表示无效值 */const unsigned short Z);
         /* 控制,获取PTZ,成功返回1,失败返回-1 */
         int (*ptz_get_pthreadSafety) (void * const pCamera_item, /* 相对参考值23040 */ unsigned short*const P
                 , /* 相对参考值23040 */ unsigned short* const T, /* 相对参考值23040 */ unsigned short* const Z, /* 是否更新,1-更新,0-直接读取内存 */const unsigned char update);

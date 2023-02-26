@@ -603,6 +603,17 @@ void encode_createConfig(FsConfig * const pConfig, /* 掩码 */const unsigned lo
         void * const pNode = fs_Config_node_string_add(pConfig, watermarking_item, "watermarkingData", "水印数据", "水印数据", 0, 0x7, 1, 128, 1);
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time1", "时间1,格式:2022-12-30/10:24:30.123", "时间1,格式:2022-12-30/10:24:30.123");
         fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time2", "时间2,格式:2022-12-30 10:24:30", "时间2,格式:2022-12-30 10:24:30");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time3", "时间3,格式:2022-12-30 10:24", "时间3,格式:2022-12-30 10:24");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time4", "时间4,格式:2022-12-30 10:24:30AM/PM", "时间4,格式:2022-12-30 10:24:30AM/PM");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time5", "时间5,格式:2022-12-30 10:24AM/PM", "时间5,格式:2022-12-30 10:24AM/PM");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time6", "时间6,格式:12-30-22 10:24:30", "时间6,格式:12-30-22 10:24:30");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time7", "时间7,格式:12-30-22 10:24", "时间7,格式:12-30-22 10:24");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time8", "时间8,格式:12-30-22 10:24:30AM/PM", "时间8,格式:12-30-22 10:24:30AM/PM");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time9", "时间9,格式:12-30-22 10:24AM/PM", "时间9,格式:12-30-22 10:24AM/PM");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time10", "时间10,格式:30-12-22 10:24:30", "时间2,格式:30-12-22 10:24:30");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time11", "时间11,格式:30-12-22 10:24", "时间3,格式:30-12-22 10:24");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time12", "时间12,格式:30-12-22 10:24:30AM/PM", "时间4,格式:30-12-22 10:24:30AM/PM");
+        fs_Config_node_string_add_value(pConfig, pNode, FsConfig_nodeValue_optional, "$$time13", "时间13,格式:30-12-22 10:24AM/PM", "时间5,格式:30-12-22 10:24AM/PM");
     }
 }
 
@@ -1244,25 +1255,305 @@ void encode_item_frame_in_pthreadSafety__OI_4(struct Encode * const pEncode, /* 
                 unsigned int watermarkingIndex = 0;
                 for (; watermarkingIndex < pEncode_item->p._watermarkingCount; watermarkingIndex++) {
                     unsigned char * watermarkingData = (unsigned char*) pEncode_item->p.watermarking[watermarkingIndex]._watermarkingData;
-                    if (strcmp((char*) watermarkingData, "$$time1") == 0) {
-                        FsLocal_ShareBuffer_resize(sizeof (Fs_date_year_string_max"-12-30/10:24:30.123"));
-                        watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
-                        time_t ts = (time_t) pFrame->capture_gmtTime;
-                        struct tm ti;
-                        localtime_r(&ts, &ti);
+                    ////////////////////////////////////////////////////
+#define __encode_item_frame_in_pthreadSafety__OI_4_error 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time1 1
+#define __encode_item_frame_in_pthreadSafety__OI_4_time1_lt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time1_gt 2
+#define __encode_item_frame_in_pthreadSafety__OI_4_time10 2
+#define __encode_item_frame_in_pthreadSafety__OI_4_time10_lt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time10_gt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time11 3
+#define __encode_item_frame_in_pthreadSafety__OI_4_time11_lt 1
+#define __encode_item_frame_in_pthreadSafety__OI_4_time11_gt 5
+#define __encode_item_frame_in_pthreadSafety__OI_4_time12 4
+#define __encode_item_frame_in_pthreadSafety__OI_4_time12_lt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time12_gt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time13 5
+#define __encode_item_frame_in_pthreadSafety__OI_4_time13_lt 4
+#define __encode_item_frame_in_pthreadSafety__OI_4_time13_gt 6
+#define __encode_item_frame_in_pthreadSafety__OI_4_time2 6
+#define __encode_item_frame_in_pthreadSafety__OI_4_time2_lt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time2_gt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time3 7
+#define __encode_item_frame_in_pthreadSafety__OI_4_time3_lt 3
+#define __encode_item_frame_in_pthreadSafety__OI_4_time3_gt 10
+#define __encode_item_frame_in_pthreadSafety__OI_4_time4 8
+#define __encode_item_frame_in_pthreadSafety__OI_4_time4_lt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time4_gt 9
+#define __encode_item_frame_in_pthreadSafety__OI_4_time5 9
+#define __encode_item_frame_in_pthreadSafety__OI_4_time5_lt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time5_gt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time6 10
+#define __encode_item_frame_in_pthreadSafety__OI_4_time6_lt 8
+#define __encode_item_frame_in_pthreadSafety__OI_4_time6_gt 12
+#define __encode_item_frame_in_pthreadSafety__OI_4_time7 11
+#define __encode_item_frame_in_pthreadSafety__OI_4_time7_lt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time7_gt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time8 12
+#define __encode_item_frame_in_pthreadSafety__OI_4_time8_lt 11
+#define __encode_item_frame_in_pthreadSafety__OI_4_time8_gt 13
+#define __encode_item_frame_in_pthreadSafety__OI_4_time9 13
+#define __encode_item_frame_in_pthreadSafety__OI_4_time9_lt 0
+#define __encode_item_frame_in_pthreadSafety__OI_4_time9_gt 0
+                    goto FsMacrosFunctionTag(7);
+                    for (;;) {
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(error) >= 0
+                        FsMacrosFunctionTag(FsMacrosFunction(error)) :;
+                        {
+                            break;
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time1) > 0 // 时间1,格式:2022-12-30/10:24:30.123
+                        FsMacrosFunctionTag(FsMacrosFunction(time1)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time1");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof (Fs_date_year_string_max"-12-30/10:24:30.123"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
 
-                        sprintf((char*) watermarkingData, "%d-%02d-%02d/%02d:%02d:%02d.%03d", 1900 + ti.tm_year, ti.tm_mon + 1, ti.tm_mday
-                                , ti.tm_hour, ti.tm_min, ti.tm_sec, (int) ((pFrame->capture_gmtTime - ts)*1000));
-                    } else if (strcmp((char*) watermarkingData, "$$time2") == 0) {
-                        FsLocal_ShareBuffer_resize(sizeof (Fs_date_year_string_max"-12-30 10:24:30"));
-                        watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
-                        time_t ts = (time_t) pFrame->capture_gmtTime;
-                        struct tm ti;
-                        localtime_r(&ts, &ti);
+                                sprintf((char*) watermarkingData, "%d-%02d-%02d/%02d:%02d:%02d.%03d", 1900 + ti.tm_year, ti.tm_mon + 1, ti.tm_mday
+                                        , ti.tm_hour, ti.tm_min, ti.tm_sec, (int) ((pFrame->capture_gmtTime - ts)*1000));
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time1_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time1_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time2) > 0 // 时间2,格式:2022-12-30 10:24:30
+                        FsMacrosFunctionTag(FsMacrosFunction(time2)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time2");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof (Fs_date_year_string_max"-12-30 10:24:30"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
 
-                        sprintf((char*) watermarkingData, "%d-%02d-%02d %02d:%02d:%02d", 1900 + ti.tm_year, ti.tm_mon + 1, ti.tm_mday
-                                , ti.tm_hour, ti.tm_min, ti.tm_sec);
+                                sprintf((char*) watermarkingData, "%d-%02d-%02d %02d:%02d:%02d", 1900 + ti.tm_year, ti.tm_mon + 1, ti.tm_mday
+                                        , ti.tm_hour, ti.tm_min, ti.tm_sec);
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time2_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time2_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time3) > 0 // 时间3,格式:2022-12-30 10:24
+                        FsMacrosFunctionTag(FsMacrosFunction(time3)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time3");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof (Fs_date_year_string_max"-12-30 10:24"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%d-%02d-%02d %02d:%02d", 1900 + ti.tm_year, ti.tm_mon + 1, ti.tm_mday
+                                        , ti.tm_hour, ti.tm_min);
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time3_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time3_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time4) > 0 // 时间4,格式:2022-12-30 10:24:30AM/PM
+                        FsMacrosFunctionTag(FsMacrosFunction(time4)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time4");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof (Fs_date_year_string_max"-12-30 10:24:30AM/PM"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%d-%02d-%02d %02d:%02d:%02d%s", 1900 + ti.tm_year, ti.tm_mon + 1, ti.tm_mday
+                                        , ti.tm_hour > 12 ? ti.tm_hour - 12 : ti.tm_hour, ti.tm_min, ti.tm_sec, ti.tm_hour > 12 ? "PM" : "AM");
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time4_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time4_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time5) > 0 // 时间5,格式:2022-12-30 10:24AM/PM
+                        FsMacrosFunctionTag(FsMacrosFunction(time5)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time5");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof (Fs_date_year_string_max"-12-30 10:24AM/PM"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%d-%02d-%02d %02d:%02d%s", 1900 + ti.tm_year, ti.tm_mon + 1, ti.tm_mday
+                                        , ti.tm_hour > 12 ? ti.tm_hour - 12 : ti.tm_hour, ti.tm_min, ti.tm_hour > 12 ? "PM" : "AM");
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time5_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time5_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time6) > 0 // 时间6,格式:12-30-22 10:24:30
+                        FsMacrosFunctionTag(FsMacrosFunction(time6)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time6");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof ("12-30-22 10:24:30"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%02d-%02d-%02d %02d:%02d:%02d", ti.tm_mon + 1, ti.tm_mday, ti.tm_year % 100
+                                        , ti.tm_hour, ti.tm_min, ti.tm_sec);
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time6_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time6_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time7) > 0 // 时间7,格式:12-30-22 10:24
+                        FsMacrosFunctionTag(FsMacrosFunction(time7)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time7");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof ("12-30-22 10:24"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%02d-%02d-%02d %02d:%02d", ti.tm_mon + 1, ti.tm_mday, ti.tm_year % 100
+                                        , ti.tm_hour, ti.tm_min);
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time7_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time7_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time8) > 0 // 时间8,格式:12-30-22 10:24:30AM/PM
+                        FsMacrosFunctionTag(FsMacrosFunction(time8)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time8");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof ("12-30-22 10:24:30AM/PM"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%02d-%02d-%02d %02d:%02d:%02d%s", ti.tm_mon + 1, ti.tm_mday, ti.tm_year % 100
+                                        , ti.tm_hour > 12 ? ti.tm_hour - 12 : ti.tm_hour, ti.tm_min, ti.tm_sec, ti.tm_hour > 12 ? "PM" : "AM");
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time8_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time8_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time9) > 0 // 时间9,格式:12-30-22 10:24AM/PM
+                        FsMacrosFunctionTag(FsMacrosFunction(time9)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time9");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof ("12-30-22 10:24AM/PM"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%02d-%02d-%02d %02d:%02d%s", ti.tm_mon + 1, ti.tm_mday, ti.tm_year % 100
+                                        , ti.tm_hour > 12 ? ti.tm_hour - 12 : ti.tm_hour, ti.tm_min, ti.tm_hour > 12 ? "PM" : "AM");
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time9_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time9_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time10) > 0 // 时间10,格式:30-12-22 10:24:30
+                        FsMacrosFunctionTag(FsMacrosFunction(time10)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time10");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof ("30-12-22 10:24:30"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%02d-%02d-%02d %02d:%02d:%02d", ti.tm_mday, ti.tm_mon + 1, ti.tm_year % 100
+                                        , ti.tm_hour, ti.tm_min, ti.tm_sec);
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time10_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time10_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time11) > 0 // 时间11,格式:30-12-22 10:24
+                        FsMacrosFunctionTag(FsMacrosFunction(time11)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time11");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof ("30-12-22 10:24"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%02d-%02d-%02d %02d:%02d", ti.tm_mday, ti.tm_mon + 1, ti.tm_year % 100
+                                        , ti.tm_hour, ti.tm_min);
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time11_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time11_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time12) > 0 // 时间12,格式:30-12-22 10:24:30AM/PM
+                        FsMacrosFunctionTag(FsMacrosFunction(time12)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time12");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof ("30-12-22 10:24:30AM/PM"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%02d-%02d-%02d %02d:%02d:%02d%s", ti.tm_mday, ti.tm_mon + 1, ti.tm_year % 100
+                                        , ti.tm_hour > 12 ? ti.tm_hour - 12 : ti.tm_hour, ti.tm_min, ti.tm_sec, ti.tm_hour > 12 ? "PM" : "AM");
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time12_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time12_gt));
+                        }
+#endif
+                        ////////////////////////////////////////////////////////
+#if FsMacrosFunction(time13) > 0 // 时间13,格式:30-12-22 10:24AM/PM
+                        FsMacrosFunctionTag(FsMacrosFunction(time13)) :;
+                        {
+                            int _rv = strcmp((char*) watermarkingData, "$$time13");
+                            if (0 == _rv) {
+                                FsLocal_ShareBuffer_resize(sizeof ("30-12-22 10:24AM/PM"));
+                                watermarkingData = (unsigned char*) FsLocal_ShareBuffer + FsLocal_ShareBufferPos;
+                                time_t ts = (time_t) pFrame->capture_gmtTime;
+                                struct tm ti;
+                                localtime_r(&ts, &ti);
+
+                                sprintf((char*) watermarkingData, "%02d-%02d-%02d %02d:%02d%s", ti.tm_mday, ti.tm_mon + 1, ti.tm_year % 100
+                                        , ti.tm_hour > 12 ? ti.tm_hour - 12 : ti.tm_hour, ti.tm_min, ti.tm_hour > 12 ? "PM" : "AM");
+                                break;
+                            } else if (_rv < 0)goto FsMacrosFunctionTag(FsMacrosFunction(time13_lt));
+                            else goto FsMacrosFunctionTag(FsMacrosFunction(time13_gt));
+                        }
+#endif
                     }
+                    ////////////////////////////////////////////////////////////     
                     fs_TypeFace_write(pEncode_item->p.watermarking[watermarkingIndex].__pTypeFace, watermarkingData, pFrame->data.yuv420p[0]->data, pFrame->width[0], pFrame->height[0],
                             pFrame->width[0], pEncode_item->p.watermarking[watermarkingIndex]._watermarking_startX, pEncode_item->p.watermarking[watermarkingIndex]._watermarking_startY, pEncode_item->p.watermarking[watermarkingIndex]._watermarking_color >> 16);
                     fs_TypeFace_write_uv(pEncode_item->p.watermarking[watermarkingIndex].__pTypeFace, watermarkingData, pFrame->data.yuv420p[0]->data + pFrame->sizeWidthHeight[0], pFrame->width[0], pFrame->height[0],

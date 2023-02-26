@@ -85,6 +85,25 @@ extern "C" {
         /* 此权限的完整注释,可为空 */
         const char *comment;
     };
+    /* 产生6个int数据引用连接结构 */
+#define ConfigManager_refer_connect_node_make6_array(___requestID_3,___headType,___checkMethod,___virtualConnection,___requestDataType,___head) \
+(___requestID_3)[0], (___requestID_3)[1],(___requestID_3)[2], (((unsigned int) (___headType)) << 24) | ((unsigned int)___virtualConnection), (___head), (((unsigned int) (___checkMethod)) << 8) | ((unsigned int) (___requestDataType))
+#define ConfigManager_refer_connect_node_make6(___requestData_i6,___requestID_3,___headType,___checkMethod,___virtualConnection,___requestDataType,___head) do{\
+    (___requestData_i6)[0]=(___requestID_3)[0],(___requestData_i6)[1]=(___requestID_3)[1], (___requestData_i6)[2]=(___requestID_3)[2];\
+    (___requestData_i6)[3]=(((unsigned int) (___headType)) << 24) | ((unsigned int)___virtualConnection),(___requestData_i6)[4]=(___head), (___requestData_i6)[5]=(((unsigned int) (___checkMethod)) << 8) | ((unsigned int) (___requestDataType));\
+}while(0)
+
+#define ConfigManager_refer_connect_node_get_requestID_3(___requestData_i6) (___requestData_i6)
+#define ConfigManager_refer_connect_node_get_headType(___requestData_i6) ((unsigned char*)(___requestData_i6))[15]
+#define ConfigManager_refer_connect_node_set_headType(___requestData_i6,___headType) ((unsigned char*)(___requestData_i6))[15]=(unsigned char)(___headType)
+#define ConfigManager_refer_connect_node_get_checkMethod(___requestData_i6) (((unsigned char*)(___requestData_i6))[21]&0x1FU)
+#define ConfigManager_refer_connect_node_set_checkMethod(___requestData_i6,___checkMethod) ((unsigned char*)(___requestData_i6))[21]=(unsigned char)(___checkMethod)
+#define ConfigManager_refer_connect_node_get_virtualConnection(___requestData_i6) (((unsigned int*)(___requestData_i6))[3]&0xFFFFFFU)
+#define ConfigManager_refer_connect_node_set_virtualConnection(___requestData_i6,___virtualConnection) ((unsigned int*)(___requestData_i6))[3]=(((unsigned int*)(___requestData_i6))[3]&0xFF000000U) | ((unsigned int)___virtualConnection)
+#define ConfigManager_refer_connect_node_get_requestDataType(___requestData_i6) ((unsigned char*)(___requestData_i6))[20]
+#define ConfigManager_refer_connect_node_set_requestDataType(___requestData_i6,___requestDataType) ((unsigned char*)(___requestData_i6))[20]=(unsigned char)(___requestDataType)
+#define ConfigManager_refer_connect_node_get_head(___requestData_i6) ((unsigned int*)(___requestData_i6))[4]
+#define ConfigManager_refer_connect_node_set_head(___requestData_i6,___head) ((unsigned int*)(___requestData_i6))[4]=(unsigned int)(___head)
 
     /* 
      * 配置管理
@@ -311,8 +330,10 @@ extern "C" {
             , /* 主机ip,为0表示本地主机,非0表示远程主机 */const unsigned int ipv4
             , /* 扩展关键字,主要用于解决cmd+uuid+ipv4有相同值不能添加的问题,但cmd+uuid+ipv4相同是不能正常工作的 */const void* const extendKey
             , /* 本命令字是否可以设置uuid别名,0-不能设置,1-可设置 */ const unsigned char setAliasEnable
-            , /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128,为空表示此命令字不允许远程调用 */ int (*const cb) (
-            /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
+            , /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,返回-2表示失败但不发送错误回执(使用者自行实现),需要引用此连接返回-128,为空表示此命令字不允许远程调用 */ int (*const cb) (
+            /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
             , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ void* const p
             , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer)
             , /* 本地调用的方法,此为函数指针,参数的具体形式请参见具体的命令,为空表示此命令字不允许本地调用 */ void* const do_local, /* 调用函数的指针 */ void *p
@@ -357,8 +378,10 @@ extern "C" {
             , /* 主机ip,为0表示本地主机,非0表示远程主机 */const unsigned int ipv4
             , /* 扩展关键字,主要用于解决cmd+uuid+ipv4有相同值不能添加的问题,但cmd+uuid+ipv4相同是不能正常工作的 */const void* const extendKey
             , /* 本命令字是否可以设置uuid别名,0-不能设置,1-可设置 */ const unsigned char setAliasEnable
-            , /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128,为空表示此命令字不允许远程调用 */ int (*const cb) (
-            /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 收到数据的前4字节 */unsigned int head
+            , /* 在有用户请求此命令字时的调用函数,成功返回1,失败返回-1,返回-2表示失败但不发送错误回执(使用者自行实现),需要引用此连接返回-128,为空表示此命令字不允许远程调用 */ int (*const cb) (
+            /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
             , /* 收到的数据 */FsEbml * const pEbml, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ char requestDataType, /* 调用函数的指针 */ void* const p
             , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer)
             , /* 本地调用的方法,此为函数指针,参数的具体形式请参见具体的命令,为空表示此命令字不允许本地调用 */ void* const do_local, /* 调用函数的指针 */ void *p
@@ -392,9 +415,12 @@ extern "C" {
     /* 发送数据,pEbml按标准方式转换为发送数据 */
 
     void configManager_send_pthreadSafety__OI_2_default(void* const pConfigManager, /* 数据 */FsEbml * const pEbml
-            , /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[]
-            , /* 收到数据的前4字节 */unsigned int head, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ const char requestDataType
-            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
+            , /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存,需要采用sizeof(void*)对齐 */const unsigned int requestID_3[]
+            , /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ const unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31 */ const unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */const unsigned int virtualConnection
+            , /* 收到数据的前4字节,内部不会修改0xFFFFFFF2标识的位,内部错误时会设置0x4位 */const unsigned int head, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ const char requestDataType
+            , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
 
     /* 发送数据,sendData中的数据必须为有效值,只有当在waiteTime时间内调用condition返回1后数据才会发送 */
 
@@ -447,7 +473,11 @@ extern "C" {
     /* 引用连接的发送数据,除可对已被引用的连接调用外,还可在命令字的回调函数中调用 */
 
     void configManager_conncet_refer_send_buffer(/* 数据长度 */const unsigned int dataLen, /* 数据 */ const char data[]
-            , /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[], /* 发送数据的前4字节 */const unsigned int head
+            , /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存,需要采用sizeof(void*)对齐 */const unsigned int requestID_3[]
+            , /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ const unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31 */ const unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */const unsigned int virtualConnection
+            , /* 收到数据的前4字节 */const unsigned int head
             , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer);
 
     /* 获取pEbml转换的数据 */
@@ -464,41 +494,49 @@ extern "C" {
             , /* 数据区使用xml,为空时每次都从源数据生成,*pData_xml为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_xml
             , /* 数据区使用json,为空时每次都从源数据生成,*pData_json为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_json
             , /* 数据 */FsEbml * const pEbml, /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存,需要采用sizeof(void*)对齐 */const unsigned int requestID_3[]
+            , /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ const unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31 */ const unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */const unsigned int virtualConnection
             , /* 收到数据的前4字节,内部不会修改0xFFFFFFF2标识的位,内部错误时会设置0x4位 */const unsigned int head, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ const char requestDataType
-            , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer);
+            , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
 
     /* 引用连接的发送数据,源数据可以按需动态生成,除可对已被引用的连接调用外,还可在命令字的回调函数中调用,发送数据返回1,否则返回-1 */
 
-    /* 引用连接的发送数据,源数据可以按需动态生成,除可对已被引用的连接调用外,还可在命令字的回调函数中调用,发送数据返回1,否则返回-1 */
     int configManager_conncet_refer_sendData2(/* 数据区使用ebml,为空时每次都从源数据生成,*pData_ebml为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_ebml
             , /* 数据区使用xml,为空时每次都从源数据生成,*pData_xml为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_xml
             , /* 数据区使用json,为空时每次都从源数据生成,*pData_json为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_json
             , /* 生成源数据的方法,成功返回FsEbml指针,失败返回NULL */FsEbml * (*ebml_new__IO)(void *p), /* 与生成源数据相关的指针 */void *const p
             , /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存,需要采用sizeof(void*)对齐 */const unsigned int requestID_3[]
-            , /* 收到数据的前4字节 */const unsigned int head, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ const char requestDataType
-            , /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
+            , /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ const unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31 */ const unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */const unsigned int virtualConnection
+            , /* 收到数据的前4字节,内部不会修改0xFFFFFFF2标识的位,内部错误时会设置0x4位 */const unsigned int head, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ const char requestDataType
+            , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
 
     /* 向所有引用连接的发送数据 */
 
     void configManager_conncet_refer_send(void* const pConfigManager
-            , /* 储存引用连接的链表,节点长度为不少于5int,前3int表示连接标识
-            ,第4个int表示head,第5个int表示发送的数据类型(1-ebml数据,2-xml数据,3-json数据),节点大小必须为2个int大小的倍数 */ FsStructList * const pStructList_5int_min
+            , /* 储存引用连接的链表,节点长度为不少于6int,前3int表示连接标识
+           * ,第4个int表示head,第5个int的低字节表示发送的数据类型(1-ebml数据,2-xml数据,3-json数据),第5个int的次低字节表示发送的数据的头类型(1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头)
+           * ,第6个字节低3字节表示虚拟连接,最高字节表示16字节头的校验方式,节点大小必须为2个int大小的倍数 */ FsStructList * const pStructList_6int_min
             , /* 数据区使用ebml,为空时每次都从源数据生成,*pData_ebml为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_ebml
             , /* 数据区使用xml,为空时每次都从源数据生成,*pData_xml为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_xml
             , /* 数据区使用json,为空时每次都从源数据生成,*pData_json为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_json
             , /* 数据 */FsEbml * const pEbml, /* 发送的数据需要或的值,一般用于指定0x4,0x2的标识位 */const unsigned int headOr
-            , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer);
+            , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
 
     /* 向所有引用连接的发送数据 */
 
     void configManager_conncet_refer_send_objectList(void* const pConfigManager
-            , /* 储存引用连接的链表,节点长度为不少于5int,前3int表示连接标识,第4个int表示head,第5个int表示发送的数据类型(1-ebml数据,2-xml数据,3-json数据) */ FsObjectList * const pObjectList
+            , /* 储存引用连接的链表,节点长度为不少于6int,前3int表示连接标识
+           * ,第4个int表示head,第5个int的低字节表示发送的数据类型(1-ebml数据,2-xml数据,3-json数据),第5个int的次低字节表示发送的数据的头类型(1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头)
+           * ,第6个字节低3字节表示虚拟连接,最高字节表示16字节头的校验方式,节点大小必须为2个int大小的倍数 */FsObjectList * const pObjectList
             , /* pObjectList中每个节点储存引用数据的偏移量,必须是2个int大小的倍数 */const unsigned int offset
             , /* 数据区使用ebml,为空时每次都从源数据生成,*pData_ebml为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_ebml
             , /* 数据区使用xml,为空时每次都从源数据生成,*pData_xml为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_xml
             , /* 数据区使用json,为空时每次都从源数据生成,*pData_json为空时,可能会更新 */FsObjectBasePthreadSafety * * const pData_json
             , /* 数据 */FsEbml * const pEbml, /* 发送的数据需要或的值,一般用于指定0x4,0x2的标识位 */const unsigned int headOr
-            , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer);
+            , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer);
 
     /* 检查所有的引用连接是否有断开的连接 */
 
@@ -589,6 +627,9 @@ extern "C" {
     void configManager_return_register(void* const pConfigManager, /* 协议类型 */const ConfigManager_Cluster_protocol type, /* 关键字 */const void* const key
             , /* 在回执匹配掩码时的调用函数,成功返回1,失败返回-1,需要引用此连接返回-128,为空表示此命令字不允许远程调用 */ int (*cb)(
             /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[]
+            , /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31  */ unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */unsigned int virtualConnection, /* 收到数据的前4字节 */unsigned int head
             , /* 收到的数据 */FsObjectBasePthreadSafety * pObjectBasePthreadSafety, /* 调用函数的指针 */ void* p
             , /* 缓存Buffer,不为空 */FsObjectBaseBuffer * const pObjectBaseBuffer, /* 共享buffer,可为空 */ FsShareBuffer * const pShareBuffer)
             , /* 调用函数的指针 */ void *const p);
@@ -692,12 +733,8 @@ extern "C" {
     struct ConfigManager_connectNode_useOnce {
         /* 下一个连接,为空表示没有下一个连接 */
         struct ConfigManager_connectNode_useOnce *next;
-        /* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */
-        unsigned int requestID[3];
-        /* 收到数据的前4字节 */
-        unsigned int head;
-        /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */
-        char return_type;
+        /* 连接信息,按ConfigManager_refer_connect_node_make6储存 */
+        unsigned int requestData[6];
         /* 命令信息,用于区分命令类型,在具体业务中定义 */
         unsigned char cmdType;
         /* 获取数据的掩码,在具体业务中定义 */
@@ -709,8 +746,11 @@ extern "C" {
      * 返回ConfigManager_connectNode_useOnce指针.
      */
 
-    struct ConfigManager_connectNode_useOnce * configManager_connectNode_useOnce_new__IO(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存 */const unsigned int requestID_3[]
-            , /* 收到数据的前4字节 */unsigned int head, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */const char return_type
+    struct ConfigManager_connectNode_useOnce * configManager_connectNode_useOnce_new__IO(/* 与请求相关的信息,用于识别是发给哪个客户端的数据,用3个int来储存,需要采用sizeof(void*)对齐 */const unsigned int requestID_3[]
+            , /* 1-8字节头,2-16字节头,4-http无头,5-http+8字节头,6-http+16字节头 */ const unsigned char headType
+            , /* 头的校验方式,仅使用16字节头时有效,请求与回执应使用相同的校验方式,取值范围1-31 */ const unsigned char checkMethod
+            , /* 虚拟连接号,仅使用16字节头时有效,使用3字节 */const unsigned int virtualConnection
+            , /* 收到数据的前4字节 */const unsigned int head, /* 客户端发送请求的数据类型,1-ebml数据,2-xml数据,3-json数据 */ const char requestDataType
             , /* 命令信息,用于区分命令类型,在具体业务中定义 */ const unsigned char cmdType, /* 获取数据的掩码,具体定义在具体业务中定义 */ const unsigned int mask);
 
     /* 删除struct ConfigManager_connectNode_useOnce对象及next指向的下一个对象 */

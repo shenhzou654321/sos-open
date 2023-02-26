@@ -1180,10 +1180,6 @@ Accept-Ranges: bytes\r\n\r\n"
         return 0;
     }
     if (0) {
-        fs_network_test();
-        return 0;
-    }
-    if (0) {
         globalInit(NULL, NULL, NULL, 0);
         fs_Bd_test();
         globalRelease();
@@ -1249,10 +1245,6 @@ Accept-Ranges: bytes\r\n\r\n"
         fs_StringList_out(list, stdout, NULL, "\n");
         fflush(stdout);
         fs_StringList_delete__OI(list);
-        return 0;
-    }
-    if (0) {
-        fs_network_test();
         return 0;
     }
 #endif

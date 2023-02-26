@@ -379,7 +379,7 @@ extern "C" {
 
         struct {
 #define RtmpServer_item_ClusterLen (FsPointer_to_long(&((struct RtmpServer_item*) 0)->ro._cb_client)+sizeof(void*)*3)
-#define RtmpServer_item_Cluster_callTimes(pRtmpServer_item) (*(unsigned int*)fs_pointer_to_void_pointer((void*)(&(pRtmpServer_item)->ro._cb_client)+0))
+#define RtmpServer_item_Cluster_callTimes(pRtmpServer_item) (*(unsigned int*)fs_pointer_to_void_pointer((void*)((&(pRtmpServer_item)->ro._cb_client)+0)))
 #define RtmpServer_item_Cluster_next(pRtmpServer_item) (*(struct RtmpServer_item **)fs_pointer_to_void_pointer((void*)((&(pRtmpServer_item)->ro._cb_client)+1)))
 #define RtmpServer_item_Cluster_pRtmpServer(pRtmpServer_item) (*(Rtmp**)fs_pointer_to_void_pointer((void*)((&(pRtmpServer_item)->ro._cb_client)+2)))
 #define RtmpServer_item_next(pRtmpServer_item) (0==(pRtmpServer_item)->r._ipv4?(pRtmpServer_item)->p.next:RtmpServer_item_Cluster_next(pRtmpServer_item))

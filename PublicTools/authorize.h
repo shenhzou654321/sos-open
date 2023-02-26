@@ -59,6 +59,10 @@ extern "C" {
     void fs_package_head16_encode1(unsigned char rst_16[]);
 
 #define fs_package_head16_encode(rst_16) fs_package_head16_encode1(rst_16)
+        /* 加密16字节头,成功返回1,失败返回-1 */
+
+    extern void (* fsPackageHeadEncode[32]) (unsigned char rst_16[]);
+
     /* 解码16字节头,成功返回1,失败返回-1 */
 
     extern int (* fsPackageHeadDecode[32]) (unsigned char rst_16[]);
