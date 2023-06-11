@@ -1,6 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="95">
+<configurationDescriptor version="100">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="lib" displayName="lib" projectFiles="true">
+      <logicalFolder name="hk" displayName="hk" projectFiles="true">
+        <logicalFolder name="HCNetSDKCom" displayName="HCNetSDKCom" projectFiles="true">
+          <itemPath>lib/hk/HCNetSDKCom/libHCAlarm.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libHCCoreDevCfg.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libHCDisplay.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libHCGeneralCfgMgr.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libHCIndustry.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libHCPlayBack.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libHCPreview.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libHCVoiceTalk.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libStreamTransClient.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libSystemTransform.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libanalyzedata.so</itemPath>
+          <itemPath>lib/hk/HCNetSDKCom/libiconv2.so</itemPath>
+        </logicalFolder>
+        <itemPath>lib/hk/libAudioRender.so</itemPath>
+        <itemPath>lib/hk/libHCCore.so</itemPath>
+        <itemPath>lib/hk/libNPQos.so</itemPath>
+        <itemPath>lib/hk/libPlayCtrl.so</itemPath>
+        <itemPath>lib/hk/libSuperRender.so</itemPath>
+        <itemPath>lib/hk/libhcnetsdk.so</itemPath>
+        <itemPath>lib/hk/libhpr.so</itemPath>
+      </logicalFolder>
+    </logicalFolder>
     <logicalFolder name="Main" displayName="Main" projectFiles="true">
       <logicalFolder name="vsys" displayName="vsys" projectFiles="true">
         <itemPath>Main/vsys/capture.c</itemPath>
@@ -9,37 +34,139 @@
         <itemPath>Main/vsys/decode.h</itemPath>
         <itemPath>Main/vsys/encode.c</itemPath>
         <itemPath>Main/vsys/encode.h</itemPath>
+        <itemPath>Main/vsys/inflrayObject.c</itemPath>
+        <itemPath>Main/vsys/inflrayObject.h</itemPath>
+        <itemPath>Main/vsys/output-ebml.c</itemPath>
+        <itemPath>Main/vsys/output-ebml.h</itemPath>
+        <itemPath>Main/vsys/output-xml-comment.c</itemPath>
+        <itemPath>Main/vsys/output-xml-comment.h</itemPath>
+        <itemPath>Main/vsys/ptzObject.c</itemPath>
+        <itemPath>Main/vsys/ptzObject.h</itemPath>
+        <itemPath>Main/vsys/recognition.c</itemPath>
+        <itemPath>Main/vsys/recognition.h</itemPath>
         <itemPath>Main/vsys/record.c</itemPath>
         <itemPath>Main/vsys/record.h</itemPath>
+        <itemPath>Main/vsys/targetCheck.c</itemPath>
+        <itemPath>Main/vsys/targetCheck.h</itemPath>
+        <itemPath>Main/vsys/vdomelinkage.c</itemPath>
+        <itemPath>Main/vsys/vdomelinkage.h</itemPath>
+        <itemPath>Main/vsys/vehicleDetect.c</itemPath>
+        <itemPath>Main/vsys/vehicleDetect.h</itemPath>
+        <itemPath>Main/vsys/vgunlinkage.c</itemPath>
+        <itemPath>Main/vsys/vgunlinkage.h</itemPath>
         <itemPath>Main/vsys/vsys.c</itemPath>
         <itemPath>Main/vsys/vsys.h</itemPath>
+        <itemPath>Main/vsys/vtrack.c</itemPath>
+        <itemPath>Main/vsys/vtrack.h</itemPath>
       </logicalFolder>
       <itemPath>Main/main.c</itemPath>
       <itemPath>Main/main.h</itemPath>
     </logicalFolder>
     <logicalFolder name="Modules" displayName="Modules" projectFiles="true">
       <logicalFolder name="camera_ctrl" displayName="camera_ctrl" projectFiles="true">
+        <itemPath>Modules/camera_ctrl/ZGXAPI.h</itemPath>
         <itemPath>Modules/camera_ctrl/camera_ctrl_hk_http.h</itemPath>
-        <itemPath>Modules/camera_ctrl/camera_ctrl_hk_http.o</itemPath>
+        <itemPath>Modules/camera_ctrl/camera_ctrl_tcp.h</itemPath>
+        <itemPath>Modules/camera_ctrl/camera_ctrl_ys_http.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="camera_gb28181"
+                     displayName="camera_gb28181"
+                     projectFiles="true">
+        <itemPath>Modules/camera_gb28181/camera_gb28181.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="camera_infIray"
+                     displayName="camera_infIray"
+                     projectFiles="true">
+        <itemPath>Modules/camera_infIray/Inflray.h</itemPath>
+        <itemPath>Modules/camera_infIray/camera_ctrl_inflray.h</itemPath>
+        <itemPath>Modules/camera_infIray/camera_inflray.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="camera_pull" displayName="camera_pull" projectFiles="true">
+        <itemPath>Modules/camera_pull/camera_pull.h</itemPath>
       </logicalFolder>
       <logicalFolder name="camera_rtmp" displayName="camera_rtmp" projectFiles="true">
         <itemPath>Modules/camera_rtmp/camera_rtmp.h</itemPath>
-        <itemPath>Modules/camera_rtmp/camera_rtmp.o</itemPath>
+      </logicalFolder>
+      <logicalFolder name="camera_rtsp" displayName="camera_rtsp" projectFiles="true">
+        <itemPath>Modules/camera_rtsp/camera_rtsp.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="derelict" displayName="derelict" projectFiles="true">
+        <itemPath>Modules/derelict/CamDetect.h</itemPath>
+        <itemPath>Modules/derelict/MetroDLL.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="dhsdk" displayName="dhsdk" projectFiles="true">
+        <itemPath>Modules/dhsdk/avglobal.h</itemPath>
+        <itemPath>Modules/dhsdk/dhconfigsdk.h</itemPath>
+        <itemPath>Modules/dhsdk/dhnetsdk.h</itemPath>
+        <itemPath>Modules/dhsdk/dhsdk.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="gbsdk" displayName="gbsdk" projectFiles="true">
+        <itemPath>Modules/gbsdk/gbsdk.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="hksdk" displayName="hksdk" projectFiles="true">
+        <itemPath>Modules/hksdk/HCNetSDK.h</itemPath>
+        <itemPath>Modules/hksdk/hksdk.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="plateRec" displayName="plateRec" projectFiles="true">
+        <itemPath>Modules/plateRec/plateRec.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="recon" displayName="recon" projectFiles="true">
+        <itemPath>Modules/recon/wave.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="sdkPlayBack" displayName="sdkPlayBack" projectFiles="true">
+        <itemPath>Modules/sdkPlayBack/sdkPlayBack.h</itemPath>
+        <itemPath>Modules/sdkPlayBack/sdkPlayBackTask.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="track" displayName="track" projectFiles="true">
+        <itemPath>Modules/track/FreeWalker.h</itemPath>
+        <itemPath>Modules/track/v_Track.h</itemPath>
+        <itemPath>Modules/track/v_findLine.h</itemPath>
+        <itemPath>Modules/track/v_search.h</itemPath>
+        <itemPath>Modules/track/v_tool.h</itemPath>
+        <itemPath>Modules/track/vibe-background-sequential.h</itemPath>
+        <itemPath>Modules/track/vibe_proc.h</itemPath>
+        <itemPath>Modules/track/wave.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="trackcar" displayName="trackcar" projectFiles="true">
+        <itemPath>Modules/trackcar/capturevehicle.h</itemPath>
+        <itemPath>Modules/trackcar/v_trackcar.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="vehicleDetectLib"
+                     displayName="vehicleDetectLib"
+                     projectFiles="true">
+        <itemPath>Modules/vehicleDetectLib/VehicleDetectLib.h</itemPath>
       </logicalFolder>
     </logicalFolder>
     <logicalFolder name="PublicTools" displayName="PublicTools" projectFiles="true">
+      <logicalFolder name="Analyze" displayName="Analyze" projectFiles="true">
+        <itemPath>PublicTools/Analyze/CarDetect.h</itemPath>
+        <itemPath>PublicTools/Analyze/ObjectTrack.h</itemPath>
+      </logicalFolder>
       <logicalFolder name="Fs" displayName="Fs" projectFiles="true">
         <itemPath>PublicTools/Fs/Bd.h</itemPath>
+        <itemPath>PublicTools/Fs/BindClassify.h</itemPath>
+        <itemPath>PublicTools/Fs/Calculation.h</itemPath>
         <itemPath>PublicTools/Fs/Config.h</itemPath>
+        <itemPath>PublicTools/Fs/CycleList.c</itemPath>
+        <itemPath>PublicTools/Fs/CycleList.h</itemPath>
+        <itemPath>PublicTools/Fs/Digest.h</itemPath>
+        <itemPath>PublicTools/Fs/Dns.h</itemPath>
         <itemPath>PublicTools/Fs/Ebml.h</itemPath>
         <itemPath>PublicTools/Fs/FileTool.h</itemPath>
+        <itemPath>PublicTools/Fs/GroupSqrt.h</itemPath>
         <itemPath>PublicTools/Fs/Json.h</itemPath>
-        <itemPath>PublicTools/Fs/LinkList.h</itemPath>
+        <itemPath>PublicTools/Fs/Kcp.h</itemPath>
+        <itemPath>PublicTools/Fs/Log.h</itemPath>
+        <itemPath>PublicTools/Fs/Mapping.h</itemPath>
         <itemPath>PublicTools/Fs/Memery.h</itemPath>
         <itemPath>PublicTools/Fs/Network.h</itemPath>
         <itemPath>PublicTools/Fs/Object.h</itemPath>
         <itemPath>PublicTools/Fs/ObjectList.h</itemPath>
+        <itemPath>PublicTools/Fs/Router.h</itemPath>
         <itemPath>PublicTools/Fs/Server.h</itemPath>
+        <itemPath>PublicTools/Fs/Shell.h</itemPath>
+        <itemPath>PublicTools/Fs/Socket.h</itemPath>
+        <itemPath>PublicTools/Fs/Sort.h</itemPath>
         <itemPath>PublicTools/Fs/String.h</itemPath>
         <itemPath>PublicTools/Fs/StringBuilder.h</itemPath>
         <itemPath>PublicTools/Fs/StringList.h</itemPath>
@@ -51,21 +178,33 @@
       </logicalFolder>
       <logicalFolder name="Image" displayName="Image" projectFiles="true">
         <itemPath>PublicTools/Image/ImageDib.h</itemPath>
+        <itemPath>PublicTools/Image/ImageExtern.h</itemPath>
         <itemPath>PublicTools/Image/ImageFrame.h</itemPath>
+        <itemPath>PublicTools/Image/ImageJpeg.h</itemPath>
       </logicalFolder>
       <logicalFolder name="Media" displayName="Media" projectFiles="true">
+        <itemPath>PublicTools/Media/AudioAAC.h</itemPath>
+        <itemPath>PublicTools/Media/VideoAVI.h</itemPath>
         <itemPath>PublicTools/Media/VideoH264.h</itemPath>
+        <itemPath>PublicTools/Media/VideoH265.h</itemPath>
         <itemPath>PublicTools/Media/VideoMKV.h</itemPath>
       </logicalFolder>
       <logicalFolder name="Thread" displayName="Thread" projectFiles="true">
+        <itemPath>PublicTools/Thread/BindClassifyServer.h</itemPath>
         <itemPath>PublicTools/Thread/ConfigManager.h</itemPath>
+        <itemPath>PublicTools/Thread/FileStream.h</itemPath>
         <itemPath>PublicTools/Thread/FrameConvert.h</itemPath>
+        <itemPath>PublicTools/Thread/GB28181.h</itemPath>
+        <itemPath>PublicTools/Thread/Hls.h</itemPath>
+        <itemPath>PublicTools/Thread/KeepSpace.h</itemPath>
+        <itemPath>PublicTools/Thread/Onvif.h</itemPath>
         <itemPath>PublicTools/Thread/Rtmp.h</itemPath>
+        <itemPath>PublicTools/Thread/Rtsp.h</itemPath>
+        <itemPath>PublicTools/Thread/SocketPool.h</itemPath>
         <itemPath>PublicTools/Thread/camera_ctrl.h</itemPath>
         <itemPath>PublicTools/Thread/error.h</itemPath>
         <itemPath>PublicTools/Thread/monitor.h</itemPath>
       </logicalFolder>
-      <itemPath>PublicTools/libFunction.c</itemPath>
       <itemPath>PublicTools/publicDefine.h</itemPath>
     </logicalFolder>
     <logicalFolder name="HeaderFiles" displayName="头文件" projectFiles="true">
@@ -73,7 +212,37 @@
     <logicalFolder name="SourceFiles" displayName="源文件" projectFiles="true">
     </logicalFolder>
     <logicalFolder name="ResourceFiles" displayName="资源文件" projectFiles="true">
-      <itemPath>libfslib.so</itemPath>
+      <itemPath>libzos.a</itemPath>
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="测试文件"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="重要文件"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="测试文件"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="重要文件"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="测试文件"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="重要文件"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="测试文件"
@@ -102,21 +271,46 @@
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
       <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+          <incDir>
+            <pElem>/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux</pElem>
+            <pElem>/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include</pElem>
+          </incDir>
+          <commandLine>-D_GNU_SOURCE -ffunction-sections</commandLine>
+          <warningLevel>2</warningLevel>
+        </cTool>
         <ccTool>
-          <developmentMode>4</developmentMode>
-          <warningLevel>0</warningLevel>
+          <incDir>
+            <pElem>/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include/linux</pElem>
+            <pElem>/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el8_0.x86_64/include</pElem>
+          </incDir>
+          <commandLine>-ffunction-sections</commandLine>
+          <warningLevel>2</warningLevel>
         </ccTool>
         <linkerTool>
-          <output>../dist/linux/sos</output>
+          <output>./zos</output>
           <linkerAddLib>
             <pElem>lib</pElem>
           </linkerAddLib>
           <linkerLibItems>
-            <linkerLibFileItem>libfslib.so</linkerLibFileItem>
-            <linkerLibFileItem>Modules/camera_ctrl/camera_ctrl_hk_http.o</linkerLibFileItem>
-            <linkerLibFileItem>Modules/camera_rtmp/camera_rtmp.o</linkerLibFileItem>
+            <linkerLibLibItem>HCAlarm</linkerLibLibItem>
+            <linkerLibLibItem>HCCore</linkerLibLibItem>
+            <linkerLibLibItem>HCCoreDevCfg</linkerLibLibItem>
+            <linkerLibLibItem>HCDisplay</linkerLibLibItem>
+            <linkerLibLibItem>HCGeneralCfgMgr</linkerLibLibItem>
+            <linkerLibLibItem>HCIndustry</linkerLibLibItem>
+            <linkerLibLibItem>HCPlayBack</linkerLibLibItem>
+            <linkerLibLibItem>HCPreview</linkerLibLibItem>
+            <linkerLibLibItem>HCVoiceTalk</linkerLibLibItem>
+            <linkerLibLibItem>StreamTransClient</linkerLibLibItem>
+            <linkerLibLibItem>SystemTransform</linkerLibLibItem>
+            <linkerLibLibItem>analyzedata</linkerLibLibItem>
+            <linkerLibLibItem>hcnetsdk</linkerLibLibItem>
+            <linkerLibLibItem>hpr</linkerLibLibItem>
+            <linkerLibFileItem>libzos.a</linkerLibFileItem>
           </linkerLibItems>
-          <commandLine>-lpthread -ldl -lrt</commandLine>
+          <commandLine>-Wl,--gc-sections,-rpath,./:/usr/local/lib:/usr/local/cuda/lib64:/usr/local/cuda/libnsight:/usr/local/cuda/libnvvp -lpthread -ldl -lrt</commandLine>
         </linkerTool>
       </compileType>
       <item path="Main/main.c" ex="false" tool="0" flavor2="0">
@@ -135,39 +329,184 @@
       </item>
       <item path="Main/vsys/encode.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="Main/vsys/inflrayObject.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/inflrayObject.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/output-ebml.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/output-ebml.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/output-xml-comment.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/output-xml-comment.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/ptzObject.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/ptzObject.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/recognition.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/recognition.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="Main/vsys/record.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="Main/vsys/record.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="Main/vsys/targetCheck.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/targetCheck.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/vdomelinkage.c" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Main/vsys/vdomelinkage.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/vehicleDetect.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/vehicleDetect.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/vgunlinkage.c" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Main/vsys/vgunlinkage.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="Main/vsys/vsys.c" ex="false" tool="1" flavor2="0">
       </item>
       <item path="Main/vsys/vsys.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/vtrack.c" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Main/vsys/vtrack.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/camera_ctrl/ZGXAPI.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="Modules/camera_ctrl/camera_ctrl_hk_http.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="Modules/camera_ctrl/camera_ctrl_hk_http.o"
+      <item path="Modules/camera_ctrl/camera_ctrl_tcp.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
+      <item path="Modules/camera_ctrl/camera_ctrl_ys_http.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_gb28181/camera_gb28181.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_infIray/Inflray.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/camera_infIray/camera_ctrl_inflray.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_infIray/camera_inflray.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_pull/camera_pull.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="Modules/camera_rtmp/camera_rtmp.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="Modules/camera_rtmp/camera_rtmp.o" ex="false" tool="3" flavor2="0">
+      <item path="Modules/camera_rtsp/camera_rtsp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/derelict/CamDetect.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/derelict/MetroDLL.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/dhsdk/avglobal.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/dhsdk/dhconfigsdk.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/dhsdk/dhnetsdk.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/dhsdk/dhsdk.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/gbsdk/gbsdk.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/hksdk/HCNetSDK.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/hksdk/hksdk.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/plateRec/plateRec.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/recon/wave.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/sdkPlayBack/sdkPlayBack.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/sdkPlayBack/sdkPlayBackTask.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/track/FreeWalker.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/v_Track.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/v_findLine.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/v_search.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/v_tool.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/vibe-background-sequential.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/track/vibe_proc.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/wave.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/trackcar/capturevehicle.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/trackcar/v_trackcar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/vehicleDetectLib/VehicleDetectLib.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="PublicTools/Analyze/CarDetect.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Analyze/ObjectTrack.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="PublicTools/Fs/Bd.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="PublicTools/Fs/BindClassify.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Calculation.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="PublicTools/Fs/Config.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/CycleList.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/CycleList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Digest.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Dns.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="PublicTools/Fs/Ebml.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="PublicTools/Fs/FileTool.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="PublicTools/Fs/GroupSqrt.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="PublicTools/Fs/Json.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="PublicTools/Fs/LinkList.h" ex="false" tool="3" flavor2="0">
+      <item path="PublicTools/Fs/Kcp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Log.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Mapping.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="PublicTools/Fs/Memery.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -177,7 +516,15 @@
       </item>
       <item path="PublicTools/Fs/ObjectList.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="PublicTools/Fs/Router.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="PublicTools/Fs/Server.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Shell.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Socket.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Sort.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="PublicTools/Fs/String.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -197,17 +544,46 @@
       </item>
       <item path="PublicTools/Image/ImageDib.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="PublicTools/Image/ImageExtern.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="PublicTools/Image/ImageFrame.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Image/ImageJpeg.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Media/AudioAAC.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Media/VideoAVI.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="PublicTools/Media/VideoH264.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="PublicTools/Media/VideoH265.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="PublicTools/Media/VideoMKV.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/BindClassifyServer.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
       </item>
       <item path="PublicTools/Thread/ConfigManager.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="PublicTools/Thread/FileStream.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="PublicTools/Thread/FrameConvert.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="PublicTools/Thread/GB28181.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/Hls.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/KeepSpace.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/Onvif.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="PublicTools/Thread/Rtmp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/Rtsp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/SocketPool.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="PublicTools/Thread/camera_ctrl.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -215,11 +591,454 @@
       </item>
       <item path="PublicTools/Thread/monitor.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="PublicTools/libFunction.c" ex="false" tool="0" flavor2="0">
+      <item path="PublicTools/publicDefine.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCAlarm.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCCoreDevCfg.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCDisplay.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCGeneralCfgMgr.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCIndustry.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCPlayBack.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCPreview.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCVoiceTalk.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libStreamTransClient.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libSystemTransform.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libanalyzedata.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libiconv2.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libAudioRender.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libHCCore.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libNPQos.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libPlayCtrl.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libSuperRender.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libhcnetsdk.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libhpr.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="libzos.a" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+    <conf name="linux-Debug" type="1">
+      <toolsSet>
+        <compilerSet>GNU|GNU</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <warningLevel>2</warningLevel>
+        </cTool>
+        <ccTool>
+          <warningLevel>2</warningLevel>
+        </ccTool>
+        <linkerTool>
+          <output>./zos</output>
+          <linkerAddLib>
+            <pElem>lib</pElem>
+          </linkerAddLib>
+          <linkerLibItems>
+            <linkerLibLibItem>HCAlarm</linkerLibLibItem>
+            <linkerLibLibItem>HCCore</linkerLibLibItem>
+            <linkerLibLibItem>HCCoreDevCfg</linkerLibLibItem>
+            <linkerLibLibItem>HCDisplay</linkerLibLibItem>
+            <linkerLibLibItem>HCGeneralCfgMgr</linkerLibLibItem>
+            <linkerLibLibItem>HCIndustry</linkerLibLibItem>
+            <linkerLibLibItem>HCPlayBack</linkerLibLibItem>
+            <linkerLibLibItem>HCPreview</linkerLibLibItem>
+            <linkerLibLibItem>HCVoiceTalk</linkerLibLibItem>
+            <linkerLibLibItem>StreamTransClient</linkerLibLibItem>
+            <linkerLibLibItem>SystemTransform</linkerLibLibItem>
+            <linkerLibLibItem>analyzedata</linkerLibLibItem>
+            <linkerLibLibItem>hcnetsdk</linkerLibLibItem>
+            <linkerLibLibItem>hpr</linkerLibLibItem>
+            <linkerLibFileItem>libzos.a</linkerLibFileItem>
+          </linkerLibItems>
+          <commandLine>-lpthread -ldl -lrt</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="Main/main.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/main.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/capture.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/capture.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/decode.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/decode.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/encode.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/encode.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/inflrayObject.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/inflrayObject.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/output-ebml.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/output-ebml.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/output-xml-comment.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/output-xml-comment.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/ptzObject.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/ptzObject.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/recognition.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/recognition.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/record.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/record.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/targetCheck.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/targetCheck.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/vdomelinkage.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/vdomelinkage.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/vehicleDetect.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/vehicleDetect.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/vgunlinkage.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/vgunlinkage.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/vsys.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/vsys.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Main/vsys/vtrack.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Main/vsys/vtrack.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/camera_ctrl/ZGXAPI.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/camera_ctrl/camera_ctrl_hk_http.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_ctrl/camera_ctrl_tcp.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_ctrl/camera_ctrl_ys_http.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_gb28181/camera_gb28181.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_infIray/Inflray.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/camera_infIray/camera_ctrl_inflray.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_infIray/camera_inflray.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/camera_pull/camera_pull.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/camera_rtmp/camera_rtmp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/camera_rtsp/camera_rtsp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/derelict/CamDetect.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/derelict/MetroDLL.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/dhsdk/avglobal.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/dhsdk/dhconfigsdk.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/dhsdk/dhnetsdk.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/dhsdk/dhsdk.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/gbsdk/gbsdk.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/hksdk/HCNetSDK.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/hksdk/hksdk.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/plateRec/plateRec.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/recon/wave.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/sdkPlayBack/sdkPlayBack.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/sdkPlayBack/sdkPlayBackTask.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/track/FreeWalker.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/v_Track.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/v_findLine.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/v_search.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/v_tool.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/vibe-background-sequential.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="Modules/track/vibe_proc.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/track/wave.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/trackcar/capturevehicle.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/trackcar/v_trackcar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Modules/vehicleDetectLib/VehicleDetectLib.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="PublicTools/Analyze/CarDetect.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Analyze/ObjectTrack.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Bd.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/BindClassify.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Calculation.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Config.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/CycleList.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/CycleList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Digest.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Dns.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Ebml.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/FileTool.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/GroupSqrt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Json.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Kcp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Log.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Mapping.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Memery.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Network.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Object.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/ObjectList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Router.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Server.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Shell.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Socket.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Sort.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/String.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/StringBuilder.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/StringList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/StructList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/SystemInfo.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Time.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/TypeFace.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Fs/Xml.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Image/ImageDib.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Image/ImageExtern.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Image/ImageFrame.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Image/ImageJpeg.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Media/AudioAAC.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Media/VideoAVI.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Media/VideoH264.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Media/VideoH265.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Media/VideoMKV.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/BindClassifyServer.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/ConfigManager.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/FileStream.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/FrameConvert.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/GB28181.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/Hls.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/KeepSpace.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/Onvif.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/Rtmp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/Rtsp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/SocketPool.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/camera_ctrl.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/error.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PublicTools/Thread/monitor.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="PublicTools/publicDefine.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="libfslib.so" ex="false" tool="3" flavor2="0">
+      <item path="lib/hk/HCNetSDKCom/libHCAlarm.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCCoreDevCfg.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCDisplay.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCGeneralCfgMgr.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCIndustry.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCPlayBack.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCPreview.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libHCVoiceTalk.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libStreamTransClient.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libSystemTransform.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libanalyzedata.so"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/hk/HCNetSDKCom/libiconv2.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libAudioRender.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libHCCore.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libNPQos.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libPlayCtrl.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libSuperRender.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libhcnetsdk.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hk/libhpr.so" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="libzos.a" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
   </confs>

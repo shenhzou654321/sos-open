@@ -1,0 +1,57 @@
+watchdog(){
+ checkIndex=0;
+  while [ $checkIndex -lt 10 ];do
+    sleep 5
+    current=`date "+%Y-%m-%d %H:%M:%S"`
+    current=`date -d "$current" +%s`
+    current=$(($current -10))
+    f=0
+    for i in `find /tmp/running/ -type f`;do
+      mt=`stat -c %Y  $i`
+      if [[ $mt -lt $current ]];then f=1; break; fi
+    done
+    if [[ $f -eq 0 ]];then checkIndex=0; else
+      checkIndex=$(($checkIndex + 1))
+      echo "check run timout $checkIndex"
+    fi
+  done
+}
+if [[ -f /tmp/sysinfo ]] ;then rm -rf /tmp/sysinfo; fi
+dir=$(pwd);
+cd /tmp
+gzip -cd $dir/sysinfo.gz |cpio -idvm
+cd $dir
+if [ -f ./out ];then
+chmod +x out
+fi
+chmod +x zos
+killall -9 zos
+if [[ -f ./keepspace ]] ;then killall -9 keepspace; fi
+mkdir -p /fs/project/etc
+while [ 1 ] ;do
+  if [[ ! -d /tmp/running ]];then mkdir /tmp/running; fi
+  rm -rf /tmp/running/*
+  if [[ -f ./debug ]] ;then
+    ./debug -L 0QS72BLLR0IBDO2B2222222222222BLS
+  fi
+  if [ -f ./out ];then
+    ./out -l /dev/null -i 0 -a 0.0.0.0:0 ./zos >/dev/null &
+  else
+    ./zos &
+  fi
+  pid_zos=$!
+  pid_keepspace=0
+  if [[ -f ./keepspace ]] ;then
+    if [ -f ./out ];then
+      ./out -l /dev/null -i 0 -a 0.0.0.0:0 ./keepspace >/dev/null &
+    else
+      ./keepspace &
+    fi
+    pid_keepspace=$!
+  fi
+  watchdog
+  echo "some prossess error,try again..."
+  sleep 1
+  kill -9 $pid_zos
+  if [[ -f ./keepspace ]] ;then kill -9 $pid_keepspace; fi
+done

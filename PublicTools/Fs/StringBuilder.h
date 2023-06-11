@@ -6,12 +6,12 @@
  */
 
 #ifndef STRINGBUILDER_H
-#define	STRINGBUILDER_H
+#define STRINGBUILDER_H
 #include "../publicDefine.h"
 #include <stdio.h>
 #include "ObjectList.h"
 #include "String.h"
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -30,11 +30,16 @@ extern "C" {
     FsString* fs_StringBuilder_delete__IO__OI(FsStringBuilder* pStringBuilder);
     /*
      * 把string拷贝一份插到pStringBuilder尾部;
-     * string不能为空;
      * 如果成功返回1;
      * 如果失败返回-1.
      */
-    char fs_StringBuilder_apend(FsStringBuilder* pStringBuilder, const char string[]);
+    signed char fs_StringBuilder_apend(FsStringBuilder * const pStringBuilder, /* 不能为空 */const char string[]);
+    /*
+     * 把string拷贝一份插到pStringBuilder中;
+     * 如果成功返回1;
+     * 如果失败返回-1.
+     */
+    signed char fs_StringBuilder_insert(FsStringBuilder * const pStringBuilder, /* 插入位置,从0开始,必须为有效值 */const unsigned long pos, /* string不能为空 */const char string[]);
     /*
      * 把string插到pStringBuilder尾部;
      * string不能为空;
@@ -47,7 +52,7 @@ extern "C" {
      * 如果成功返回1;
      * 如果失败返回-1.
      */
-    char fs_StringBuilder_apend_String__OI_2(FsStringBuilder* __restrict pStringBuilder, /* 不能为空 */ FsString* __restrict pString);
+    char fs_StringBuilder_apend_String__OI_2(FsStringBuilder * __restrict pStringBuilder, /* 不能为空 */ FsString * __restrict pString);
     /*
      * 把buffer插到pStringBuilder尾部;
      * 如果成功返回1;
@@ -56,14 +61,12 @@ extern "C" {
     char c5aii_StringBuilder_apend_String__OI_3(FsStringBuilder* pStringBuilder, /* buffer长度,不能为0 */const unsigned long bufferLenth, /* 不能为空 */char* __restrict buffer);
     /*
      * 把buffer插到pStringBuilder尾部;
-     * buffer不能为空;
-     * bufferLenth必须大于0;
      * 如果成功返回1;
      * 如果失败返回-1;
      */
-    char fs_StringBuilder_apend_string(FsStringBuilder* pStringBuilder, const unsigned long bufferLenth, const char buffer[]);
+    int fs_StringBuilder_apend_string(FsStringBuilder* pStringBuilder, /* 长度,必须大于0,字符串不包含末尾的\0 */const unsigned long bufferLenth, const char buffer[]);
     /* 把pStringBuilder合并,必须保证pStringBuilder->lenth>0 */
-    void fs_StringBuilder_to_String(const FsStringBuilder* pStringBuilder, /* 合并后的数据存放的空间,必须有足够的空间 */ char buffer[]);
+    void fs_StringBuilder_to_String(const FsStringBuilder * const pStringBuilder, /* 合并后的数据存放的空间,必须有足够的空间,不小于pStringBuilder->lenth */ char buffer[]);
     /*
      * 把pStringBuilder合并成一个FsString;
      * 如果pStringBuilder->lenth为0，则返回NULL;
@@ -77,7 +80,7 @@ extern "C" {
             /* 需要加密编码的开始下标,从0开始,必须为有效值,包含本身 */const unsigned long begin,
             /* 需要加密编码的结束下标,从0开始,必须为有效值,包含本身 */unsigned long end);
     /* 把pStringBuilder倒序合并,并加密编码,仅把编码部分写入,返回编码区的原校验和,必须保证pStringBuilder->lenth>0 */
-    unsigned char fs_StringBuilder_to_String_encryption_reverse_get_sourceCheck(const FsStringBuilder* pStringBuilder, /* 合并后的数据存放的空间,必须有足够的空间 */char buffer[],
+    unsigned char fs_StringBuilder_to_String_encryption_reverse_get_sourceCheck(const FsStringBuilder* pStringBuilder, /* 合并后的数据存放的空间,必须有足够的空间 */unsigned char buffer[],
             /* 密码,长度不能为0 */const unsigned char password[],
             /* 需要加密编码的开始下标,从0开始,必须为有效值,包含本身 */const unsigned long begin,
             /* 需要加密编码的结束下标,从0开始,必须为有效值,包含本身 */unsigned long end);
@@ -91,14 +94,15 @@ extern "C" {
      * 如果成功返回1;
      * 如果写文件失败返回-2.
      */
-    signed char fs_StringBuilder_out(const FsStringBuilder* pStringBuilder, FILE *fd);
+    int fs_StringBuilder_out(const FsStringBuilder * const pStringBuilder, FILE * const fd);
+
     /*
      * 把pStringBuilder保存到文件fileName中;
      * 如果成功返回1;
      * 如果打开文件失败返回-1;
      * 如果写文件失败返回-2.
      */
-    signed char fs_StringBuilder_save_to_file(const FsStringBuilder* pStringBuilder, /* 文件名,不能为空 */ const char fileName[]);
+    int fs_StringBuilder_save_to_file(const FsStringBuilder * const pStringBuilder, /* 文件名,不能为空 */ const char fileName[]);
 
     /*
      * 把pStringBuilder倒序写入文件流fd中;
@@ -136,9 +140,9 @@ extern "C" {
      */
     FsString* fs_StringBuilder_to_String_part__IO(/* 数据存放的链表,成员只能是FsString的实例 */const FsObjectList* pObjectList, /* 开始索引 */const unsigned long startIndex, /* 结束索引 */const unsigned long endIndex);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* STRINGBUILDER_H */
+#endif /* STRINGBUILDER_H */
 
